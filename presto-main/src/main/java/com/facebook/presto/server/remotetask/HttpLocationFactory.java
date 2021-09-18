@@ -32,6 +32,9 @@ import java.util.OptionalInt;
 import static com.facebook.airlift.http.client.HttpUriBuilder.uriBuilderFrom;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * http请求
+ */
 public class HttpLocationFactory
         implements LocationFactory
 {

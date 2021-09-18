@@ -16,6 +16,9 @@ package com.facebook.presto.operator.project;
 import com.facebook.presto.common.Page;
 import com.facebook.presto.common.function.SqlFunctionProperties;
 
+/**
+ * 页数据过滤器
+ */
 public interface PageFilter
 {
     boolean isDeterministic();

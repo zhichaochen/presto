@@ -38,6 +38,9 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Locale.ENGLISH;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 计划变量分配器
+ */
 public class PlanVariableAllocator
         implements VariableAllocator
 {
@@ -68,6 +71,12 @@ public class PlanVariableAllocator
         return newVariable(nameHint.getSuffix(), type, null);
     }
 
+    /**
+     * 创建变量
+     * @param nameHint
+     * @param type
+     * @return
+     */
     public VariableReferenceExpression newVariable(String nameHint, Type type)
     {
         return newVariable(nameHint, type, null);
@@ -78,6 +87,13 @@ public class PlanVariableAllocator
         return newVariable("$hashValue", BigintType.BIGINT);
     }
 
+    /**
+     * 创建变量
+     * @param nameHint
+     * @param type
+     * @param suffix
+     * @return
+     */
     @Override
     public VariableReferenceExpression newVariable(String nameHint, Type type, String suffix)
     {
@@ -85,14 +101,18 @@ public class PlanVariableAllocator
         requireNonNull(type, "type is null");
 
         // TODO: workaround for the fact that QualifiedName lowercases parts
+        // 转换成英文小写
         nameHint = nameHint.toLowerCase(ENGLISH);
 
         // don't strip the tail if the only _ is the first character
+        // 查找到最后一个下换线
         int index = nameHint.lastIndexOf("_");
         if (index > 0) {
+            // 下换线后面的内容
             String tail = nameHint.substring(index + 1);
 
             // only strip if tail is numeric or _ is the last character
+            // 下划线前半部分
             if (Ints.tryParse(tail) != null || index == nameHint.length() - 1) {
                 nameHint = nameHint.substring(0, index);
             }

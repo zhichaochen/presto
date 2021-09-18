@@ -24,6 +24,9 @@ import com.google.common.collect.Multimap;
 
 import static com.facebook.presto.execution.NodeTaskMap.NodeStatsTracker;
 
+/**
+ * 远程任务工厂
+ */
 public interface RemoteTaskFactory
 {
     RemoteTask createRemoteTask(Session session,

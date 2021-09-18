@@ -33,6 +33,9 @@ import static com.google.common.base.MoreObjects.toStringHelper;
 import static com.google.common.base.Preconditions.checkState;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 任务句柄，之所以称之为句柄，主要其持有taskId，通过taskId可以从缓存中查找到任务
+ */
 @ThreadSafe
 public class TaskHandle
 {

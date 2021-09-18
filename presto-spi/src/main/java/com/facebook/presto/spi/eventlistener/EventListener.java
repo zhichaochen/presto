@@ -13,16 +13,22 @@
  */
 package com.facebook.presto.spi.eventlistener;
 
+/**
+ * 事件监听器接口
+ */
 public interface EventListener
 {
+    // 查询创建相关事件
     default void queryCreated(QueryCreatedEvent queryCreatedEvent)
     {
     }
 
+    // 查询完成相关事件
     default void queryCompleted(QueryCompletedEvent queryCompletedEvent)
     {
     }
 
+    // split执行信息，同理包含成功和失败的细节信息.
     default void splitCompleted(SplitCompletedEvent splitCompletedEvent)
     {
     }

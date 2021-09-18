@@ -28,6 +28,9 @@ import static com.google.common.collect.ImmutableList.toImmutableList;
 import static com.google.common.util.concurrent.MoreExecutors.directExecutor;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 抽样Split
+ */
 public class SampledSplitSource
         implements SplitSource
 {

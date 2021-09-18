@@ -24,11 +24,20 @@ import static com.google.common.base.MoreObjects.toStringHelper;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 任务资源，会将该数据从协调节点发送到worker节点，两边都会用到
+ *
+ * 参考：https://zhuanlan.zhihu.com/p/57866550
+ */
 public class TaskSource
 {
+    // worker 节点ID
     private final PlanNodeId planNodeId;
+    // 切片集合，本次任务要处理的所有切片
     private final Set<ScheduledSplit> splits;
+    //
     private final Set<Lifespan> noMoreSplitsForLifespan;
+    //
     private final boolean noMoreSplits;
 
     @JsonCreator
@@ -77,15 +86,18 @@ public class TaskSource
     {
         checkArgument(planNodeId.equals(source.getPlanNodeId()), "Expected source %s, but got source %s", planNodeId, source.getPlanNodeId());
 
+        // 是否是新创建任务
         if (isNewer(source)) {
             // assure the new source is properly formed
             // we know that either the new source one has new splits and/or it is marking the source as closed
             checkArgument(!noMoreSplits || splits.containsAll(source.getSplits()), "Source %s has new splits, but no more splits already set", planNodeId);
 
+            // 分片列表
             Set<ScheduledSplit> newSplits = ImmutableSet.<ScheduledSplit>builder()
                     .addAll(splits)
                     .addAll(source.getSplits())
                     .build();
+            //
             Set<Lifespan> newNoMoreSplitsForDriverGroup = ImmutableSet.<Lifespan>builder()
                     .addAll(noMoreSplitsForLifespan)
                     .addAll(source.getNoMoreSplitsForLifespan())
@@ -103,6 +115,11 @@ public class TaskSource
         }
     }
 
+    /**
+     * 是否是新创建任务
+     * @param source
+     * @return
+     */
     private boolean isNewer(TaskSource source)
     {
         // the specified source is newer if it changes the no more

@@ -31,6 +31,9 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.Iterables.unmodifiableIterable;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 查询结果
+ */
 @Immutable
 public class QueryResults
         implements QueryStatusInfo, QueryData

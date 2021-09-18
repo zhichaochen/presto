@@ -57,6 +57,9 @@ import static java.lang.Math.min;
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
+/**
+ * 阶段执行状态器，相当于stage执行状态的监听器
+ */
 @ThreadSafe
 public class StageExecutionStateMachine
 {

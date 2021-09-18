@@ -21,9 +21,21 @@ import static com.facebook.presto.sql.planner.plan.ChildReplacer.replaceChildren
 import static com.google.common.base.Verify.verify;
 import static com.google.common.collect.ImmutableList.toImmutableList;
 
+/**
+ * 简单的计划重写器
+ * @param <C>
+ */
 public abstract class SimplePlanRewriter<C>
         extends InternalPlanVisitor<PlanNode, SimplePlanRewriter.RewriteContext<C>>
 {
+    /**
+     * 重写逻辑计划节点，这种写法，都是首先执行visitor#visitPlan方法
+     *
+     * @param rewriter
+     * @param node
+     * @param <C>
+     * @return
+     */
     public static <C> PlanNode rewriteWith(SimplePlanRewriter<C> rewriter, PlanNode node)
     {
         return node.accept(rewriter, new RewriteContext<>(rewriter, null));
@@ -34,12 +46,22 @@ public abstract class SimplePlanRewriter<C>
         return node.accept(rewriter, new RewriteContext<>(rewriter, context));
     }
 
+    /**
+     * 首先会执行这个方法
+     * @param node
+     * @param context
+     * @return
+     */
     @Override
     public PlanNode visitPlan(PlanNode node, RewriteContext<C> context)
     {
         return context.defaultRewrite(node, context.get());
     }
 
+    /**
+     * 重写上下文
+     * @param <C>
+     */
     public static class RewriteContext<C>
     {
         private final C userContext;
@@ -66,6 +88,7 @@ public abstract class SimplePlanRewriter<C>
         }
 
         /**
+         * 默认重写
          * Invoke the rewrite logic recursively on children of the given node and swap it
          * out with an identical copy with the rewritten children
          */

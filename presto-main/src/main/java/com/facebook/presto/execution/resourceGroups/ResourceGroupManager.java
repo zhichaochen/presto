@@ -27,12 +27,14 @@ import java.util.List;
 import java.util.concurrent.Executor;
 
 /**
+ * 资源组管理器
  * Classes implementing this interface must be thread safe. That is, all the methods listed below
  * may be called concurrently from any thread.
  */
 @ThreadSafe
 public interface ResourceGroupManager<C>
 {
+    //
     void submit(Statement statement, ManagedQueryExecution queryExecution, SelectionContext<C> selectionContext, Executor executor);
 
     SelectionContext<C> selectGroup(SelectionCriteria criteria);

@@ -31,6 +31,9 @@ import static com.facebook.presto.sql.planner.iterative.Lookup.noLookup;
 import static com.google.common.base.Verify.verify;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 缓存的统计信息提供者
+ */
 public final class CachingStatsProvider
         implements StatsProvider
 {

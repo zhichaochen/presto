@@ -20,6 +20,9 @@ import com.google.common.collect.ImmutableList;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * ES插件
+ */
 public class ElasticsearchPlugin
         implements Plugin
 {

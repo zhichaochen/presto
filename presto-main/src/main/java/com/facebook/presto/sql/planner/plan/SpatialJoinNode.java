@@ -31,6 +31,9 @@ import java.util.Set;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 空间连接节点
+ */
 @Immutable
 public class SpatialJoinNode
         extends InternalPlanNode

@@ -41,6 +41,7 @@ import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 
 /**
+ * 根据每个组成列上的约束定义一组有效元组
  * Defines a set of valid tuples according to the constraints on each of its constituent columns
  */
 public final class TupleDomain<T>

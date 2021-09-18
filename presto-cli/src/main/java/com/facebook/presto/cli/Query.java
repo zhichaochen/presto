@@ -50,13 +50,20 @@ import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 表示一条查询
+ */
 public class Query
         implements Closeable
 {
+    // 信号
     private static final Signal SIGINT = new Signal("INT");
 
+    // 是否忽略用户打断
     private final AtomicBoolean ignoreUserInterrupt = new AtomicBoolean();
+    // 客户端
     private final StatementClient client;
+    // 是否debug模式
     private final boolean debug;
 
     public Query(StatementClient client, boolean debug)

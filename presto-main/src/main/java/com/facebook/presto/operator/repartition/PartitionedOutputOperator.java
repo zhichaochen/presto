@@ -54,6 +54,9 @@ import static java.lang.Math.max;
 import static java.lang.Math.min;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 输出分区算子
+ */
 public class PartitionedOutputOperator
         implements Operator
 {

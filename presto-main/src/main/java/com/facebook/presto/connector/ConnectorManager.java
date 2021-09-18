@@ -89,6 +89,9 @@ import static com.google.common.base.Preconditions.checkState;
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 连接管理器
+ */
 @ThreadSafe
 public class ConnectorManager
 {

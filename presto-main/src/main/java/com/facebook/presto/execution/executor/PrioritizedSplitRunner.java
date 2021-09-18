@@ -31,6 +31,10 @@ import java.util.concurrent.atomic.AtomicReference;
 import static com.facebook.presto.operator.Operator.NOT_BLOCKED;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
+/**
+ *
+ * 对一个Split的所有操作内容进行了包装，
+ */
 public class PrioritizedSplitRunner
         implements Comparable<PrioritizedSplitRunner>
 {
@@ -148,9 +152,15 @@ public class PrioritizedSplitRunner
         return waitNanos.get();
     }
 
+    /**
+     * 处理Split
+     * 该方法只会执行固定长度时间片，如果超时还未完成，也会返回
+     * @return
+     */
     public ListenableFuture<?> process()
     {
         try {
+            // 开始时间
             long startNanos = ticker.read();
             start.compareAndSet(0, startNanos);
             lastReady.compareAndSet(0, startNanos);
@@ -159,6 +169,7 @@ public class PrioritizedSplitRunner
             waitNanos.getAndAdd(startNanos - lastReady.get());
 
             CpuTimer timer = new CpuTimer();
+            // 分片开始处理数据
             ListenableFuture<?> blocked = split.processFor(SPLIT_RUN_QUANTA);
             CpuTimer.CpuDuration elapsed = timer.elapsedTime();
 

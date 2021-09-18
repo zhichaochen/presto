@@ -59,6 +59,9 @@ import static java.util.Map.Entry.comparingByValue;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 
+/**
+ * 查询上下文，一条Sql的上下文
+ */
 @ThreadSafe
 public class QueryContext
 {

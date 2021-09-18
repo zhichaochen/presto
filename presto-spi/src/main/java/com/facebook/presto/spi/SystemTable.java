@@ -17,6 +17,7 @@ import com.facebook.presto.common.predicate.TupleDomain;
 import com.facebook.presto.spi.connector.ConnectorTransactionHandle;
 
 /**
+ * 表示一个表
  * Exactly one of {@link #cursor} or {@link #pageSource} must be implemented.
  */
 public interface SystemTable

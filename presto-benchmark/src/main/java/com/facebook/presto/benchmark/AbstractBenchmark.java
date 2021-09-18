@@ -30,8 +30,12 @@ import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
+/**
+ * 抽象基准（方便测试使用的）
+ */
 public abstract class AbstractBenchmark
 {
+    //
     private final String benchmarkName;
     private final int warmupIterations;
     private final int measuredIterations;

@@ -21,6 +21,9 @@ import javax.annotation.concurrent.Immutable;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
 
+/**
+ * 查询错误
+ */
 @Immutable
 public class QueryError
 {

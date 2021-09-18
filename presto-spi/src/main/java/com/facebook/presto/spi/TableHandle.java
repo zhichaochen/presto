@@ -24,14 +24,23 @@ import java.util.function.Supplier;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 表句柄
+ *
+ * 存储了与数据库表交互的一些信息
+ */
 public final class TableHandle
 {
+    // 连接ID
     private final ConnectorId connectorId;
+    // 表连接句柄
     private final ConnectorTableHandle connectorHandle;
+    // 事务句柄
     private final ConnectorTransactionHandle transaction;
 
     // ConnectorTableHandle will represent the engine's view of data set on a table, we will deprecate ConnectorTableLayoutHandle later.
     // TODO remove table layout once it is fully deprecated.
+    // 
     private final Optional<ConnectorTableLayoutHandle> layout;
 
     // This is not serializable; for local execution only

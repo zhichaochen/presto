@@ -30,6 +30,12 @@ import static java.lang.Math.min;
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 页：表示多行数据的集合
+ * 包含多个列的数据，内部仅提供逻辑行，实际以列式存储
+ *
+ * Page最大为1MB，最多1024×1024字节
+ */
 public final class Page
 {
     public static final int INSTANCE_SIZE = ClassLayout.parseClass(Page.class).instanceSize();
@@ -44,8 +50,8 @@ public final class Page
         return new Page(false, positionCount, blocks);
     }
 
-    private final Block[] blocks;
-    private final int positionCount;
+    private final Block[] blocks; // 多列数据
+    private final int positionCount;//
     private volatile long sizeInBytes = -1;
     private volatile long retainedSizeInBytes = -1;
     private volatile long logicalSizeInBytes = -1;

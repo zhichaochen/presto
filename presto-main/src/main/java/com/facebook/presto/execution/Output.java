@@ -23,11 +23,17 @@ import java.util.Objects;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 输出字段
+ */
 @Immutable
 public final class Output
 {
+    // 连接ID
     private final ConnectorId connectorId;
+    // 数据库
     private final String schema;
+    // 数据表
     private final String table;
 
     @JsonCreator

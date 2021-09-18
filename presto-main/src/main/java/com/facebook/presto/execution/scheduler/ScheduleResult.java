@@ -24,6 +24,9 @@ import static com.google.common.base.MoreObjects.toStringHelper;
 import static com.google.common.util.concurrent.Futures.immediateFuture;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 调度结果
+ */
 public class ScheduleResult
 {
     public enum BlockedReason

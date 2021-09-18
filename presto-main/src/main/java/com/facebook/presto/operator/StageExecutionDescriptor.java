@@ -28,10 +28,16 @@ import static com.facebook.presto.operator.StageExecutionDescriptor.StageExecuti
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 阶段执行描述器
+ */
 public class StageExecutionDescriptor
 {
+    // 阶段执行策略
     private final StageExecutionStrategy stageExecutionStrategy;
+    // 分组后的计划节点
     private final Set<PlanNodeId> groupedExecutionScanNodes;
+    // 总的有效期
     private final int totalLifespans;
 
     private StageExecutionDescriptor(StageExecutionStrategy stageExecutionStrategy, Set<PlanNodeId> groupedExecutionScanNodes, int totalLifespans)
@@ -135,11 +141,14 @@ public class StageExecutionDescriptor
         return totalLifespans;
     }
 
+    /**
+     * 执行策略
+     */
     public enum StageExecutionStrategy
     {
-        UNGROUPED_EXECUTION,
-        FIXED_LIFESPAN_SCHEDULE_GROUPED_EXECUTION,
-        DYNAMIC_LIFESPAN_SCHEDULE_GROUPED_EXECUTION,
-        RECOVERABLE_GROUPED_EXECUTION,
+        UNGROUPED_EXECUTION, // 非分组执行
+        FIXED_LIFESPAN_SCHEDULE_GROUPED_EXECUTION, // 固定的\u寿命\u计划\u分组\u执行
+        DYNAMIC_LIFESPAN_SCHEDULE_GROUPED_EXECUTION, // 动态寿命计划分组执行
+        RECOVERABLE_GROUPED_EXECUTION, // 可恢复分组执行
     }
 }

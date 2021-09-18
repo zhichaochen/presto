@@ -29,6 +29,9 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.util.concurrent.Futures.immediateFuture;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 任务状态机，任务状态监听器
+ */
 @ThreadSafe
 public class TaskStateMachine
 {
@@ -36,8 +39,9 @@ public class TaskStateMachine
 
     private final DateTime createdTime = DateTime.now();
 
-    private final TaskId taskId;
-    private final StateMachine<TaskState> taskState;
+    private final TaskId taskId; // 任务ID
+    private final StateMachine<TaskState> taskState; // 简单状态机
+    // 错误列表
     private final LinkedBlockingQueue<Throwable> failureCauses = new LinkedBlockingQueue<>();
 
     public TaskStateMachine(TaskId taskId, Executor executor)

@@ -123,6 +123,9 @@ import static java.lang.String.format;
 import static java.util.Locale.ENGLISH;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 元数据管理器
+ */
 public class MetadataManager
         implements Metadata
 {
@@ -812,6 +815,11 @@ public class MetadataManager
                 .map(layout -> new NewTableLayout(connectorId, transactionHandle, layout));
     }
 
+    /**
+     * 开始查询
+     * @param session
+     * @param connectors
+     */
     @Override
     public void beginQuery(Session session, Set<ConnectorId> connectors)
     {

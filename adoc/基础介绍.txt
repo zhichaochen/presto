@@ -1,0 +1,15 @@
+参考：https://cloud.tencent.com/developer/article/1637793
+
+presto 相关源码分析：https://blog.csdn.net/hjw199089/category_7350856.html
+
+
+Connector：
+    可以理解为Presto访问不同数据源的驱动程序
+    每个Connector都实现了Presto的标准SPI接口，因此只要自己实现SPI接口，
+    就可以实现适合自己需求的Connector
+Catalog
+    类似于Mysql中的数据库实例
+Schema
+    类似于Mysql中的Database，一个Catalog+一个Schema就唯一确定了一系列可查询的表集合。
+Table
+    就是传统数据库中表的概念。

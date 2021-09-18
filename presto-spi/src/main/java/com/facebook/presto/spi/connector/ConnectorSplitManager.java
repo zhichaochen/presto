@@ -20,6 +20,17 @@ import com.facebook.presto.spi.WarningCollector;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 连接器拆分管理器（我的理解：将数据切分成多个部分）
+ *
+ * SplitManger将table数据分块chunks,供Presto向workers分发处理。
+ * 我的：一个文件或者表可以分成多个split，表示表/文件的多个数据。
+ *
+ * 例如：
+ *
+ * Hive connector 列举hive的每个partition的文件files，为每个文件建立一到多个split。
+ * 对于没有分区（partitioned）的数据，一个相对好的策略是整个表作为一个split（Example HTTP connector 即为该类实现）
+ */
 public interface ConnectorSplitManager
 {
     ConnectorSplitSource getSplits(

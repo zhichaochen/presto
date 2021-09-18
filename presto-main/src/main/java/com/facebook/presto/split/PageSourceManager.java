@@ -36,9 +36,13 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 数据源管理器，管理各种数据源
+ */
 public class PageSourceManager
         implements PageSourceProvider
 {
+    // 数据源集合
     private final ConcurrentMap<ConnectorId, ConnectorPageSourceProvider> pageSourceProviders = new ConcurrentHashMap<>();
 
     public void addConnectorPageSourceProvider(ConnectorId connectorId, ConnectorPageSourceProvider pageSourceProvider)
@@ -53,6 +57,14 @@ public class PageSourceManager
         pageSourceProviders.remove(connectorId);
     }
 
+    /**
+     * 没有则创建，有则直接返回
+     * @param session
+     * @param split
+     * @param table
+     * @param columns
+     * @return
+     */
     @Override
     public ConnectorPageSource createPageSource(Session session, Split split, TableHandle table, List<ColumnHandle> columns)
     {

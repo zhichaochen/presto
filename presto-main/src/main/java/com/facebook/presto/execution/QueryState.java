@@ -21,6 +21,9 @@ import java.util.stream.Stream;
 
 import static com.google.common.collect.ImmutableSet.toImmutableSet;
 
+/**
+ * 查询状态
+ */
 @ThriftEnum
 public enum QueryState
 {
@@ -73,6 +76,7 @@ public enum QueryState
     }
 
     /**
+     * 终止状态
      * Is this a terminal state.
      */
     public boolean isDone()

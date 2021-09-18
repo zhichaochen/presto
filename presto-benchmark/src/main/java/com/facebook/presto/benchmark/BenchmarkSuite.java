@@ -29,6 +29,9 @@ import java.util.Map;
 import static com.facebook.presto.SystemSessionProperties.OPTIMIZE_HASH_GENERATION;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 基准套件
+ */
 public class BenchmarkSuite
 {
     private static final Logger LOGGER = Logger.get(BenchmarkSuite.class);

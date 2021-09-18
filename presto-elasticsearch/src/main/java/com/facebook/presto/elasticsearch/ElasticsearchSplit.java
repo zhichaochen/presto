@@ -32,7 +32,9 @@ import static java.util.Objects.requireNonNull;
 public class ElasticsearchSplit
         implements ConnectorSplit
 {
+    // 索引
     private final String index;
+    //
     private final int shard;
     private final TupleDomain<ColumnHandle> tupleDomain;
     private final Optional<String> address;

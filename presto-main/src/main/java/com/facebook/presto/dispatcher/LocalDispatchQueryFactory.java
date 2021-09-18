@@ -42,6 +42,9 @@ import static com.facebook.presto.spi.StandardErrorCode.NOT_SUPPORTED;
 import static com.facebook.presto.util.StatementUtils.isTransactionControlStatement;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 本地DispatchQuery工厂
+ */
 public class LocalDispatchQueryFactory
         implements DispatchQueryFactory
 {
@@ -82,6 +85,17 @@ public class LocalDispatchQueryFactory
         this.executor = requireNonNull(dispatchExecutor, "executorService is null").getExecutor();
     }
 
+    /**
+     * 创建分发查询
+     * @param session
+     * @param query
+     * @param preparedQuery
+     * @param slug
+     * @param resourceGroup
+     * @param queryType
+     * @param warningCollector
+     * @return
+     */
     @Override
     public DispatchQuery createDispatchQuery(
             Session session,
@@ -92,6 +106,7 @@ public class LocalDispatchQueryFactory
             Optional<QueryType> queryType,
             WarningCollector warningCollector)
     {
+        // 针对本次查询，创建一个查询状态机
         QueryStateMachine stateMachine = QueryStateMachine.begin(
                 query,
                 session,
@@ -105,8 +120,10 @@ public class LocalDispatchQueryFactory
                 metadata,
                 warningCollector);
 
+        // 发送查询创建事件
         queryMonitor.queryCreatedEvent(stateMachine.getBasicQueryInfo(Optional.empty()));
 
+        // 创建QueryExecution对象
         ListenableFuture<QueryExecution> queryExecutionFuture = executor.submit(() -> {
             QueryExecutionFactory<?> queryExecutionFactory = executionFactories.get(preparedQuery.getStatement().getClass());
             if (queryExecutionFactory == null) {
@@ -116,6 +133,7 @@ public class LocalDispatchQueryFactory
             return queryExecutionFactory.createQueryExecution(preparedQuery, stateMachine, slug, warningCollector, queryType);
         });
 
+        // 创建本地派发对象
         return new LocalDispatchQuery(
                 stateMachine,
                 queryMonitor,

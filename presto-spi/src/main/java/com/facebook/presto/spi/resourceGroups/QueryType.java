@@ -16,6 +16,9 @@ package com.facebook.presto.spi.resourceGroups;
 import com.facebook.drift.annotations.ThriftEnum;
 import com.facebook.drift.annotations.ThriftEnumValue;
 
+/**
+ * 查询类型
+ */
 @ThriftEnum
 public enum QueryType
 {

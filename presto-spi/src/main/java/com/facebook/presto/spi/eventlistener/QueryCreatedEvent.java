@@ -17,11 +17,17 @@ import java.time.Instant;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 查询创建事件
+ */
 public class QueryCreatedEvent
 {
+    // 创建时间
     private final Instant createTime;
 
+    // 查询上下文
     private final QueryContext context;
+    // 元数据
     private final QueryMetadata metadata;
 
     public QueryCreatedEvent(Instant createTime, QueryContext context, QueryMetadata metadata)

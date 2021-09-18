@@ -84,6 +84,9 @@ import static java.net.HttpURLConnection.HTTP_UNAVAILABLE;
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
+/**
+ * V1版本
+ */
 @ThreadSafe
 class StatementClientV1
         implements StatementClient
@@ -130,14 +133,17 @@ class StatementClientV1
         this.user = session.getUser();
         this.compressionDisabled = session.isCompressionDisabled();
 
+        // 构建一个/v1/statement的请求
         Request request = buildQueryRequest(session, query);
 
+        // 发送请求
         JsonResponse<QueryResults> response = JsonResponse.execute(QUERY_RESULTS_CODEC, httpClient, request);
         if ((response.getStatusCode() != HTTP_OK) || !response.hasValue()) {
             state.compareAndSet(State.RUNNING, State.CLIENT_ERROR);
             throw requestFailedException("starting query", request, response);
         }
 
+        // 处理响应
         processResponse(response.getHeaders(), response.getValue());
     }
 
@@ -417,11 +423,19 @@ class StatementClientV1
         }
     }
 
+    /**
+     * 处理响应
+     * @param headers
+     * @param results
+     */
     private void processResponse(Headers headers, QueryResults results)
     {
+        // 设置类目
         setCatalog.set(headers.get(PRESTO_SET_CATALOG));
+        // 设置数据库
         setSchema.set(headers.get(PRESTO_SET_SCHEMA));
 
+        // 设置session
         for (String setSession : headers.values(PRESTO_SET_SESSION)) {
             List<String> keyValue = SESSION_HEADER_SPLITTER.splitToList(setSession);
             if (keyValue.size() != 2) {
@@ -431,6 +445,7 @@ class StatementClientV1
         }
         resetSessionProperties.addAll(headers.values(PRESTO_CLEAR_SESSION));
 
+        // 设置角色
         for (String setRole : headers.values(PRESTO_SET_ROLE)) {
             List<String> keyValue = SESSION_HEADER_SPLITTER.splitToList(setRole);
             if (keyValue.size() != 2) {

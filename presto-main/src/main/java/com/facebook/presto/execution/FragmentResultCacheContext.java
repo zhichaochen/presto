@@ -39,6 +39,9 @@ import static com.google.common.hash.Hashing.sha256;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 主要用于缓存某个之前阶段的结果
+ */
 public class FragmentResultCacheContext
 {
     private static final Logger log = Logger.get(FragmentResultCacheContext.class);

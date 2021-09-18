@@ -29,6 +29,9 @@ import static com.google.common.collect.ImmutableList.toImmutableList;
 import static com.google.common.collect.Iterables.getOnlyElement;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 计划节点查找器，能通过根节点查找其他节点
+ */
 public class PlanNodeSearcher
 {
     public static PlanNodeSearcher searchFrom(PlanNode node)
@@ -126,6 +129,12 @@ public class PlanNodeSearcher
         return getOnlyElement(all);
     }
 
+    /**
+     * 递归查找所有节点
+     * @param node
+     * @param nodes
+     * @param <T>
+     */
     private <T extends PlanNode> void findAllRecursive(PlanNode node, ImmutableList.Builder<T> nodes)
     {
         node = lookup.resolve(node);

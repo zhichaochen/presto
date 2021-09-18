@@ -13,6 +13,9 @@
  */
 package com.facebook.presto.spi;
 
+/**
+ * 表句柄：可以获取表相关信息
+ */
 public interface ConnectorTableHandle
 {
 }

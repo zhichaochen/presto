@@ -27,8 +27,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+/**
+ * 事务管理器
+ */
 public interface TransactionManager
 {
+    // 默认的隔离级别
     IsolationLevel DEFAULT_ISOLATION = IsolationLevel.READ_UNCOMMITTED;
     boolean DEFAULT_READ_ONLY = false;
 

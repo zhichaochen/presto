@@ -37,6 +37,9 @@ import static org.objectweb.asm.Opcodes.ACC_TRANSIENT;
 import static org.objectweb.asm.Opcodes.ACC_VARARGS;
 import static org.objectweb.asm.Opcodes.ACC_VOLATILE;
 
+/**
+ * 访问标志枚举
+ */
 public enum Access
 {
     PUBLIC(ACC_PUBLIC),
@@ -76,6 +79,11 @@ public enum Access
         return name().toLowerCase(ENGLISH);
     }
 
+    /**
+     * 设置类的访问标志符
+     * @param access
+     * @return
+     */
     public static EnumSet<Access> a(Access... access)
     {
         return EnumSet.copyOf(ImmutableList.copyOf(access));

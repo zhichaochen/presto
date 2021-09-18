@@ -22,6 +22,9 @@ import java.util.Objects;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 表示一个表句柄
+ */
 public class InformationSchemaTableHandle
         implements ConnectorTableHandle
 {

@@ -15,6 +15,9 @@ package com.facebook.presto.cost;
 
 import com.facebook.presto.spi.plan.PlanNode;
 
+/**
+ * 统计信息提供者
+ */
 public interface StatsProvider
 {
     PlanNodeStatsEstimate getStats(PlanNode node);

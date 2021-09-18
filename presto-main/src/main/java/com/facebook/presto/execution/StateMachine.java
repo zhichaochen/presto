@@ -38,6 +38,7 @@ import static com.google.common.util.concurrent.Futures.immediateFuture;
 import static java.util.Objects.requireNonNull;
 
 /**
+ * 简单的状态监听器
  * Simple state machine which holds a single state. Callers can register for state change events.
  */
 @ThreadSafe
@@ -51,7 +52,7 @@ public class StateMachine<T>
     private final Set<T> terminalStates;
 
     @GuardedBy("lock")
-    private volatile T state;
+    private volatile T state; // 当前状态
 
     @GuardedBy("lock")
     private final List<StateChangeListener<T>> stateChangeListeners = new ArrayList<>();
@@ -94,6 +95,7 @@ public class StateMachine<T>
     }
 
     /**
+     * 更新状态
      * Sets the state.
      * If the new state does not {@code .equals()} the current state, listeners and waiters will be notified.
      *
@@ -131,6 +133,7 @@ public class StateMachine<T>
     }
 
     /**
+     * 如果当前状态满足预测，则设置状态，如果没有满足，则通知监听器
      * Sets the state if the current state satisfies the specified predicate.
      * If the new state does not {@code .equals()} the current state, listeners and waiters will be notified.
      *
@@ -143,19 +146,23 @@ public class StateMachine<T>
 
         while (true) {
             // check if the current state passes the predicate
+            // 当前状态
             T currentState = get();
 
             // change to same state is not a change, and does not notify the notify listeners
+            // 相同肯定返回false
             if (currentState.equals(newState)) {
                 return false;
             }
 
             // do not call predicate while holding the lock
+            // 是否满足预期
             if (!predicate.test(currentState)) {
                 return false;
             }
 
             // if state did not change while, checking the predicate, apply the new state
+            // 满足预期，则尝试更新
             if (compareAndSet(currentState, newState)) {
                 return true;
             }
@@ -234,6 +241,8 @@ public class StateMachine<T>
     }
 
     /**
+     * 监听查询状态不再是当前状态
+     * currentState：当前状态
      * Gets a future that completes when the state is no longer {@code .equals()} to {@code currentState)}.
      */
     public ListenableFuture<T> getStateChange(T currentState)
@@ -291,6 +300,10 @@ public class StateMachine<T>
         }
     }
 
+    /**
+     * 查询状态监听器
+     * @param <T>
+     */
     public interface StateChangeListener<T>
     {
         void stateChanged(T newState);

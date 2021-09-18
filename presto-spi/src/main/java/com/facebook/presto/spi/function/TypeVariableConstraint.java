@@ -25,6 +25,9 @@ import java.util.Objects;
 
 import static com.facebook.presto.common.type.UnknownType.UNKNOWN;
 
+/**
+ * 类型变量约束
+ */
 public class TypeVariableConstraint
 {
     private final String name;

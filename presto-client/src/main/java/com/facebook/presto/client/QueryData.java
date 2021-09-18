@@ -15,6 +15,9 @@ package com.facebook.presto.client;
 
 import java.util.List;
 
+/**
+ * 查询数据接口
+ */
 public interface QueryData
 {
     Iterable<List<Object>> getData();

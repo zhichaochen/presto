@@ -44,6 +44,9 @@ import static com.facebook.presto.type.TypeCalculationParser.SLASH;
 import static com.google.common.base.Preconditions.checkState;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 类型计算
+ */
 public final class TypeCalculation
 {
     private static final BaseErrorListener ERROR_LISTENER = new BaseErrorListener()

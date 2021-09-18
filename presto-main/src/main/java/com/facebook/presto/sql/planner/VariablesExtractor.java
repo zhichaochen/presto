@@ -41,6 +41,9 @@ import static com.facebook.presto.sql.relational.OriginalExpressionUtils.isExpre
 import static com.google.common.collect.ImmutableSet.toImmutableSet;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 变量提取器
+ */
 public final class VariablesExtractor
 {
     private VariablesExtractor() {}

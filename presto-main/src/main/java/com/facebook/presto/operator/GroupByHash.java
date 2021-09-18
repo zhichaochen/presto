@@ -27,6 +27,9 @@ import static com.facebook.presto.SystemSessionProperties.isDictionaryAggregatio
 import static com.facebook.presto.common.type.BigintType.BIGINT;
 import static com.facebook.presto.operator.UpdateMemory.NOOP;
 
+/**
+ * 通过hash进行分组
+ */
 public interface GroupByHash
 {
     static GroupByHash createGroupByHash(

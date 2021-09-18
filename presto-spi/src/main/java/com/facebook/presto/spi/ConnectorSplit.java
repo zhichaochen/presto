@@ -18,9 +18,14 @@ import com.facebook.presto.spi.schedule.NodeSelectionStrategy;
 import java.util.List;
 import java.util.OptionalLong;
 
+/**
+ * 数据切分，表示数据的一个切片
+ * 一个split可以对应一个partition，或多个partition。
+ */
 public interface ConnectorSplit
 {
     /**
+     * 节点选择策略
      * Indicate the node affinity of a Split
      * 1. HARD_AFFINITY: Split is NOT remotely accessible and has to be on specific nodes
      * 2. SOFT_AFFINITY: Connector split provides a list of preferred nodes for engine to pick from but not mandatory.
@@ -29,6 +34,7 @@ public interface ConnectorSplit
     NodeSelectionStrategy getNodeSelectionStrategy();
 
     /**
+     * 提供一个首选节点列表，供调度器选择。
      * Provide a list of preferred nodes for scheduler to pick.
      * 1. The scheduler will respect the preference if the strategy is HARD_AFFINITY.
      * 2. Otherwise, the scheduler will prioritize the provided nodes if the strategy is SOFT_AFFINITY.

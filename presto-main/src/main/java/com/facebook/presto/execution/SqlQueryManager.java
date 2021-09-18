@@ -62,6 +62,10 @@ import static com.google.common.util.concurrent.Futures.immediateFailedFuture;
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * Sql查询管理器
+ * createQuery词法分析语法分析的入口
+ */
 @ThreadSafe
 public class SqlQueryManager
         implements QueryManager
@@ -99,12 +103,18 @@ public class SqlQueryManager
         this.queryTracker = new QueryTracker<>(queryManagerConfig, queryManagementExecutor);
     }
 
+    /**
+     * @PostConstruct ：会在项目启动之后执行
+     */
     @PostConstruct
     public void start()
     {
+        // 启动查询跟踪器
         queryTracker.start();
+        //
         queryManagementExecutor.scheduleWithFixedDelay(() -> {
             try {
+                // 内存限制
                 enforceMemoryLimits();
             }
             catch (Throwable e) {
@@ -112,6 +122,7 @@ public class SqlQueryManager
             }
 
             try {
+                // cpu限制
                 enforceCpuLimits();
             }
             catch (Throwable e) {
@@ -119,6 +130,7 @@ public class SqlQueryManager
             }
 
             try {
+                // 查询字节限制
                 enforceScanLimits();
             }
             catch (Throwable e) {
@@ -126,6 +138,7 @@ public class SqlQueryManager
             }
 
             try {
+                // 查询条数限制
                 enforceOutputSizeLimits();
             }
             catch (Throwable e) {
@@ -230,27 +243,37 @@ public class SqlQueryManager
                 .ifPresent(QueryExecution::recordHeartbeat);
     }
 
+    /**
+     * 真正的开始一个查询
+     * @param queryExecution
+     */
     @Override
     public void createQuery(QueryExecution queryExecution)
     {
         requireNonNull(queryExecution, "queryExecution is null");
 
+        // 判断该查询是否已经存在，如果该查询已经存在，则抛出异常
         if (!queryTracker.addQuery(queryExecution)) {
             throw new PrestoException(GENERIC_INTERNAL_ERROR, format("Query %s already registered", queryExecution.getQueryId()));
         }
 
+        // 添加查询完成监听器
         queryExecution.addFinalQueryInfoListener(finalQueryInfo -> {
             try {
+                // 发送查询完成事件
                 queryMonitor.queryCompletedEvent(finalQueryInfo);
             }
             finally {
                 // execution MUST be added to the expiration queue or there will be a leak
+                // 查询完成，使当前查询失效
                 queryTracker.expireQuery(queryExecution.getQueryId());
             }
         });
 
+        // 查询统计
         stats.trackQueryStats(queryExecution);
 
+        // 开始执行
         embedVersion.embedVersion(queryExecution::start).run();
     }
 
@@ -352,13 +375,18 @@ public class SqlQueryManager
     }
 
     /**
+     * 查询条数限制
      * Enforce query output size limits
      */
     private void enforceOutputSizeLimits()
     {
+        // 遍历所有查询
         for (QueryExecution query : queryTracker.getAllQueries()) {
+            // 获取查询条数
             DataSize outputSize = query.getOutputDataSize();
+            // 获取允许的最大条数
             DataSize sessionlimit = getQueryMaxOutputSize(query.getSession());
+            // 如果超出最大条数限制则失败
             DataSize limit = Ordering.natural().min(maxQueryOutputSize, sessionlimit);
             if (outputSize.compareTo(limit) >= 0) {
                 query.fail(new ExceededOutputSizeLimitException(limit));

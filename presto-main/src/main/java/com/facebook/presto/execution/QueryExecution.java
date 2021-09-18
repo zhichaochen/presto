@@ -36,21 +36,32 @@ import java.util.function.Consumer;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 查询执行接口
+ * 表示一次查询执行，启动、停止、管理、统计等
+ */
 public interface QueryExecution
         extends TrackedQuery
 {
+    // 当前查询状态
     QueryState getState();
 
+    // 等待当前状态发生改变，当发生变化之后，会返回最新的状态。
     ListenableFuture<QueryState> getStateChange(QueryState currentState);
 
+    // 添加状态变化监听器
     void addStateChangeListener(StateChangeListener<QueryState> stateChangeListener);
 
+    // 添加输出结果监听器
     void addOutputInfoListener(Consumer<QueryOutputInfo> listener);
 
+    // 查询计划
     Plan getQueryPlan();
 
+    // 基本的查询信息
     BasicQueryInfo getBasicQueryInfo();
 
+    // 查询信息
     QueryInfo getQueryInfo();
 
     String getSlug();
@@ -80,12 +91,17 @@ public interface QueryExecution
     void recordHeartbeat();
 
     /**
+     * 最终查询信息监听器（查询结果，或者中断等）
      * Add a listener for the final query info.  This notification is guaranteed to be fired only once.
      * Listener is always notified asynchronously using a dedicated notification thread pool so, care should
      * be taken to avoid leaking {@code this} when adding a listener in a constructor.
      */
     void addFinalQueryInfoListener(StateChangeListener<QueryInfo> stateChangeListener);
 
+    /**
+     * 查询执行工厂
+     * @param <T>
+     */
     interface QueryExecutionFactory<T extends QueryExecution>
     {
         T createQueryExecution(

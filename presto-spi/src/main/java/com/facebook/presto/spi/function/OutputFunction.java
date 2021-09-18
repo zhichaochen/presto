@@ -19,6 +19,9 @@ import java.lang.annotation.Target;
 import static java.lang.annotation.ElementType.METHOD;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
+/**
+ * 使用最终聚合状态进行
+ */
 @Retention(RUNTIME)
 @Target(METHOD)
 public @interface OutputFunction

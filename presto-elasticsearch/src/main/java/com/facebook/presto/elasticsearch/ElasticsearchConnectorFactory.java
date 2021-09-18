@@ -27,6 +27,9 @@ import java.util.Map;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 连接工厂
+ */
 public class ElasticsearchConnectorFactory
         implements ConnectorFactory
 {

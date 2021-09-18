@@ -16,6 +16,9 @@ package com.facebook.presto.spi;
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * 告警收集器
+ */
 public interface WarningCollector
 {
     WarningCollector NOOP =

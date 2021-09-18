@@ -21,6 +21,9 @@ import java.util.concurrent.CompletableFuture;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 这个页面切分资源
+ */
 public interface ConnectorSplitSource
         extends Closeable
 {

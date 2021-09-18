@@ -79,8 +79,20 @@ import static java.util.Objects.requireNonNull;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toList;
 
+/**
+ * Sql任务执行器
+ *
+ * 每个SqlTaskExecution运行在一个worker，每个任务在Worker上以SqlTaskExecution存在
+ *
+ * 在Worker上只可运行SqlStageExecution的一个task，当然通过设置可以运行多个
+ *
+ * SqlStageExecution可拆分成多个SqlTaskExecution
+ */
 public class SqlTaskExecution
 {
+    // 对于任务中的每个驱动程序，它都属于一个管道和一个驱动程序生命周期。
+    // 流水线和驱动程序生命周期是两个相互垂直的任务组织。
+
     // For each driver in a task, it belong to a pipeline and a driver life cycle.
     // Pipeline and driver life cycle are two perpendicular organizations of tasks.
     //
@@ -120,6 +132,7 @@ public class SqlTaskExecution
 
     private final SplitMonitor splitMonitor;
 
+    // 驱动列表
     private final List<WeakReference<Driver>> drivers = new CopyOnWriteArrayList<>();
 
     private final Map<PlanNodeId, DriverSplitRunnerFactory> driverRunnerFactoriesWithSplitLifeCycle;
@@ -167,7 +180,9 @@ public class SqlTaskExecution
             return task;
         }
     }
-
+    /**
+     * 创建任务执行
+     **/
     private SqlTaskExecution(
             TaskStateMachine taskStateMachine,
             TaskContext taskContext,
@@ -187,6 +202,7 @@ public class SqlTaskExecution
 
         this.splitMonitor = requireNonNull(splitMonitor, "splitMonitor is null");
 
+        // 设置线程名称
         try (SetThreadName ignored = new SetThreadName("Task-%s", taskId)) {
             // index driver factories
             Set<PlanNodeId> tableScanSources = ImmutableSet.copyOf(localExecutionPlan.getTableScanSourceOrder());
@@ -285,43 +301,6 @@ public class SqlTaskExecution
         return taskContext;
     }
 
-    public void addSources(List<TaskSource> sources)
-    {
-        requireNonNull(sources, "sources is null");
-        checkState(!Thread.holdsLock(this), "Can not add sources while holding a lock on the %s", getClass().getSimpleName());
-
-        try (SetThreadName ignored = new SetThreadName("Task-%s", taskId)) {
-            // update our record of sources and schedule drivers for new partitioned splits
-            Map<PlanNodeId, TaskSource> updatedRemoteSources = updateSources(sources);
-
-            // tell existing drivers about the new splits; it is safe to update drivers
-            // multiple times and out of order because sources contain full record of
-            // the unpartitioned splits
-            for (WeakReference<Driver> driverReference : drivers) {
-                Driver driver = driverReference.get();
-                // the driver can be GCed due to a failure or a limit
-                if (driver == null) {
-                    // remove the weak reference from the list to avoid a memory leak
-                    // NOTE: this is a concurrent safe operation on a CopyOnWriteArrayList
-                    drivers.remove(driverReference);
-                    continue;
-                }
-                Optional<PlanNodeId> sourceId = driver.getSourceId();
-                if (!sourceId.isPresent()) {
-                    continue;
-                }
-                TaskSource sourceUpdate = updatedRemoteSources.get(sourceId.get());
-                if (sourceUpdate == null) {
-                    continue;
-                }
-                driver.updateSource(sourceUpdate);
-            }
-
-            // we may have transitioned to no more splits, so check for completion
-            checkTaskCompletion();
-        }
-    }
-
     private synchronized Map<PlanNodeId, TaskSource> updateSources(List<TaskSource> sources)
     {
         Map<PlanNodeId, TaskSource> updatedRemoteSources = new HashMap<>();
@@ -364,6 +343,57 @@ public class SqlTaskExecution
         return updatedRemoteSources;
     }
 
+    /**
+     * 添加TaskResource到任务执行器，node端的任务执行器会自动执行的
+     * @param sources
+     */
+    public void addSources(List<TaskSource> sources)
+    {
+        requireNonNull(sources, "sources is null");
+        checkState(!Thread.holdsLock(this), "Can not add sources while holding a lock on the %s", getClass().getSimpleName());
+
+        try (SetThreadName ignored = new SetThreadName("Task-%s", taskId)) {
+            // update our record of sources and schedule drivers for new partitioned splits
+            // 更新新分区splits的源记录和计划驱动程序
+            Map<PlanNodeId, TaskSource> updatedRemoteSources = updateSources(sources);
+
+            // tell existing drivers about the new splits; it is safe to update drivers
+            // multiple times and out of order because sources contain full record of
+            // the unpartitioned splits
+            // 遍历所有驱动
+            for (WeakReference<Driver> driverReference : drivers) {
+                Driver driver = driverReference.get();
+                // the driver can be GCed due to a failure or a limit
+                if (driver == null) {
+                    // remove the weak reference from the list to avoid a memory leak
+                    // NOTE: this is a concurrent safe operation on a CopyOnWriteArrayList
+                    drivers.remove(driverReference);
+                    continue;
+                }
+                // 获取sourceId
+                Optional<PlanNodeId> sourceId = driver.getSourceId();
+                if (!sourceId.isPresent()) {
+                    continue;
+                }
+                TaskSource sourceUpdate = updatedRemoteSources.get(sourceId.get());
+                if (sourceUpdate == null) {
+                    continue;
+                }
+                driver.updateSource(sourceUpdate);
+            }
+
+            // we may have transitioned to no more splits, so check for completion
+            checkTaskCompletion();
+        }
+    }
+
+    /**
+     * 合并到挂起的splits
+     * @param planNodeId
+     * @param scheduledSplits
+     * @param noMoreSplitsForLifespan
+     * @param noMoreSplits
+     */
     @GuardedBy("this")
     private void mergeIntoPendingSplits(PlanNodeId planNodeId, Set<ScheduledSplit> scheduledSplits, Set<Lifespan> noMoreSplitsForLifespan, boolean noMoreSplits)
     {
@@ -389,6 +419,10 @@ public class SqlTaskExecution
         }
     }
 
+    /**
+     * 调度扫描表的source
+     * @param sourceUpdate
+     */
     private synchronized void scheduleTableScanSource(TaskSource sourceUpdate)
     {
         mergeIntoPendingSplits(sourceUpdate.getPlanNodeId(), sourceUpdate.getSplits(), sourceUpdate.getNoMoreSplitsForLifespan(), sourceUpdate.isNoMoreSplits());
@@ -621,6 +655,9 @@ public class SqlTaskExecution
         return noMoreSplits.build();
     }
 
+    /**
+     * 检查任务是否完成
+     */
     private synchronized void checkTaskCompletion()
     {
         if (taskStateMachine.getState().isDone()) {
@@ -749,6 +786,9 @@ public class SqlTaskExecution
         }
     }
 
+    /**
+     * 切分状态
+     */
     enum SplitsState
     {
         ADDING_SPLITS,
@@ -759,6 +799,9 @@ public class SqlTaskExecution
         FINISHED,
     }
 
+    /**
+     *
+     */
     private static class SchedulingLifespanManager
     {
         // SchedulingLifespanManager only contains partitioned drivers.
@@ -848,6 +891,9 @@ public class SqlTaskExecution
         }
     }
 
+    /**
+     *
+     */
     private static class SchedulingLifespan
     {
         private final Lifespan lifespan;
@@ -914,10 +960,13 @@ public class SqlTaskExecution
         }
     }
 
+    /**
+     * 驱动split运行工厂
+     */
     private class DriverSplitRunnerFactory
     {
-        private final DriverFactory driverFactory;
-        private final PipelineContext pipelineContext;
+        private final DriverFactory driverFactory;// 驱动工厂
+        private final PipelineContext pipelineContext;// Pipeline上线文
         private boolean closed;
 
         private DriverSplitRunnerFactory(DriverFactory driverFactory, boolean partitioned)
@@ -938,6 +987,12 @@ public class SqlTaskExecution
             return new DriverSplitRunner(this, driverContext, partitionedSplit, lifespan);
         }
 
+        /**
+         * 创建驱动
+         * @param driverContext
+         * @param partitionedSplit
+         * @return
+         */
         public Driver createDriver(DriverContext driverContext, @Nullable ScheduledSplit partitionedSplit)
         {
             Driver driver = driverFactory.createDriver(driverContext);
@@ -1010,9 +1065,13 @@ public class SqlTaskExecution
         }
     }
 
+    /**
+     * 分片执行器，执行的分片动作
+     */
     private static class DriverSplitRunner
             implements SplitRunner
     {
+        //
         private final DriverSplitRunnerFactory driverSplitRunnerFactory;
         private final DriverContext driverContext;
         private final Lifespan lifespan;
@@ -1057,16 +1116,23 @@ public class SqlTaskExecution
             return driver != null && driver.isFinished();
         }
 
+        /**
+         * 在处理，给定个超时时间
+         * @param duration
+         * @return
+         */
         @Override
         public ListenableFuture<?> processFor(Duration duration)
         {
             Driver driver;
             synchronized (this) {
                 // if close() was called before we get here, there's not point in even creating the driver
+                // 如果已经关闭，返回null
                 if (closed) {
                     return Futures.immediateFuture(null);
                 }
 
+                // 创建驱动
                 if (this.driver == null) {
                     this.driver = driverSplitRunnerFactory.createDriver(driverContext, partitionedSplit);
                 }

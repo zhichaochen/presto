@@ -15,6 +15,9 @@ package com.facebook.presto.elasticsearch;
 
 import com.facebook.presto.spi.connector.ConnectorTransactionHandle;
 
+/**
+ * 事务句柄
+ */
 public enum ElasticsearchTransactionHandle
         implements ConnectorTransactionHandle
 {

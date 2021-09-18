@@ -114,16 +114,24 @@ import static com.google.common.collect.Streams.zip;
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 逻辑执行计划
+ */
 public class LogicalPlanner
 {
+    // 阶段：创建阶段，优化阶段，校验阶段
     public enum Stage
     {
         CREATED, OPTIMIZED, OPTIMIZED_AND_VALIDATED
     }
 
+    // 是否是explain
     private final boolean explain;
+    // 节点的ID分配器
     private final PlanNodeIdAllocator idAllocator;
+    // session
     private final Session session;
+    // 优化器列表
     private final List<PlanOptimizer> planOptimizers;
     private final PlanChecker planChecker;
     private final PlanVariableAllocator variableAllocator = new PlanVariableAllocator();
@@ -174,6 +182,11 @@ public class LogicalPlanner
         this.warningCollector = requireNonNull(warningCollector, "warningCollector is null");
     }
 
+    /**
+     * 生成逻辑计划
+     * @param analysis
+     * @return
+     */
     public Plan plan(Analysis analysis)
     {
         return plan(analysis, Stage.OPTIMIZED_AND_VALIDATED);
@@ -181,19 +194,25 @@ public class LogicalPlanner
 
     public Plan plan(Analysis analysis, Stage stage)
     {
+        // 根据表Sql生成执行计划
         PlanNode root = planStatement(analysis, analysis.getStatement());
 
+        // 校验计划
         planChecker.validateIntermediatePlan(root, session, metadata, sqlParser, variableAllocator.getTypes(), warningCollector);
 
+        // 如果不是创建阶段
         if (stage.ordinal() >= Stage.OPTIMIZED.ordinal()) {
+            // 遍历所有优化器，优化执行计划
             for (PlanOptimizer optimizer : planOptimizers) {
                 root = optimizer.optimize(root, session, variableAllocator.getTypes(), variableAllocator, idAllocator, warningCollector);
                 requireNonNull(root, format("%s returned a null plan", optimizer.getClass().getName()));
             }
         }
 
+        // 如果是校验阶段
         if (stage.ordinal() >= Stage.OPTIMIZED_AND_VALIDATED.ordinal()) {
             // make sure we produce a valid plan after optimizations run. This is mainly to catch programming errors
+            // 校验执行计划
             planChecker.validateFinalPlan(root, session, metadata, sqlParser, variableAllocator.getTypes(), warningCollector);
         }
 
@@ -213,20 +232,38 @@ public class LogicalPlanner
         return StatsAndCosts.empty();
     }
 
+    /**
+     * 生成逻辑计划树
+     * @param analysis
+     * @param statement
+     * @return
+     */
     public PlanNode planStatement(Analysis analysis, Statement statement)
     {
+        // 创建表相关的
         if (statement instanceof CreateTableAsSelect && analysis.isCreateTableAsSelectNoOp()) {
+            // 检查状态
             checkState(analysis.getCreateTableDestination().isPresent(), "Table destination is missing");
+            // 创建一个bigint类型的rows变量
             VariableReferenceExpression variable = variableAllocator.newVariable("rows", BIGINT);
+            // 创建一个Values节点
             PlanNode source = new ValuesNode(
                     idAllocator.getNextId(),
                     ImmutableList.of(variable),
                     ImmutableList.of(ImmutableList.of(constant(0L, BIGINT))));
+            // 创建一个输出节点
             return new OutputNode(idAllocator.getNextId(), source, ImmutableList.of("rows"), ImmutableList.of(variable));
         }
+        // 非创建表相关，先创建节点计划，再创建输出节点计划
         return createOutputPlan(planStatementWithoutOutput(analysis, statement), analysis);
     }
 
+    /**
+     * 无输出的计划
+     * @param analysis
+     * @param statement
+     * @return
+     */
     private RelationPlan planStatementWithoutOutput(Analysis analysis, Statement statement)
     {
         if (statement instanceof CreateTableAsSelect) {
@@ -235,19 +272,24 @@ public class LogicalPlanner
             }
             return createTableCreationPlan(analysis, ((CreateTableAsSelect) statement).getQuery());
         }
+        // 创建分析计划
         else if (statement instanceof Analyze) {
             return createAnalyzePlan(analysis, (Analyze) statement);
         }
+        // 创建Insert计划
         else if (statement instanceof Insert) {
             checkState(analysis.getInsert().isPresent(), "Insert handle is missing");
             return createInsertPlan(analysis, (Insert) statement);
         }
+        // 创建delete计划
         else if (statement instanceof Delete) {
             return createDeletePlan(analysis, (Delete) statement);
         }
+        // 如果是查询语句
         else if (statement instanceof Query) {
             return createRelationPlan(analysis, (Query) statement);
         }
+        // 创建explain分析计划
         else if (statement instanceof Explain && ((Explain) statement).isAnalyze()) {
             return createExplainAnalyzePlan(analysis, (Explain) statement);
         }
@@ -266,11 +308,19 @@ public class LogicalPlanner
         return new RelationPlan(root, scope, ImmutableList.of(outputVariable));
     }
 
+    /**
+     * 创建分析计划
+     * @param analysis
+     * @param analyzeStatement
+     * @return
+     */
     private RelationPlan createAnalyzePlan(Analysis analysis, Analyze analyzeStatement)
     {
+        // 表句柄
         TableHandle targetTable = analysis.getAnalyzeTarget().get();
 
         // Plan table scan
+        //
         Map<String, ColumnHandle> columnHandles = metadata.getColumnHandles(session, targetTable);
         ImmutableList.Builder<VariableReferenceExpression> tableScanOutputsBuilder = ImmutableList.builder();
         ImmutableMap.Builder<VariableReferenceExpression, ColumnHandle> variableToColumnHandle = ImmutableMap.builder();
@@ -345,17 +395,22 @@ public class LogicalPlanner
 
     private RelationPlan createInsertPlan(Analysis analysis, Insert insertStatement)
     {
+        // Insert信息
         Analysis.Insert insert = analysis.getInsert().get();
 
+        // 表元数据
         TableMetadata tableMetadata = metadata.getTableMetadata(session, insert.getTarget());
 
+        // 列元信息列表
         List<ColumnMetadata> visibleTableColumns = tableMetadata.getColumns().stream()
                 .filter(column -> !column.isHidden())
                 .collect(toImmutableList());
+        // 列名列表
         List<String> visibleTableColumnNames = visibleTableColumns.stream()
                 .map(ColumnMetadata::getName)
                 .collect(toImmutableList());
 
+        // 穿件
         RelationPlan plan = createRelationPlan(analysis, insertStatement.getQuery());
 
         Map<String, ColumnHandle> columns = metadata.getColumnHandles(session, insert.getTarget());
@@ -514,6 +569,7 @@ public class LogicalPlanner
         return new RelationPlan(commitNode, analysis.getScope(node), commitNode.getOutputVariables());
     }
 
+
     private PlanNode createOutputPlan(RelationPlan plan, Analysis analysis)
     {
         ImmutableList.Builder<VariableReferenceExpression> outputs = ImmutableList.builder();
@@ -535,6 +591,12 @@ public class LogicalPlanner
         return new OutputNode(idAllocator.getNextId(), plan.getRoot(), names.build(), outputs.build());
     }
 
+    /**
+     * 创建关系型计划，并处理该查询语句
+     * @param analysis
+     * @param query
+     * @return
+     */
     private RelationPlan createRelationPlan(Analysis analysis, Query query)
     {
         return new RelationPlanner(analysis, variableAllocator, idAllocator, buildLambdaDeclarationToVariableMap(analysis, variableAllocator), metadata, session)
@@ -585,6 +647,13 @@ public class LogicalPlanner
         return resultMap;
     }
 
+    /**
+     * 为写数据创建分区方案
+     * @param tableLayout
+     * @param columnNames
+     * @param variables
+     * @return
+     */
     private static Optional<PartitioningScheme> getPartitioningSchemeForTableWrite(Optional<NewTableLayout> tableLayout, List<String> columnNames, List<VariableReferenceExpression> variables)
     {
         // todo this should be checked in analysis
@@ -604,6 +673,7 @@ public class LogicalPlanner
 
             List<VariableReferenceExpression> outputLayout = new ArrayList<>(variables);
 
+            // 创建分区方法
             partitioningScheme = Optional.of(new PartitioningScheme(
                     Partitioning.create(tableLayout.get().getPartitioning(), partitionFunctionArguments),
                     outputLayout));

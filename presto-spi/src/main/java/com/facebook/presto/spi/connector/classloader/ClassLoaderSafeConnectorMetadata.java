@@ -60,6 +60,11 @@ import java.util.concurrent.CompletableFuture;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 使用传入的类加载器安全地连接到元数据
+ * 加载连接器的classloader 和 加载presto的class loader是不一样的。
+ *
+ */
 public class ClassLoaderSafeConnectorMetadata
         implements ConnectorMetadata
 {

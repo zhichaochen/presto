@@ -20,12 +20,18 @@ import com.facebook.presto.spi.plan.PlanNodeId;
 import java.util.Optional;
 import java.util.function.Supplier;
 
+/**
+ * 对源数据做的操作（刚从表里查出来的数据）
+ */
 public interface SourceOperator
         extends Operator
 {
+    //
     PlanNodeId getSourceId();
 
+    //
     Supplier<Optional<UpdatablePageSource>> addSplit(Split split);
 
+    //
     void noMoreSplits();
 }

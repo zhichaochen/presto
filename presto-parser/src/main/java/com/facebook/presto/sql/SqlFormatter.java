@@ -133,6 +133,9 @@ import static com.google.common.collect.Iterables.getOnlyElement;
 import static java.lang.String.format;
 import static java.util.stream.Collectors.joining;
 
+/**
+ * Sql格式化器，我理解是sql拆分后，重新生成的过程
+ */
 public final class SqlFormatter
 {
     private static final String INDENT = "   ";
@@ -147,6 +150,9 @@ public final class SqlFormatter
         return builder.toString();
     }
 
+    /**
+     * 内部类，Sql格式化器，本质来说是个访问器
+     */
     private static class Formatter
             extends AstVisitor<Void, Integer>
     {
@@ -244,6 +250,12 @@ public final class SqlFormatter
             return null;
         }
 
+        /**
+         * 访问查询
+         * @param node ：query
+         * @param indent ：缩进
+         * @return
+         */
         @Override
         protected Void visitQuery(Query node, Integer indent)
         {

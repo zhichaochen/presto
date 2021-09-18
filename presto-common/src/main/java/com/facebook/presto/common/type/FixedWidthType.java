@@ -16,6 +16,7 @@ package com.facebook.presto.common.type;
 import com.facebook.presto.common.block.BlockBuilder;
 
 /**
+ * 表示字段固定长度
  * FixedWidthType is a type that has a fixed size for every value.
  */
 public interface FixedWidthType

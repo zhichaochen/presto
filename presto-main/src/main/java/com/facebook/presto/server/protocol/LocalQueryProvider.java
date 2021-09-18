@@ -44,6 +44,9 @@ import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static javax.ws.rs.core.MediaType.TEXT_PLAIN_TYPE;
 
+/**
+ * 本地查询提供器
+ */
 public class LocalQueryProvider
 {
     private static final Logger log = Logger.get(LocalQueryProvider.class);

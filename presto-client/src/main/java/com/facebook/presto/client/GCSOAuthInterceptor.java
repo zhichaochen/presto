@@ -31,6 +31,9 @@ import static com.facebook.presto.client.GCSOAuthScope.DEVSTORAGE_READ_ONLY;
 import static com.facebook.presto.client.PrestoHeaders.PRESTO_EXTRA_CREDENTIAL;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * ok http 的拦截器，权限拦截器
+ */
 public class GCSOAuthInterceptor
         implements Interceptor
 {

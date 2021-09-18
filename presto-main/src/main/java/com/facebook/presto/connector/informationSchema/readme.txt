@@ -1,0 +1,1 @@
+在启动时为每个Catalog都建立了一个information_schema 库

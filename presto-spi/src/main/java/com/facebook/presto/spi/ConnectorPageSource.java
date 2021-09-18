@@ -19,6 +19,9 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 
+/**
+ * 用于查询出一页数据
+ */
 public interface ConnectorPageSource
         extends Closeable
 {

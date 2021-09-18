@@ -49,6 +49,12 @@ import static com.google.common.base.Preconditions.checkState;
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 查询跟踪器（持有所有正常的查询）
+ *
+ * 跟踪查询，确保查询符合规则，比如：不能超时
+ * @param <T>
+ */
 @ThreadSafe
 public class QueryTracker<T extends TrackedQuery>
 {
@@ -63,6 +69,7 @@ public class QueryTracker<T extends TrackedQuery>
 
     private final Duration minQueryExpireAge;
 
+    // TODO 当前所有查询，key : queryId，value：DispatchQuery
     private final ConcurrentMap<QueryId, T> queries = new ConcurrentHashMap<>();
     private final Queue<T> expirationQueue = new LinkedBlockingQueue<>();
 
@@ -85,11 +92,17 @@ public class QueryTracker<T extends TrackedQuery>
         this.queryManagementExecutor = requireNonNull(queryManagementExecutor, "queryManagementExecutor is null");
     }
 
+    /**
+     * 开始跟踪sql
+     *
+     * 开启一个周期任务，监控任务的状态
+     */
     public synchronized void start()
     {
         checkState(backgroundTask == null, "QueryTracker already started");
         backgroundTask = queryManagementExecutor.scheduleWithFixedDelay(() -> {
             try {
+                // 使被丢弃的任务失败
                 failAbandonedQueries();
             }
             catch (Throwable e) {
@@ -97,6 +110,7 @@ public class QueryTracker<T extends TrackedQuery>
             }
 
             try {
+                // 使超时的任务失败
                 enforceTimeLimits();
             }
             catch (Throwable e) {
@@ -104,6 +118,7 @@ public class QueryTracker<T extends TrackedQuery>
             }
 
             try {
+                // 任务限制
                 if (maxTotalRunningTaskCountToKillQuery != Integer.MAX_VALUE && maxQueryRunningTaskCount != Integer.MAX_VALUE) {
                     enforceTaskLimits();
                 }
@@ -113,6 +128,7 @@ public class QueryTracker<T extends TrackedQuery>
             }
 
             try {
+                //
                 removeExpiredQueries();
             }
             catch (Throwable e) {
@@ -120,6 +136,7 @@ public class QueryTracker<T extends TrackedQuery>
             }
 
             try {
+                // 删除过期查询
                 pruneExpiredQueries();
             }
             catch (Throwable e) {

@@ -38,6 +38,9 @@ import java.util.Set;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 向目标表里写数据
+ */
 @Immutable
 public class TableWriterNode
         extends InternalPlanNode

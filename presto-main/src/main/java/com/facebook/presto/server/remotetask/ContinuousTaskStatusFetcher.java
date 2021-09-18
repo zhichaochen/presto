@@ -64,6 +64,9 @@ import static io.airlift.units.Duration.nanosSince;
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 任务状态拉取器，从远程拉取任务状态
+ */
 class ContinuousTaskStatusFetcher
         implements SimpleHttpResponseCallback<TaskStatus>
 {

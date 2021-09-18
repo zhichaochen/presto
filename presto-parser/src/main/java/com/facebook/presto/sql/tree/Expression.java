@@ -17,6 +17,10 @@ import com.facebook.presto.sql.ExpressionFormatter;
 
 import java.util.Optional;
 
+/**
+ * 表达式节点，比如 a = b
+ * 表示Sql语句中出现的表达式
+ */
 public abstract class Expression
         extends Node
 {

@@ -24,11 +24,19 @@ import com.facebook.presto.spi.function.InputFunction;
 import com.facebook.presto.spi.function.OutputFunction;
 import com.facebook.presto.spi.function.SqlType;
 
+/**
+ * double类型数据求和聚合
+ */
 @AggregationFunction("sum")
 public final class DoubleSumAggregation
 {
     private DoubleSumAggregation() {}
 
+    /**
+     * 完成对原始值的聚合(累加)
+     * @param state
+     * @param value
+     */
     @InputFunction
     public static void sum(@AggregationState NullableDoubleState state, @SqlType(StandardTypes.DOUBLE) double value)
     {
@@ -41,6 +49,11 @@ public final class DoubleSumAggregation
         }
     }
 
+    /**
+     * 完成对两个不同中间状态的合并(相加)
+     * @param state
+     * @param otherState
+     */
     @CombineFunction
     public static void combine(@AggregationState NullableDoubleState state, @AggregationState NullableDoubleState otherState)
     {
@@ -53,6 +66,11 @@ public final class DoubleSumAggregation
         state.setDouble(state.getDouble() + otherState.getDouble());
     }
 
+    /**
+     * 完成对最终状态的计算
+     * @param state
+     * @param out
+     */
     @OutputFunction(StandardTypes.DOUBLE)
     public static void output(@AggregationState NullableDoubleState state, BlockBuilder out)
     {

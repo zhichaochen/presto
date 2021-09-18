@@ -17,6 +17,10 @@ import java.util.Set;
 
 import static com.facebook.presto.spi.StandardErrorCode.NO_NODES_AVAILABLE;
 
+/**
+ * 节点管理器
+ * 定时查找所有存活节点，并将其加入缓存
+ */
 public interface NodeManager
 {
     Set<Node> getAllNodes();

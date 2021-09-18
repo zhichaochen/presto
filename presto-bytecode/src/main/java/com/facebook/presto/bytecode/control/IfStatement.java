@@ -25,12 +25,19 @@ import java.util.List;
 
 import static com.google.common.base.Preconditions.checkState;
 
+/**
+ * if语句
+ */
 public class IfStatement
         implements FlowControl
 {
+    // 备注
     private final String comment;
+    // if 条件
     private final BytecodeBlock condition = new BytecodeBlock();
+    // 如果为true的代码块
     private final BytecodeBlock ifTrue = new BytecodeBlock();
+    // 如果为false的代码块
     private final BytecodeBlock ifFalse = new BytecodeBlock();
 
     private final LabelNode falseLabel = new LabelNode("false");

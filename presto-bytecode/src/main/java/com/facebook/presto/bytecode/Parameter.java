@@ -15,6 +15,9 @@ package com.facebook.presto.bytecode;
 
 import javax.annotation.concurrent.Immutable;
 
+/**
+ * 参数
+ */
 @Immutable
 public class Parameter
         extends Variable

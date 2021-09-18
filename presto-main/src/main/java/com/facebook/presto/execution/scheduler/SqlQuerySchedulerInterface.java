@@ -20,6 +20,9 @@ import com.facebook.presto.execution.StageInfo;
 import io.airlift.units.DataSize;
 import io.airlift.units.Duration;
 
+/**
+ * SQL查询调度器接口
+ */
 public interface SqlQuerySchedulerInterface
 {
     void start();
@@ -28,9 +31,9 @@ public interface SqlQuerySchedulerInterface
 
     long getTotalMemoryReservation();
 
-    Duration getTotalCpuTime();
-
     DataSize getRawInputDataSize();
+
+    Duration getTotalCpuTime();
 
     DataSize getOutputDataSize();
 
@@ -40,5 +43,6 @@ public interface SqlQuerySchedulerInterface
 
     void cancelStage(StageId stageId);
 
+    /*终止调度*/
     void abort();
 }

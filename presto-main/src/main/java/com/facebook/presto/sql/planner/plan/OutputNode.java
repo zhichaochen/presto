@@ -28,12 +28,19 @@ import java.util.List;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 输出节点
+ * 用来记录要查询的字段
+ */
 @Immutable
 public class OutputNode
         extends InternalPlanNode
 {
+    // source 节点
     private final PlanNode source;
+    // 列名
     private final List<String> columnNames;
+    // 输出变量
     private final List<VariableReferenceExpression> outputVariables; // column name = variable.name
 
     @JsonCreator

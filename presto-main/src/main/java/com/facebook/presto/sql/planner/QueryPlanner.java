@@ -101,6 +101,10 @@ import static com.google.common.collect.ImmutableSet.toImmutableSet;
 import static com.google.common.collect.Streams.stream;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 查询语句的计划生成器
+ * 处理Query和QuerySpecification的执行计划
+ */
 class QueryPlanner
 {
     private final Analysis analysis;
@@ -110,6 +114,7 @@ class QueryPlanner
     private final Metadata metadata;
     private final Session session;
     private final SubqueryPlanner subqueryPlanner;
+
 
     QueryPlanner(
             Analysis analysis,
@@ -135,35 +140,59 @@ class QueryPlanner
         this.subqueryPlanner = new SubqueryPlanner(analysis, variableAllocator, idAllocator, lambdaDeclarationToVariableMap, metadata, session);
     }
 
+    /**
+     * 生成Sql的各个节点
+     *
+     * @param query
+     * @return
+     */
     public RelationPlan plan(Query query)
     {
         PlanBuilder builder = planQueryBody(query);
 
+        // 获取order by 表达式列表
         List<Expression> orderBy = analysis.getOrderByExpressions(query);
+        // 处理order by子查询
         builder = handleSubqueries(builder, query, orderBy);
+        // 获取输出表达式列表
         List<Expression> outputs = analysis.getOutputExpressions(query);
+        // 处理输出表达式子查询
         builder = handleSubqueries(builder, query, outputs);
         builder = project(builder, Iterables.concat(orderBy, outputs));
 
+        // 分析排序，生成SortNode
         builder = sort(builder, query);
+        // 生成limit node
         builder = limit(builder, query);
+        // 分析limit
         builder = project(builder, analysis.getOutputExpressions(query));
 
         return new RelationPlan(builder.getRoot(), analysis.getScope(query), computeOutputs(builder, analysis.getOutputExpressions(query)));
     }
 
+    /**
+     * 对一条Sql的各个部分生成逻辑执行计划
+     * @param node
+     * @return
+     */
     public RelationPlan plan(QuerySpecification node)
     {
+        // 构建TableScanNode
         PlanBuilder builder = planFrom(node);
         RelationPlan fromRelationPlan = builder.getRelationPlan();
 
+        // where
         builder = filter(builder, analysis.getWhere(node), node);
+        // group by
         builder = aggregate(builder, node);
+        // having
         builder = filter(builder, analysis.getHaving(node), node);
-
+        // 窗口函数window
         builder = window(builder, node);
 
+        // 输出表达式，要select的字段
         List<Expression> outputs = analysis.getOutputExpressions(node);
+        // 处理输出字段上的子查询
         builder = handleSubqueries(builder, node, outputs);
 
         if (node.getOrderBy().isPresent()) {
@@ -257,8 +286,14 @@ class QueryPlanner
         return outputs.build();
     }
 
+    /**
+     * 查询体生成查询计划
+     * @param query
+     * @return
+     */
     private PlanBuilder planQueryBody(Query query)
     {
+        // 会调用到本类中的plan(QuerySpecification node)
         RelationPlan relationPlan = new RelationPlanner(analysis, variableAllocator, idAllocator, lambdaDeclarationToVariableMap, metadata, session)
                 .process(query.getQueryBody(), null);
 
@@ -316,6 +351,13 @@ class QueryPlanner
                 ImmutableList.of());
     }
 
+    /**
+     * 过滤器
+     * @param subPlan
+     * @param predicate
+     * @param node
+     * @return
+     */
     private PlanBuilder filter(PlanBuilder subPlan, Expression predicate, Node node)
     {
         if (predicate == null) {

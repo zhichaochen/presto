@@ -16,6 +16,9 @@ package com.facebook.presto.spi;
 import com.facebook.presto.spi.connector.ConnectorPartitioningHandle;
 import com.facebook.presto.spi.connector.ConnectorTransactionHandle;
 
+/**
+ * 句柄解析器，用于获取句柄的.class类型。
+ */
 public interface ConnectorHandleResolver
 {
     Class<? extends ConnectorTableHandle> getTableHandleClass();

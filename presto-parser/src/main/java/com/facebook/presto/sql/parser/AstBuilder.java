@@ -201,6 +201,9 @@ import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 
+/**
+ * 语法分析，递归生成Node Tree
+ */
 class AstBuilder
         extends SqlBaseBaseVisitor<Node>
 {
@@ -214,6 +217,11 @@ class AstBuilder
         this.warningConsumer = requireNonNull(parsingOptions.getWarningConsumer(), "warningConsumer is null");
     }
 
+    /**
+     * 访问单条语句
+     * @param context
+     * @return
+     */
     @Override
     public Node visitSingleStatement(SqlBaseParser.SingleStatementContext context)
     {
@@ -2046,18 +2054,25 @@ class AstBuilder
                 .map(clazz::cast);
     }
 
+    private static String unquote(String value)
+    {
+        return value.substring(1, value.length() - 1)
+                .replace("''", "'");
+    }
+
+    /**
+     * 语法分析入口
+     * @param contexts
+     * @param clazz
+     * @param <T>
+     * @return
+     */
     private <T> List<T> visit(List<? extends ParserRuleContext> contexts, Class<T> clazz)
     {
         return contexts.stream()
                 .map(this::visit)
                 .map(clazz::cast)
                 .collect(toList());
-    }
-
-    private static String unquote(String value)
-    {
-        return value.substring(1, value.length() - 1)
-                .replace("''", "'");
     }
 
     private static LikeClause.PropertiesOption getPropertiesOption(Token token)

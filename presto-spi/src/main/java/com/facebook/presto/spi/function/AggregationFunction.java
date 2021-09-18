@@ -21,6 +21,9 @@ import static java.lang.annotation.ElementType.METHOD;
 import static java.lang.annotation.ElementType.TYPE;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
+/**
+ * 聚合函数
+ */
 @Retention(RUNTIME)
 @Target({TYPE, METHOD})
 public @interface AggregationFunction

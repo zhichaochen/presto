@@ -71,6 +71,9 @@ import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 /**
+ * 资源组形成一棵树，对组的所有访问都由树的根保护。查询将提交到叶组。
+ * 决不允许中间组。中间群体从他们的孩子那里收集资源消耗，并且可能有他们自己的限制。
+ *
  * Resource groups form a tree, and all access to a group is guarded by the root of the tree.
  * Queries are submitted to leaf groups. Never to intermediate groups. Intermediate groups
  * aggregate resource consumption from their children, and may have their own limitations that
@@ -86,6 +89,7 @@ public class InternalResourceGroup
     private final Optional<InternalResourceGroup> parent;
     private final ResourceGroupId id;
     private final BiConsumer<InternalResourceGroup, Boolean> jmxExportListener;
+    // 执行器
     private final Executor executor;
     private final boolean staticResourceGroup;
 
@@ -620,13 +624,19 @@ public class InternalResourceGroup
         return taskCount;
     }
 
+    /**
+     * 执行查询
+     * @param query
+     */
     public void run(ManagedQueryExecution query)
     {
         synchronized (root) {
+            // 子组不能为空
             if (!subGroups.isEmpty()) {
                 throw new PrestoException(INVALID_RESOURCE_GROUP, format("Cannot add queries to %s. It is not a leaf group.", id));
             }
             // Check all ancestors for capacity
+            // 检查所有祖先的容量
             InternalResourceGroup group = this;
             boolean canQueue = true;
             boolean canRun = true;
@@ -638,18 +648,23 @@ public class InternalResourceGroup
                 }
                 group = group.parent.get();
             }
+            // 抛出查询队列已满异常
             if (!canQueue && !canRun) {
                 query.fail(new QueryQueueFullException(id));
                 return;
             }
+            // 开始在后端运行，开启一个线程，真正执行
             if (canRun) {
                 startInBackground(query);
             }
+            // 排队查询
             else {
                 enqueueQuery(query);
             }
+            // 添加状态改变监听器
             query.addStateChangeListener(state -> {
                 if (state.isDone()) {
+                    // 查询完成做一些事情
                     queryFinished(query);
                 }
             });
@@ -671,6 +686,8 @@ public class InternalResourceGroup
     }
 
     // This method must be called whenever the group's eligibility to run more queries may have changed.
+    // 每当组运行更多查询的资格发生更改时，必须调用此方法。
+    // 更新资格
     private void updateEligibility()
     {
         checkState(Thread.holdsLock(root), "Must hold lock to update eligibility");
@@ -689,6 +706,10 @@ public class InternalResourceGroup
         }
     }
 
+    /**
+     * 在后端运行
+     * @param query
+     */
     private void startInBackground(ManagedQueryExecution query)
     {
         checkState(Thread.holdsLock(root), "Must hold lock to start a query");
@@ -701,6 +722,7 @@ public class InternalResourceGroup
                 group = group.parent.get();
             }
             updateEligibility();
+            // 执行
             executor.execute(query::startWaitingForResources);
         }
     }

@@ -26,6 +26,7 @@ import com.google.common.collect.Multimap;
 import javax.inject.Inject;
 
 /**
+ * 计划检查器
  * Perform checks on the plan that may generate warnings or errors.
  */
 public final class PlanChecker

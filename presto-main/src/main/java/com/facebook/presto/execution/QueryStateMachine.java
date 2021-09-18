@@ -89,6 +89,10 @@ import static io.airlift.units.DataSize.succinctBytes;
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 查询状态机：相当于sql查询状态的监听器
+ * 记录一条sql的查询过程的各种状态、包括取消状态等
+ */
 @ThreadSafe
 public class QueryStateMachine
 {
@@ -180,6 +184,9 @@ public class QueryStateMachine
     }
 
     /**
+     * 开始查询
+     *
+     * 创建的QueryStateMachines必须转换为终端状态以清理资源。
      * Created QueryStateMachines must be transitioned to terminal states to clean up resources.
      */
     public static QueryStateMachine begin(
@@ -210,6 +217,7 @@ public class QueryStateMachine
                 warningCollector);
     }
 
+
     static QueryStateMachine beginWithTicker(
             String query,
             Session session,
@@ -225,12 +233,15 @@ public class QueryStateMachine
             WarningCollector warningCollector)
     {
         // If there is not an existing transaction, begin an auto commit transaction
+        // 如果不存在事务，开启一个自动提交事务
         if (!session.getTransactionId().isPresent() && !transactionControl) {
             // TODO: make autocommit isolation level a session parameter
+            // 开启一个事务
             TransactionId transactionId = transactionManager.beginTransaction(true);
             session = session.beginTransactionId(transactionId, transactionManager, accessControl);
         }
 
+        // 创建一个状态机
         QueryStateMachine queryStateMachine = new QueryStateMachine(
                 query,
                 session,
@@ -243,10 +254,12 @@ public class QueryStateMachine
                 metadata,
                 warningCollector);
 
+        // 添加状态改变监听器
         queryStateMachine.addStateChangeListener(newState -> {
             QUERY_STATE_LOG.debug("Query %s is %s", queryStateMachine.getQueryId(), newState);
             // mark finished or failed transaction as inactive
             if (newState.isDone()) {
+                // 完成的话，关闭事务
                 queryStateMachine.getSession().getTransactionId().ifPresent(transactionManager::trySetInactive);
             }
         });
@@ -639,12 +652,20 @@ public class QueryStateMachine
         return queryState.setIf(WAITING_FOR_RESOURCES, currentState -> currentState.ordinal() < WAITING_FOR_RESOURCES.ordinal());
     }
 
+    /**
+     * 事务派发
+     * @return
+     */
     public boolean transitionToDispatching()
     {
         queryStateTimer.beginDispatching();
         return queryState.setIf(DISPATCHING, currentState -> currentState.ordinal() < DISPATCHING.ordinal());
     }
 
+    /**
+     * 过度到计划，记录开始生成计划时间
+     * @return
+     */
     public boolean transitionToPlanning()
     {
         queryStateTimer.beginPlanning();
@@ -711,6 +732,12 @@ public class QueryStateMachine
         return transitionToFailed(throwable, currentState -> currentState != FINISHING && !currentState.isDone());
     }
 
+    /**
+     * 事务失败
+     * @param throwable
+     * @param predicate
+     * @return
+     */
     private boolean transitionToFailed(Throwable throwable, Predicate<QueryState> predicate)
     {
         QueryState currentState = queryState.get();
@@ -785,6 +812,7 @@ public class QueryStateMachine
     }
 
     /**
+     * 添加状态改变监听器
      * Listener is always notified asynchronously using a dedicated notification thread pool so, care should
      * be taken to avoid leaking {@code this} when adding a listener in a constructor. Additionally, it is
      * possible notifications are observed out of order due to the asynchronous execution.
@@ -989,17 +1017,21 @@ public class QueryStateMachine
                 ImmutableList.of()); // Remove the operator summaries as OperatorInfo (especially ExchangeClientStatus) can hold onto a large amount of memory
     }
 
+    /**
+     * 查询输出
+     */
     public static class QueryOutputManager
     {
-        private final Executor executor;
+        private final Executor executor; // 执行器
 
+        // 输出信息监听器
         @GuardedBy("this")
         private final List<Consumer<QueryOutputInfo>> outputInfoListeners = new ArrayList<>();
 
         @GuardedBy("this")
-        private List<String> columnNames;
+        private List<String> columnNames; // 列名，比如age
         @GuardedBy("this")
-        private List<Type> columnTypes;
+        private List<Type> columnTypes; // 列的类型，比如age可以使int类型
         @GuardedBy("this")
         private final Map<URI, TaskId> exchangeLocations = new LinkedHashMap<>();
         @GuardedBy("this")

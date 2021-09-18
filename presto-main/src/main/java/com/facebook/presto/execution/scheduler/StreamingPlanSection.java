@@ -25,10 +25,15 @@ import static com.google.common.collect.ImmutableList.toImmutableList;
 import static com.google.common.collect.ImmutableSet.toImmutableSet;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 流式计划Section
+ */
 public class StreamingPlanSection
 {
+    // 流式子计划
     private final StreamingSubPlan plan;
     // materialized exchange children
+    // 当前Section的子Section
     private final List<StreamingPlanSection> children;
 
     public StreamingPlanSection(StreamingSubPlan plan, List<StreamingPlanSection> children)

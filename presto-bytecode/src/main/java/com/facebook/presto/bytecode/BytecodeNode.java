@@ -17,10 +17,14 @@ import org.objectweb.asm.MethodVisitor;
 
 import java.util.List;
 
+/**
+ * 表示动态创建字节码的节点
+ */
 public interface BytecodeNode
 {
     List<BytecodeNode> getChildNodes();
 
+    // 接受方法访问器
     void accept(MethodVisitor visitor, MethodGenerationContext generationContext);
 
     <T> T accept(BytecodeNode parent, BytecodeVisitor<T> visitor);

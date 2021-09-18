@@ -248,6 +248,9 @@ import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.counting;
 import static java.util.stream.Collectors.groupingBy;
 
+/**
+ * Sql语义    分析器
+ */
 class StatementAnalyzer
 {
     private static final int UNION_DISTINCT_FIELDS_WARNING_THRESHOLD = 3;
@@ -285,6 +288,8 @@ class StatementAnalyzer
     }
 
     /**
+     *
+     *
      * Visitor context represents local query scope (if exists). The invariant is
      * that the local query scopes hierarchy should always have outer query scope
      * (if provided) as ancestor.
@@ -905,6 +910,12 @@ class StatementAnalyzer
             return createAndAssignScope(node, scope, Field.newUnqualified("Query Plan", VARCHAR));
         }
 
+        /**
+         * 访问Query语句
+         * @param node
+         * @param scope
+         * @return
+         */
         @Override
         protected Scope visitQuery(Query node, Optional<Scope> scope)
         {

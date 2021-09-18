@@ -30,6 +30,7 @@ import java.util.NoSuchElementException;
 import java.util.function.Consumer;
 
 /**
+ * 空的查询管理器
  * Used on resource managers.
  */
 public class NoOpQueryManager

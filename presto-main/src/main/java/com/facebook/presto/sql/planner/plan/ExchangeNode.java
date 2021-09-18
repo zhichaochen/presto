@@ -42,6 +42,9 @@ import static com.facebook.presto.util.MoreLists.listOfListsCopy;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 用于在不同Stage之间交换数据的节点
+ */
 @Immutable
 public class ExchangeNode
         extends InternalPlanNode

@@ -22,6 +22,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * 用于存储presto的节点信息
+ */
 public class NodeMap
 {
     private final Map<String, InternalNode> activeNodesByNodeId;

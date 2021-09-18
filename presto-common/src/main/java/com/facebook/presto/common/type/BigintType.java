@@ -18,6 +18,9 @@ import com.facebook.presto.common.function.SqlFunctionProperties;
 
 import static com.facebook.presto.common.type.TypeSignature.parseTypeSignature;
 
+/**
+ * 表示Sql中的bigint类型
+ */
 public final class BigintType
         extends AbstractLongType
 {

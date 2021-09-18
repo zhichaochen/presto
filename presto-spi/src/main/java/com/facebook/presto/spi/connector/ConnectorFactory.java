@@ -17,6 +17,9 @@ import com.facebook.presto.spi.ConnectorHandleResolver;
 
 import java.util.Map;
 
+/**
+ * 连接器工厂
+ */
 public interface ConnectorFactory
 {
     String getName();

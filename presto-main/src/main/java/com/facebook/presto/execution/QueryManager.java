@@ -23,6 +23,9 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.function.Consumer;
 
+/**
+ * 查询管理接口
+ */
 public interface QueryManager
 {
     List<BasicQueryInfo> getQueries();

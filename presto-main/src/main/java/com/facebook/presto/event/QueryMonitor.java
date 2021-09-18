@@ -79,6 +79,9 @@ import static java.time.Instant.ofEpochMilli;
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
+/**
+ * 查询监视器
+ */
 public class QueryMonitor
 {
     private static final Logger log = Logger.get(QueryMonitor.class);
@@ -118,6 +121,10 @@ public class QueryMonitor
         this.maxJsonLimit = toIntExact(requireNonNull(config, "config is null").getMaxOutputStageJsonSize().toBytes());
     }
 
+    /**
+     * 发送一个查询创建事件
+     * @param queryInfo
+     */
     public void queryCreatedEvent(BasicQueryInfo queryInfo)
     {
         eventListenerManager.queryCreated(
@@ -187,6 +194,10 @@ public class QueryMonitor
         logQueryTimeline(queryInfo);
     }
 
+    /**
+     * 查询已完成事件
+     * @param queryInfo
+     */
     public void queryCompletedEvent(QueryInfo queryInfo)
     {
         QueryStats queryStats = queryInfo.getQueryStats();

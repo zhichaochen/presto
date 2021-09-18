@@ -15,6 +15,9 @@ package com.facebook.presto.spi.classloader;
 
 import java.io.Closeable;
 
+/**
+ * 设置线程上下文类加载器
+ */
 public class ThreadContextClassLoader
         implements Closeable
 {

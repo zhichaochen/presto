@@ -22,10 +22,15 @@ import java.util.Optional;
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 表示查询语句
+ */
 public class Query
         extends Statement
 {
+    // 查询
     private final Optional<With> with;
+    // 查询提
     private final QueryBody queryBody;
     private final Optional<OrderBy> orderBy;
     private final Optional<String> limit;

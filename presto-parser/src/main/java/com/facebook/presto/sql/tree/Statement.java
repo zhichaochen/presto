@@ -15,6 +15,9 @@ package com.facebook.presto.sql.tree;
 
 import java.util.Optional;
 
+/**
+ * 表示所有类型的sql语句，比如insert，showColumns
+ */
 public abstract class Statement
         extends Node
 {

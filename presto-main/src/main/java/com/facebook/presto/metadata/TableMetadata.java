@@ -22,6 +22,9 @@ import java.util.List;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 表元数据
+ */
 public class TableMetadata
 {
     private final ConnectorId connectorId;

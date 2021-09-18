@@ -59,6 +59,9 @@ import static com.facebook.presto.util.Reflection.methodHandle;
 import static com.google.common.collect.ImmutableList.toImmutableList;
 import static java.lang.String.format;
 
+/**
+ *
+ */
 public final class ArrayJoin
         extends SqlScalarFunction
 {

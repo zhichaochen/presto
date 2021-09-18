@@ -20,6 +20,9 @@ import static com.facebook.presto.spi.StandardErrorCode.QUERY_QUEUE_FULL;
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 查询队列已满异常
+ */
 public class QueryQueueFullException
         extends PrestoException
 {

@@ -21,6 +21,9 @@ import org.weakref.jmx.Nested;
 
 import static com.facebook.presto.server.SimpleHttpResponseHandlerStats.IncrementalAverage;
 
+/**
+ * 远程任务统计
+ */
 public class RemoteTaskStats
 {
     private final SimpleHttpResponseHandlerStats httpResponseStats = new SimpleHttpResponseHandlerStats();

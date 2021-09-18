@@ -13,10 +13,13 @@
  */
 package com.facebook.presto.spi.function;
 
+/**
+ * 函数可见性
+ */
 public enum SqlFunctionVisibility
 {
-    PUBLIC,
-    HIDDEN,
+    PUBLIC, // 公开的
+    HIDDEN, // 隐藏的
     /**
      * Marked to indicate that the function is experimental and may change in the future.  They have the same visibility as HIDDEN by default, but
      * can be toggled via session property or system property.
@@ -24,5 +27,6 @@ public enum SqlFunctionVisibility
      * @see SystemSessionProperties#isExperimentalFunctionsEnabled session property
      * @see FeaturesConfig#isExperimentalFunctionsEnabled system property
      */
+    // 实验性质的，对测试开放
     EXPERIMENTAL,
 }

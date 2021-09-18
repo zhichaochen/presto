@@ -81,18 +81,27 @@ public class Console
     @Inject
     public ClientOptions clientOptions = new ClientOptions();
 
+    /**
+     * 启动命令客户端
+     * @return
+     */
     public boolean run()
     {
+        // session
         ClientSession session = clientOptions.toClientSession();
+        // 是否有查询sql
         boolean hasQuery = !isNullOrEmpty(clientOptions.execute);
         boolean isFromFile = !isNullOrEmpty(clientOptions.file);
 
+        //
         if (!hasQuery && !isFromFile) {
             AnsiConsole.systemInstall();
         }
 
+        // 初始化日志
         initializeLogging(clientOptions.logLevelsFile);
 
+        //
         String query = clientOptions.execute;
         if (hasQuery) {
             query += ";";
@@ -115,6 +124,7 @@ public class Console
         AtomicBoolean exiting = new AtomicBoolean();
         ThreadInterruptor interruptor = new ThreadInterruptor();
         CountDownLatch exited = new CountDownLatch(1);
+        // 优雅停机
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             exiting.set(true);
             interruptor.interrupt();
@@ -140,6 +150,7 @@ public class Console
                 Optional.ofNullable(clientOptions.krb5CredentialCachePath),
                 !clientOptions.krb5DisableRemoteServiceHostnameCanonicalization)) {
             if (hasQuery) {
+                // 执行命令
                 return executeCommand(queryRunner, query, clientOptions.outputFormat, clientOptions.ignoreErrors);
             }
 
@@ -171,15 +182,24 @@ public class Console
         return "";
     }
 
+    /**
+     * 运行控制台
+     * @param queryRunner
+     * @param exiting
+     */
     private static void runConsole(QueryRunner queryRunner, AtomicBoolean exiting)
     {
         try (TableNameCompleter tableNameCompleter = new TableNameCompleter(queryRunner);
-                LineReader reader = new LineReader(getHistory(), commandCompleter(), lowerCaseCommandCompleter(), tableNameCompleter)) {
+            // 行读取器
+            LineReader reader = new LineReader(getHistory(), commandCompleter(), lowerCaseCommandCompleter(), tableNameCompleter)) {
             tableNameCompleter.populateCache();
             StringBuilder buffer = new StringBuilder();
+            // 轮训读取命令
             while (!exiting.get()) {
                 // read a line of input from user
+                // 提示
                 String prompt = PROMPT_NAME;
+                // 数据库
                 String schema = queryRunner.getSession().getSchema();
                 if (schema != null) {
                     prompt += ":" + schema;
@@ -188,6 +208,7 @@ public class Console
                     prompt = Strings.repeat(" ", prompt.length() - 1) + "-";
                 }
                 String commandPrompt = prompt + "> ";
+                // 读取1行内容
                 String line = reader.readLine(commandPrompt);
 
                 // add buffer to history and clear on user interrupt
@@ -253,6 +274,7 @@ public class Console
                         outputFormat = OutputFormat.VERTICAL;
                     }
 
+                    // 处理sql
                     process(queryRunner, split.statement(), outputFormat, tableNameCompleter::populateCache, true);
                     reader.getHistory().add(squeezeStatement(split.statement()) + split.terminator());
                 }
@@ -270,6 +292,14 @@ public class Console
         }
     }
 
+    /**
+     * 执行命令，会按照;切分sql
+     * @param queryRunner
+     * @param query
+     * @param outputFormat
+     * @param ignoreErrors
+     * @return
+     */
     @VisibleForTesting
     static boolean executeCommand(QueryRunner queryRunner, String query, OutputFormat outputFormat, boolean ignoreErrors)
     {
@@ -292,10 +322,20 @@ public class Console
         return success;
     }
 
+    /**
+     * 处理sql
+     * @param queryRunner
+     * @param sql
+     * @param outputFormat
+     * @param schemaChanged
+     * @param interactive
+     * @return
+     */
     private static boolean process(QueryRunner queryRunner, String sql, OutputFormat outputFormat, Runnable schemaChanged, boolean interactive)
     {
         String finalSql;
         try {
+            // 预处理
             finalSql = preprocessQuery(
                     Optional.ofNullable(queryRunner.getSession().getCatalog()),
                     Optional.ofNullable(queryRunner.getSession().getSchema()),
@@ -309,6 +349,7 @@ public class Console
             return false;
         }
 
+        // 开始查询
         try (Query query = queryRunner.startQuery(finalSql)) {
             boolean success = query.renderOutput(System.out, outputFormat, interactive);
 

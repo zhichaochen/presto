@@ -21,10 +21,15 @@ import java.util.Optional;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 表示单个列
+ */
 public class SingleColumn
         extends SelectItem
 {
+    // 别名，可能没有
     private final Optional<Identifier> alias;
+    // 列的表达式
     private final Expression expression;
 
     public SingleColumn(Expression expression)

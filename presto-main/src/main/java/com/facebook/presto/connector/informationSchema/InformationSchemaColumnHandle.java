@@ -21,6 +21,9 @@ import java.util.Objects;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 表示一个列句柄
+ */
 public class InformationSchemaColumnHandle
         implements ColumnHandle
 {

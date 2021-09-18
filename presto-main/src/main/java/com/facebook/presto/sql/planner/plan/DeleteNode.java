@@ -27,6 +27,9 @@ import java.util.List;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * delete 操作的节点
+ */
 @Immutable
 public class DeleteNode
         extends InternalPlanNode

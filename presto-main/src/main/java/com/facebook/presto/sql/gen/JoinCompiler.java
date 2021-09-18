@@ -89,17 +89,22 @@ import static com.facebook.presto.util.CompilerUtils.makeClassName;
 import static com.google.common.collect.ImmutableList.toImmutableList;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * Join编译器
+ */
 public class JoinCompiler
 {
     private final FunctionAndTypeManager functionAndTypeManager;
     private final boolean groupByUsesEqualTo;
 
+    // 缓存LookupSourceFactory字节码
     private final LoadingCache<CacheKey, LookupSourceSupplierFactory> lookupSourceFactories = CacheBuilder.newBuilder()
             .recordStats()
             .maximumSize(1000)
             .build(CacheLoader.from(key ->
                     internalCompileLookupSourceFactory(key.getTypes(), key.getOutputChannels(), key.getJoinChannels(), key.getSortChannel())));
 
+    // 缓存PagesHashStrategy字节码
     private final LoadingCache<CacheKey, Class<? extends PagesHashStrategy>> hashStrategies = CacheBuilder.newBuilder()
             .recordStats()
             .maximumSize(1000)
@@ -166,6 +171,10 @@ public class JoinCompiler
                 .collect(toImmutableList());
     }
 
+
+    /**
+     *  编译look
+     */
     private LookupSourceSupplierFactory internalCompileLookupSourceFactory(List<Type> types, List<Integer> outputChannels, List<Integer> joinChannels, Optional<Integer> sortChannel)
     {
         Class<? extends PagesHashStrategy> pagesHashStrategyClass = internalCompileHashStrategy(types, outputChannels, joinChannels, sortChannel);
@@ -180,6 +189,11 @@ public class JoinCompiler
         return new LookupSourceSupplierFactory(joinHashSupplierClass, new PagesHashStrategyFactory(pagesHashStrategyClass));
     }
 
+    /**
+     * 定义INSTANCE_SIZE字段
+     * @param definition
+     * @return
+     */
     private static FieldDefinition generateInstanceSize(ClassDefinition definition)
     {
         // Store instance size in static field
@@ -187,31 +201,44 @@ public class JoinCompiler
         definition.getClassInitializer()
                 .getBody()
                 .comment("INSTANCE_SIZE = ClassLayout.parseClass(%s.class).instanceSize()", definition.getName())
+                // 推入当前访问的类型
                 .push(definition.getType())
+                // 调用静态方法ClassLayout#parseClass
                 .invokeStatic(ClassLayout.class, "parseClass", ClassLayout.class, Class.class)
+                // 调用实例方法ClassLayout#instanceSize
                 .invokeVirtual(ClassLayout.class, "instanceSize", int.class)
+                // int转化为long
                 .intToLong()
+                // 在当前类中增加静态字段
                 .putStaticField(instanceSize);
         return instanceSize;
     }
 
+    /**
+     * 动态生成PagesHashStrategy接口的实现类
+     */
     private Class<? extends PagesHashStrategy> internalCompileHashStrategy(List<Type> types, List<Integer> outputChannels, List<Integer> joinChannels, Optional<Integer> sortChannel)
     {
         CallSiteBinder callSiteBinder = new CallSiteBinder();
 
+        // 类定义
         ClassDefinition classDefinition = new ClassDefinition(
                 a(PUBLIC, FINAL),
                 makeClassName("PagesHashStrategy"),
                 type(Object.class),
                 type(PagesHashStrategy.class));
 
+        // 生成INSTANCE_SIZE字段
         FieldDefinition instanceSizeField = generateInstanceSize(classDefinition);
+        // size字段
         FieldDefinition sizeField = classDefinition.declareField(a(PRIVATE, FINAL), "size", type(long.class));
+        // channel字段列表
         List<FieldDefinition> channelFields = new ArrayList<>();
         for (int i = 0; i < types.size(); i++) {
             FieldDefinition channelField = classDefinition.declareField(a(PRIVATE, FINAL), "channel_" + i, type(List.class, Block.class));
             channelFields.add(channelField);
         }
+        // join channel类型字段
         List<Type> joinChannelTypes = new ArrayList<>();
         List<FieldDefinition> joinChannelFields = new ArrayList<>();
         for (int i = 0; i < joinChannels.size(); i++) {
@@ -219,8 +246,10 @@ public class JoinCompiler
             FieldDefinition channelField = classDefinition.declareField(a(PRIVATE, FINAL), "joinChannel_" + i, type(List.class, Block.class));
             joinChannelFields.add(channelField);
         }
+        // 定义HashChannel字段
         FieldDefinition hashChannelField = classDefinition.declareField(a(PRIVATE, FINAL), "hashChannel", type(List.class, Block.class));
 
+        // 以下的内容就是，动态实现PagesHashStrategy的相关方法
         generateConstructor(classDefinition, joinChannels, sizeField, instanceSizeField, channelFields, joinChannelFields, hashChannelField);
         generateGetChannelCountMethod(classDefinition, outputChannels.size());
         generateGetSizeInBytesMethod(classDefinition, sizeField);
@@ -241,6 +270,16 @@ public class JoinCompiler
         return defineClass(classDefinition, PagesHashStrategy.class, callSiteBinder.getBindings(), getClass().getClassLoader());
     }
 
+    /**
+     * 生成构造方法
+     * @param classDefinition
+     * @param joinChannels
+     * @param sizeField
+     * @param instanceSizeField
+     * @param channelFields
+     * @param joinChannelFields
+     * @param hashChannelField
+     */
     private static void generateConstructor(ClassDefinition classDefinition,
             List<Integer> joinChannels,
             FieldDefinition sizeField,
@@ -249,13 +288,18 @@ public class JoinCompiler
             List<FieldDefinition> joinChannelFields,
             FieldDefinition hashChannelField)
     {
+        // 构造方法参数
         Parameter channels = arg("channels", type(List.class, type(List.class, Block.class)));
         Parameter hashChannel = arg("hashChannel", type(OptionalInt.class));
+        // 构造方法定义
         MethodDefinition constructorDefinition = classDefinition.declareConstructor(a(PUBLIC), channels, hashChannel);
 
+        // this变量
         Variable thisVariable = constructorDefinition.getThis();
+        // 快索引
         Variable blockIndex = constructorDefinition.getScope().declareVariable(int.class, "blockIndex");
 
+        //
         BytecodeBlock constructor = constructorDefinition
                 .getBody()
                 .comment("super();")

@@ -25,6 +25,9 @@ import java.util.function.ToIntFunction;
 import static com.facebook.presto.spi.connector.NotPartitionedPartitionHandle.NOT_PARTITIONED;
 import static java.util.Collections.singletonList;
 
+/**
+ * 连接器节点：分区提供器
+ */
 public interface ConnectorNodePartitioningProvider
 {
     // TODO: Use ConnectorPartitionHandle (instead of int) to represent individual buckets.

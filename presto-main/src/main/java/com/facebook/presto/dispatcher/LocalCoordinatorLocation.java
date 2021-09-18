@@ -19,6 +19,9 @@ import java.net.URI;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 
+/**
+ * 本地协调器地址
+ */
 public class LocalCoordinatorLocation
         implements CoordinatorLocation
 {

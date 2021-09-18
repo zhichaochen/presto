@@ -15,9 +15,13 @@ package com.facebook.presto.spi;
 
 import com.facebook.presto.common.Page;
 
+/**
+ * 桶函数，实现了固定的算法，可以筛选中某个实例节点
+ */
 public interface BucketFunction
 {
     /**
+     * 获取位于指定位置的元组的存储桶。注意，元组值可能为null。
      * Gets the bucket for the tuple at the specified position.
      * Note the tuple values may be null.
      */

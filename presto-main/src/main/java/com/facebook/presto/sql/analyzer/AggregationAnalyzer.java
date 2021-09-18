@@ -98,6 +98,7 @@ import static com.google.common.collect.ImmutableSet.toImmutableSet;
 import static java.util.Objects.requireNonNull;
 
 /**
+ * 聚合分析器
  * Checks whether an expression is constant with respect to the group
  */
 class AggregationAnalyzer

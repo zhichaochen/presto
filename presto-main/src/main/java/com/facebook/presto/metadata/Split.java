@@ -30,6 +30,11 @@ import static com.facebook.presto.spi.SplitContext.NON_CACHEABLE;
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 分片
+ * 一个分片是一个大数据集中的一个子集。
+ * 当执行查询时，首先从Coordinator得到一个表的所有Split，然后根据查询执行计划选取合适的Worker执行Task处理Split
+ */
 public final class Split
 {
     private final ConnectorId connectorId;

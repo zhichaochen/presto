@@ -35,6 +35,9 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.Iterables.transform;
 import static org.objectweb.asm.Opcodes.RETURN;
 
+/**
+ * 方法定义
+ */
 @SuppressWarnings("UnusedDeclaration")
 @NotThreadSafe
 public class MethodDefinition

@@ -26,10 +26,16 @@ import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.ImmutableMultiset.toImmutableMultiset;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 子计划，切分成多个阶段（其实表示stage类型的计划）
+ * SubPlan区分Plan，其中SubPlan表示分段之后的，每个段中包含的计划。
+ */
 @Immutable
 public class SubPlan
 {
+    // 段
     private final PlanFragment fragment;
+    // 段包含子计划
     private final List<SubPlan> children;
 
     public SubPlan(PlanFragment fragment, List<SubPlan> children)

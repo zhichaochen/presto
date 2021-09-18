@@ -21,6 +21,9 @@ import java.util.Optional;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 表示选取所有列，select *
+ */
 public class AllColumns
         extends SelectItem
 {

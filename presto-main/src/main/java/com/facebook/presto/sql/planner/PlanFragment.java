@@ -40,20 +40,24 @@ import static com.google.common.base.Verify.verify;
 import static com.google.common.collect.ImmutableList.toImmutableList;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 计划段
+ * 每个stage便是一个PlanFragment，并行运行在多个机器上
+ */
 public class PlanFragment
 {
-    private final PlanFragmentId id;
-    private final PlanNode root;
-    private final Set<VariableReferenceExpression> variables;
-    private final PartitioningHandle partitioning;
-    private final List<PlanNodeId> tableScanSchedulingOrder;
-    private final List<Type> types;
-    private final List<RemoteSourceNode> remoteSourceNodes;
-    private final PartitioningScheme partitioningScheme;
-    private final StageExecutionDescriptor stageExecutionDescriptor;
-    private final boolean outputTableWriterFragment;
-    private final StatsAndCosts statsAndCosts;
-    private final Optional<String> jsonRepresentation;
+    private final PlanFragmentId id; // 段ID
+    private final PlanNode root; // 根计划节点
+    private final Set<VariableReferenceExpression> variables; // 变量列表
+    private final PartitioningHandle partitioning; // 端分割句柄
+    private final List<PlanNodeId> tableScanSchedulingOrder; // 表扫描顺序
+    private final List<Type> types; // 字段类型
+    private final List<RemoteSourceNode> remoteSourceNodes; // remote节点
+    private final PartitioningScheme partitioningScheme; // 表分割句柄
+    private final StageExecutionDescriptor stageExecutionDescriptor; // 阶段执行描述
+    private final boolean outputTableWriterFragment; // 是否是输出
+    private final StatsAndCosts statsAndCosts; // 统计和耗时
+    private final Optional<String> jsonRepresentation; // 表示阶段的json字符串，比如这个节点都有哪些节点等。
 
     // This is ensured to be lazily populated on the first successful call to #toBytes
     @GuardedBy("this")
@@ -91,6 +95,7 @@ public class PlanFragment
                 .map(VariableReferenceExpression::getType)
                 .collect(toImmutableList());
 
+        // 递归查找所有Remote节点，并加入remoteSourceNodes集合
         ImmutableList.Builder<RemoteSourceNode> remoteSourceNodes = ImmutableList.builder();
         findRemoteSourceNodes(root, remoteSourceNodes);
         this.remoteSourceNodes = remoteSourceNodes.build();
@@ -179,6 +184,10 @@ public class PlanFragment
         return types;
     }
 
+    /**
+     * 是否是叶子节点
+     * @return
+     */
     public boolean isLeaf()
     {
         return remoteSourceNodes.isEmpty();
@@ -189,6 +198,12 @@ public class PlanFragment
         return remoteSourceNodes;
     }
 
+    /**
+     * 查找节点的子节点
+     * @param node
+     * @param nodeIds
+     * @return
+     */
     private static Set<PlanNode> findSources(PlanNode node, Iterable<PlanNodeId> nodeIds)
     {
         ImmutableSet.Builder<PlanNode> nodes = ImmutableSet.builder();
@@ -209,6 +224,7 @@ public class PlanFragment
 
     private static void findRemoteSourceNodes(PlanNode node, Builder<RemoteSourceNode> builder)
     {
+        // 遍历当前节点的子节点
         for (PlanNode source : node.getSources()) {
             findRemoteSourceNodes(source, builder);
         }

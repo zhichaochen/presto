@@ -28,10 +28,15 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static java.lang.Integer.parseInt;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 任务ID
+ */
 @ThriftStruct
 public class TaskId
 {
+    // stage id
     private final StageExecutionId stageExecutionId;
+    // 任务ID
     private final int id;
 
     @JsonCreator

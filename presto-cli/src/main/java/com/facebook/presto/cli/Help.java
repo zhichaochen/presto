@@ -13,6 +13,9 @@
  */
 package com.facebook.presto.cli;
 
+/**
+ * 帮助信息
+ */
 public final class Help
 {
     private Help() {}

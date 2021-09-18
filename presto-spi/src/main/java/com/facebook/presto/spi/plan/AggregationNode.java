@@ -40,6 +40,12 @@ import static java.util.Collections.unmodifiableMap;
 import static java.util.Collections.unmodifiableSet;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 聚合节点
+ * Final ：最终聚合
+ * partial：局部聚合
+ * signal：单点聚合
+ */
 @Immutable
 public final class AggregationNode
         extends PlanNode

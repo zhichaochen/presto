@@ -29,6 +29,9 @@ import java.util.Optional;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 委托事务管理器
+ */
 public class DelegatingTransactionManager
         implements TransactionManager
 {

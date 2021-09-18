@@ -20,6 +20,9 @@ import com.facebook.presto.spi.ConnectorTableHandle;
 import com.facebook.presto.spi.ConnectorTableLayoutHandle;
 import com.facebook.presto.spi.connector.ConnectorTransactionHandle;
 
+/**
+ * 句柄解析器
+ */
 public class ElasticsearchHandleResolver
         implements ConnectorHandleResolver
 {

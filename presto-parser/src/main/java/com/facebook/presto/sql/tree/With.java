@@ -23,6 +23,9 @@ import static com.google.common.base.MoreObjects.toStringHelper;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 查询语句中的with语句
+ */
 public class With
         extends Node
 {

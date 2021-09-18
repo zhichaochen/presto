@@ -38,6 +38,9 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.Files.createDirectories;
 import static java.nio.file.Files.walkFileTree;
 
+/**
+ * 插件目录
+ */
 // This is a hack for development and does not support nested classes.
 final class PluginDiscovery
 {

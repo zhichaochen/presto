@@ -76,6 +76,9 @@ import static com.google.common.net.HttpHeaders.USER_AGENT;
 import static com.google.common.net.HttpHeaders.X_FORWARDED_FOR;
 import static java.lang.String.format;
 
+/**
+ * http请求Session上下文
+ */
 public final class HttpRequestSessionContext
         implements SessionContext
 {

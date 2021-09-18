@@ -21,6 +21,9 @@ import com.facebook.presto.spi.TableHandle;
 
 import java.util.List;
 
+/**
+ * 也就是获取数据源
+ */
 public interface PageSourceProvider
 {
     ConnectorPageSource createPageSource(Session session, Split split, TableHandle table, List<ColumnHandle> columns);

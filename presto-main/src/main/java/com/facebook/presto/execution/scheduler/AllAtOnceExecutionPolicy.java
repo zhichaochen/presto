@@ -15,6 +15,9 @@ package com.facebook.presto.execution.scheduler;
 
 import java.util.Collection;
 
+/**
+ * 所有只执行一次策略
+ */
 public class AllAtOnceExecutionPolicy
         implements ExecutionPolicy
 {

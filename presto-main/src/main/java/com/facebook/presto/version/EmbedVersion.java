@@ -38,8 +38,14 @@ import static com.google.common.base.Throwables.throwIfUnchecked;
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 嵌入版本（一 木 白 的）
+ *
+ * 在动态生成类的类名时，嵌入了版本信息
+ */
 public class EmbedVersion
 {
+    // 方法句柄
     private final MethodHandle runnableConstructor;
 
     @Inject
@@ -88,10 +94,12 @@ public class EmbedVersion
         return format("Presto_%s___", version);
     }
 
+
     public Runnable embedVersion(Runnable runnable)
     {
         requireNonNull(runnable, "runnable is null");
         try {
+            // 反射调用Runnable构造方法
             return (Runnable) runnableConstructor.invoke(runnable);
         }
         catch (Throwable throwable) {

@@ -17,6 +17,9 @@ import java.util.List;
 
 import static java.util.Arrays.asList;
 
+/**
+ * 交换
+ */
 public class Exchange
         implements RelNode
 {

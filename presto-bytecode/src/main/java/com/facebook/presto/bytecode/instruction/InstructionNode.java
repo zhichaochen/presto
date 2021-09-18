@@ -15,6 +15,10 @@ package com.facebook.presto.bytecode.instruction;
 
 import com.facebook.presto.bytecode.BytecodeNode;
 
+/**
+ * 指令节点
+ * FieldInstruction：对应field操作，只有get set操作
+ */
 public interface InstructionNode
         extends BytecodeNode
 {

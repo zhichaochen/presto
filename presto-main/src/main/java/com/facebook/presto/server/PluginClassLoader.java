@@ -26,13 +26,20 @@ import java.util.List;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 插件的类加载器
+ */
 class PluginClassLoader
         extends URLClassLoader
 {
+    // JDK9提供了PlatformClassLoader用于代替ExtClassLoader
     private static final ClassLoader PLATFORM_CLASS_LOADER = findPlatformClassLoader();
 
+    // 类加载器
     private final ClassLoader spiClassLoader;
+    // 插件的包路径
     private final List<String> spiPackages;
+    // 资源路径
     private final List<String> spiResources;
 
     public PluginClassLoader(
@@ -64,19 +71,23 @@ class PluginClassLoader
             throws ClassNotFoundException
     {
         // grab the magic lock
+        // 持有锁
         synchronized (getClassLoadingLock(name)) {
             // Check if class is in the loaded classes cache
+            // 判断类是否已经加载
             Class<?> cachedClass = findLoadedClass(name);
             if (cachedClass != null) {
                 return resolveClass(cachedClass, resolve);
             }
 
             // If this is an SPI class, only check SPI class loader
+            // 如果是spi类，使用spi类加载器加载
             if (isSpiClass(name)) {
                 return resolveClass(spiClassLoader.loadClass(name), resolve);
             }
 
             // Look for class locally
+            // 查找本地类
             return super.loadClass(name, resolve);
         }
     }

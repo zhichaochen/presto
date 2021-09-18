@@ -127,6 +127,13 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
+/**
+ * 远程任务，可以通过该类与worker节点进行交互
+ *
+ * 通过该类中的HttpClient向TaskResource提交Task创建或更新请求
+ *
+ * 参考：https://blog.csdn.net/hjw199089/article/details/82712154
+ */
 public final class HttpRemoteTask
         implements RemoteTask
 {
@@ -165,6 +172,8 @@ public final class HttpRemoteTask
     @GuardedBy("this")
     // The keys of this map represent all plan nodes that have "no more splits".
     // The boolean value of each entry represents whether the "no more splits" notification is pending delivery to workers.
+    // 此映射的键表示“不再拆分”的所有计划节点
+    // 每条的boolean值表示：是否"no more splits通知正在挂起的workers
     private final Map<PlanNodeId, Boolean> noMoreSplits = new HashMap<>();
     @GuardedBy("this")
     private final AtomicReference<OutputBuffers> outputBuffers = new AtomicReference<>();
@@ -384,14 +393,21 @@ public final class HttpRemoteTask
         return remoteTaskLocation;
     }
 
+    /**
+     * 开始发送
+     */
     @Override
     public void start()
     {
         try (SetThreadName ignored = new SetThreadName("HttpRemoteTask-%s", taskId)) {
             // to start we just need to trigger an update
+            // 开启一个线程，发送更新请求
             scheduleUpdate();
 
+            // taskStatus
+            // 启动任务状态拉取器
             taskStatusFetcher.start();
+            // 启动信息拉取器
             taskInfoFetcher.start();
         }
     }
@@ -432,6 +448,10 @@ public final class HttpRemoteTask
         }
     }
 
+    /**
+     * 不再分割的
+     * @param sourceId
+     */
     @Override
     public synchronized void noMoreSplits(PlanNodeId sourceId)
     {
@@ -441,6 +461,7 @@ public final class HttpRemoteTask
 
         noMoreSplits.put(sourceId, true);
         needsUpdate.set(true);
+        // 发送到远程Worker节点
         scheduleUpdate();
     }
 
@@ -661,11 +682,15 @@ public final class HttpRemoteTask
         taskInfoFetcher.updateTaskInfo(taskInfo);
     }
 
+
     private void scheduleUpdate()
     {
         executor.execute(this::sendUpdate);
     }
 
+    /**
+     * 发送到Worker节点，发送创建或者更新任务请求
+     */
     private synchronized void sendUpdate()
     {
         TaskStatus taskStatus = getTaskStatus();

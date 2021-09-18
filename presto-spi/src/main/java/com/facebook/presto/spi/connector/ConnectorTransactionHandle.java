@@ -13,6 +13,9 @@
  */
 package com.facebook.presto.spi.connector;
 
+/**
+ * 事务句柄
+ */
 public interface ConnectorTransactionHandle
 {
 }

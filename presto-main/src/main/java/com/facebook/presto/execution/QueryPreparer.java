@@ -109,6 +109,9 @@ public class QueryPreparer
         }
     }
 
+    /**
+     * 准备查询
+     */
     public static class PreparedQuery
     {
         private final Statement statement;

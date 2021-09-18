@@ -54,9 +54,14 @@ import static com.google.common.collect.ImmutableList.toImmutableList;
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 节点分区管理器
+ */
 public class NodePartitioningManager
 {
+    // 节点调度器
     private final NodeScheduler nodeScheduler;
+    // 分区提供器管理器
     private final PartitioningProviderManager partitioningProviderManager;
 
     @Inject
@@ -66,6 +71,13 @@ public class NodePartitioningManager
         this.partitioningProviderManager = requireNonNull(partitioningProviderManager, "partitioningProviderManager is null");
     }
 
+    /**
+     * 查询分区函数
+     * @param session
+     * @param partitioningScheme
+     * @param partitionChannelTypes
+     * @return
+     */
     public PartitionFunction getPartitionFunction(
             Session session,
             PartitioningScheme partitioningScheme,

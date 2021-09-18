@@ -36,6 +36,9 @@ import static com.facebook.presto.execution.SqlTaskExecution.createSqlTaskExecut
 import static com.google.common.base.Throwables.throwIfUnchecked;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 任务执行器工厂，用于创建任务的执行器
+ */
 public class SqlTaskExecutionFactory
 {
     private final Executor taskNotificationExecutor;
@@ -94,7 +97,7 @@ public class SqlTaskExecutionFactory
                 allocationTrackingEnabled,
                 legacyLifespanCompletionCondition);
 
-        LocalExecutionPlan localExecutionPlan;
+        LocalExecutionPlan localExecutionPlan;LocalExecutionPlanner
         try (SetThreadName ignored = new SetThreadName("Task-%s", taskStateMachine.getTaskId())) {
             try {
                 localExecutionPlan = planner.plan(

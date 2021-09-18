@@ -25,6 +25,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+/**
+ * 表示一个客户端连接的上下文信息
+ */
 public interface SessionContext
 {
     Identity getIdentity();

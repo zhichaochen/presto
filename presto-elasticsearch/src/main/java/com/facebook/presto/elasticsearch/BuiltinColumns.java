@@ -24,6 +24,9 @@ import static com.facebook.presto.common.type.RealType.REAL;
 import static com.facebook.presto.common.type.VarcharType.VARCHAR;
 import static com.google.common.collect.ImmutableSet.toImmutableSet;
 
+/**
+ * 内置列
+ */
 enum BuiltinColumns
 {
     ID("_id", VARCHAR, true),

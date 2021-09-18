@@ -18,6 +18,11 @@ import com.facebook.presto.common.function.SqlFunctionProperties;
 import com.facebook.presto.operator.DriverYieldSignal;
 import com.facebook.presto.spi.RecordCursor;
 
+/**
+ * 游标处理器：估计是为了遍历
+ *
+ * 一个没有实现类的接口，动态生成代码
+ */
 public interface CursorProcessor
 {
     CursorProcessorOutput process(SqlFunctionProperties properties, DriverYieldSignal yieldSignal, RecordCursor cursor, PageBuilder pageBuilder);

@@ -28,11 +28,15 @@ import java.util.List;
 import static com.google.common.base.Preconditions.checkState;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 切分资源提供其（可关闭）
+ */
 public class CloseableSplitSourceProvider
         implements SplitSourceProvider, Closeable
 {
     private static final Logger log = Logger.get(CloseableSplitSourceProvider.class);
 
+    // SplitManager
     private final SplitSourceProvider delegate;
 
     @GuardedBy("this")
@@ -45,6 +49,14 @@ public class CloseableSplitSourceProvider
         this.delegate = requireNonNull(delegate, "delegate is null");
     }
 
+    /**
+     *
+     * @param session
+     * @param tableHandle
+     * @param splitSchedulingStrategy
+     * @param warningCollector
+     * @return
+     */
     @Override
     public synchronized SplitSource getSplits(Session session, TableHandle tableHandle, SplitSchedulingStrategy splitSchedulingStrategy, WarningCollector warningCollector)
     {

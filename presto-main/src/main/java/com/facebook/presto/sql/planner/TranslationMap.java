@@ -43,6 +43,7 @@ import static com.google.common.base.Preconditions.checkState;
 import static java.util.Objects.requireNonNull;
 
 /**
+ * 跟踪字段和表达式及其到当前计划中符号的映射
  * Keeps track of fields and expressions and their mapping to symbols in the current plan
  */
 class TranslationMap

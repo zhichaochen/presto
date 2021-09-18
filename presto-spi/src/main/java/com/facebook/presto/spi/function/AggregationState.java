@@ -20,6 +20,9 @@ import static java.lang.annotation.ElementType.METHOD;
 import static java.lang.annotation.ElementType.PARAMETER;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
+/**
+ * 聚合状态，用于表示聚合的值是一种什么类型
+ */
 @Retention(RUNTIME)
 @Target({METHOD, PARAMETER})
 public @interface AggregationState

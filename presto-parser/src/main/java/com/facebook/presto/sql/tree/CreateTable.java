@@ -22,6 +22,9 @@ import java.util.Optional;
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 创建表节点
+ */
 public class CreateTable
         extends Statement
 {

@@ -18,6 +18,9 @@ import org.elasticsearch.search.SearchHit;
 
 import java.util.function.Supplier;
 
+/**
+ * 解码器
+ */
 public interface Decoder
 {
     void decode(SearchHit hit, Supplier<Object> getter, BlockBuilder output);

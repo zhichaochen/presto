@@ -33,6 +33,9 @@ import java.util.Set;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 表布局（表相关信息）
+ */
 public class TableLayout
 {
     private final ConnectorId connectorId;

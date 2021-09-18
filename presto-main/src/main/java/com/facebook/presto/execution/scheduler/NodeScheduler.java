@@ -66,6 +66,12 @@ import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
+/**
+ * 节点调度器
+ * 特别注意：
+ * 1、这里的Node不是Plan Node，而是服务Node，需要将生成的任务，发到哪个节点去自行。
+ * 2、这里的Node是worker node，还是connector node
+ */
 public class NodeScheduler
 {
     private final NetworkLocationCache networkLocationCache;

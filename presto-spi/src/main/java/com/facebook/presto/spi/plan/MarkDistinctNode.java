@@ -27,6 +27,9 @@ import java.util.Optional;
 import static java.util.Collections.unmodifiableList;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 处理select count(distinct a) from ... 语句的节点
+ */
 @Immutable
 public final class MarkDistinctNode
         extends PlanNode

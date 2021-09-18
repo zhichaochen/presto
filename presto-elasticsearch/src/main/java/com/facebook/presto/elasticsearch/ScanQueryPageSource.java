@@ -74,6 +74,9 @@ import static java.util.Objects.requireNonNull;
 import static java.util.function.Predicate.isEqual;
 import static java.util.stream.Collectors.toList;
 
+/**
+ * 查询一页数据
+ */
 public class ScanQueryPageSource
         implements ConnectorPageSource
 {
@@ -88,6 +91,14 @@ public class ScanQueryPageSource
     private long readTimeNanos;
     private long completedPositions;
 
+    /**
+     * 一次性查询出所有数据
+     * @param client
+     * @param session
+     * @param table
+     * @param split
+     * @param columns
+     */
     public ScanQueryPageSource(
             ElasticsearchClient client,
             ConnectorSession session,
@@ -182,6 +193,10 @@ public class ScanQueryPageSource
         iterator.close();
     }
 
+    /**
+     * 查找下一页数据，从查询出的列表中拿出一页数据
+     * @return
+     */
     @Override
     public Page getNextPage()
     {

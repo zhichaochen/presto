@@ -49,6 +49,9 @@ import static com.google.common.collect.Iterables.getOnlyElement;
 import static java.lang.Math.toIntExact;
 import static java.time.format.DateTimeFormatter.ISO_DATE_TIME;
 
+/**
+ * 查询条件构建器
+ */
 public final class ElasticsearchQueryBuilder
 {
     private ElasticsearchQueryBuilder() {}

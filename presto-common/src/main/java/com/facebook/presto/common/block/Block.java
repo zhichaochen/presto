@@ -21,6 +21,10 @@ import java.util.function.BiConsumer;
 import static com.facebook.presto.common.block.BlockUtil.checkArrayRange;
 import static com.facebook.presto.common.block.DictionaryId.randomDictionaryId;
 
+/**
+ * 块：每个Block对应一个字段，也就是一列数据
+ * presto是以page进行数据处理的，page中有多个列的数据，每一列就是一个block
+ */
 public interface Block
         extends UncheckedBlock
 {

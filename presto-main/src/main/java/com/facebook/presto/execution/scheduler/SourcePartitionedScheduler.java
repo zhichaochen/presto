@@ -57,6 +57,9 @@ import static com.google.common.collect.ImmutableSet.toImmutableSet;
 import static com.google.common.util.concurrent.Futures.nonCancellationPropagating;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 主要处理 Source task
+ */
 public class SourcePartitionedScheduler
         implements SourceScheduler
 {

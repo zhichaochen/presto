@@ -51,6 +51,9 @@ import static com.google.common.collect.ImmutableList.toImmutableList;
 import static com.google.common.collect.Iterables.getOnlyElement;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 统计聚合计划期
+ */
 public class StatisticsAggregationPlanner
 {
     private final PlanVariableAllocator variableAllocator;

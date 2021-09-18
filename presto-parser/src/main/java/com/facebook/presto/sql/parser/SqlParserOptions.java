@@ -21,6 +21,9 @@ import java.util.Set;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * sql解析器选项
+ */
 public class SqlParserOptions
 {
     protected static final Set<String> RESERVED_WORDS_WARNING = ImmutableSet.of(

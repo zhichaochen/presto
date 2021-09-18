@@ -28,9 +28,13 @@ import io.airlift.units.DataSize;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * 任务管理器
+ */
 public interface TaskManager
 {
     /**
+     * 查询所有任务信息
      * Gets all of the currently tracked tasks.  This will included
      * uninitialized, running, and completed tasks.
      */
@@ -81,6 +85,7 @@ public interface TaskManager
     void updateMemoryPoolAssignments(MemoryPoolAssignmentsRequest assignments);
 
     /**
+     * 更新任务
      * Updates the task plan, sources and output buffers.  If the task does not
      * already exist, is is created and then updated.
      */
@@ -93,12 +98,14 @@ public interface TaskManager
             Optional<TableWriteInfo> tableWriteInfo);
 
     /**
+     * 取消任务
      * Cancels a task.  If the task does not already exist, is is created and then
      * canceled.
      */
     TaskInfo cancelTask(TaskId taskId);
 
     /**
+     * 终止任务
      * Aborts a task.  If the task does not already exist, is is created and then
      * aborted.
      */

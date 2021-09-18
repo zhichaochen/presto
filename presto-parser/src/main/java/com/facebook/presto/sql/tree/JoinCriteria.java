@@ -15,6 +15,9 @@ package com.facebook.presto.sql.tree;
 
 import java.util.List;
 
+/**
+ * 连接条件
+ */
 public abstract class JoinCriteria
 {
     // Force subclasses to have a proper equals and hashcode implementation

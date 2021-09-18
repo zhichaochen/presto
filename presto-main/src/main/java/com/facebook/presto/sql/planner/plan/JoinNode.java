@@ -48,19 +48,29 @@ import static com.google.common.collect.ImmutableList.toImmutableList;
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * join节点，某两个表进行关联
+ */
 @Immutable
 public class JoinNode
         extends AbstractJoinNode
 {
+    // Join类型
     private final Type type;
+    // 左边的节点
     private final PlanNode left;
+    // 右边的节点
     private final PlanNode right;
+    //
     private final List<EquiJoinClause> criteria;
+    //
     private final List<VariableReferenceExpression> outputVariables;
+    //
     private final Optional<RowExpression> filter;
     private final Optional<VariableReferenceExpression> leftHashVariable;
     private final Optional<VariableReferenceExpression> rightHashVariable;
     private final Optional<DistributionType> distributionType;
+    //
     private final Map<String, VariableReferenceExpression> dynamicFilters;
 
     @JsonCreator

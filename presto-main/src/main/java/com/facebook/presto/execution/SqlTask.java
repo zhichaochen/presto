@@ -67,19 +67,22 @@ import static com.google.common.util.concurrent.Futures.immediateFuture;
 import static com.google.common.util.concurrent.MoreExecutors.directExecutor;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 表示一个Sql任务，真正对某个任务的操作，最终会在这个类中处理
+ */
 public class SqlTask
 {
     private static final Logger log = Logger.get(SqlTask.class);
 
-    private final TaskId taskId;
-    private final TaskInstanceId taskInstanceId;
-    private final URI location;
-    private final String nodeId;
-    private final TaskStateMachine taskStateMachine;
-    private final OutputBuffer outputBuffer;
-    private final QueryContext queryContext;
+    private final TaskId taskId; // 任务ID
+    private final TaskInstanceId taskInstanceId; // 任务实例ID
+    private final URI location; //
+    private final String nodeId; //
+    private final TaskStateMachine taskStateMachine; // 任务状态机
+    private final OutputBuffer outputBuffer; // 输出缓存
+    private final QueryContext queryContext; // 查询上下文
 
-    private final SqlTaskExecutionFactory sqlTaskExecutionFactory;
+    private final SqlTaskExecutionFactory sqlTaskExecutionFactory; // 任务执行工厂，用于分配任务
     private final TaskExchangeClientManager taskExchangeClientManager;
 
     private final AtomicReference<DateTime> lastHeartbeat = new AtomicReference<>(DateTime.now());
@@ -89,6 +92,7 @@ public class SqlTask
     private final AtomicBoolean needsPlan = new AtomicBoolean(true);
     private final long creationTimeInMillis = System.currentTimeMillis();
 
+    // 创建Sql任务
     public static SqlTask createSqlTask(
             TaskId taskId,
             URI location,
@@ -419,6 +423,15 @@ public class SqlTask
         return Futures.transform(futureTaskState, input -> getTaskInfo(), directExecutor());
     }
 
+    /**
+     * 更新任务
+     * @param session
+     * @param fragment
+     * @param sources
+     * @param outputBuffers
+     * @param tableWriteInfo
+     * @return
+     */
     public TaskInfo updateTask(
             Session session,
             Optional<PlanFragment> fragment,
@@ -430,9 +443,11 @@ public class SqlTask
             // The LazyOutput buffer does not support write methods, so the actual
             // output buffer must be established before drivers are created (e.g.
             // a VALUES query).
+            // 设置任务的输出缓存。
             outputBuffer.setOutputBuffers(outputBuffers);
 
             // assure the task execution is only created once
+            // 加锁，确保任务被创建一次
             SqlTaskExecution taskExecution;
             synchronized (this) {
                 // is task already complete?
@@ -444,6 +459,7 @@ public class SqlTask
                 if (taskExecution == null) {
                     checkState(fragment.isPresent(), "fragment must be present");
                     checkState(tableWriteInfo.isPresent(), "tableWriteInfo must be present");
+                    // 创建任务执行器
                     taskExecution = sqlTaskExecutionFactory.create(
                             session,
                             queryContext,
@@ -538,6 +554,9 @@ public class SqlTask
         return taskId.toString();
     }
 
+    /**
+     * 任务持有器
+     */
     private static final class TaskHolder
     {
         private final SqlTaskExecution taskExecution;

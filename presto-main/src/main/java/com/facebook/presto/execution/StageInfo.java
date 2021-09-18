@@ -28,6 +28,9 @@ import static com.google.common.base.MoreObjects.toStringHelper;
 import static com.google.common.graph.Traverser.forTree;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 阶段信息
+ */
 @Immutable
 public class StageInfo
 {

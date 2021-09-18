@@ -17,6 +17,9 @@ import com.facebook.presto.execution.ManagedQueryExecution;
 import com.facebook.presto.execution.QueryTracker.TrackedQuery;
 import com.google.common.util.concurrent.ListenableFuture;
 
+/**
+ * 派发查询，可以被派发的查询
+ */
 public interface DispatchQuery
         extends TrackedQuery, ManagedQueryExecution
 {

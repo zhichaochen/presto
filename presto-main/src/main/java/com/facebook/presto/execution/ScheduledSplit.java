@@ -22,10 +22,19 @@ import com.google.common.primitives.Longs;
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 可调度的分片，可调度的最小单元
+ *
+ * 比如：一张表table的数据被分成了多份，一份也就是一个split
+ * 多个splits会分配到多个服务节点上，进行分布式处理。
+ */
 public class ScheduledSplit
 {
+    // 序列ID，表示第多少个splits
     private final long sequenceId;
+    // 要处理该split的节点
     private final PlanNodeId planNodeId;
+    // 要处理的split
     private final Split split;
 
     @JsonCreator

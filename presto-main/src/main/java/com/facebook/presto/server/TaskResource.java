@@ -91,6 +91,8 @@ import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
 /**
  * Manages tasks on this worker node
+ * 管理Worker节点上的任务
+ * 这里便是worker节点了，接受HTTP请求的Task
  */
 @Path("/v1/task")
 @RolesAllowed(INTERNAL)
@@ -98,13 +100,13 @@ public class TaskResource
 {
     private static final Duration ADDITIONAL_WAIT_TIME = new Duration(5, SECONDS);
 
-    private final TaskManager taskManager;
-    private final SessionPropertyManager sessionPropertyManager;
-    private final Executor responseExecutor;
-    private final ScheduledExecutorService timeoutExecutor;
-    private final TimeStat readFromOutputBufferTime = new TimeStat();
+    private final TaskManager taskManager; // 任务管理器
+    private final SessionPropertyManager sessionPropertyManager; // Session属性
+    private final Executor responseExecutor; // 资源执行器
+    private final ScheduledExecutorService timeoutExecutor; // 超时执行器
+    private final TimeStat readFromOutputBufferTime = new TimeStat(); // 时间统计
     private final TimeStat resultsRequestTime = new TimeStat();
-    private final Codec<PlanFragment> planFragmentCodec;
+    private final Codec<PlanFragment> planFragmentCodec; // 计划片段codec
 
     @Inject
     public TaskResource(
@@ -123,6 +125,11 @@ public class TaskResource
         this.planFragmentCodec = planFragmentJsonCodec;
     }
 
+    /**
+     * 查询所有的任务信息
+     * @param uriInfo
+     * @return
+     */
     @GET
     @Consumes({APPLICATION_JSON, APPLICATION_JACKSON_SMILE})
     @Produces({APPLICATION_JSON, APPLICATION_JACKSON_SMILE})
@@ -135,6 +142,13 @@ public class TaskResource
         return allTaskInfo;
     }
 
+    /**
+     * 创建或者更新任务
+     * @param taskId
+     * @param taskUpdateRequest
+     * @param uriInfo
+     * @return
+     */
     @POST
     @Path("{taskId}")
     @Consumes({APPLICATION_JSON, APPLICATION_JACKSON_SMILE})
@@ -143,6 +157,7 @@ public class TaskResource
     {
         requireNonNull(taskUpdateRequest, "taskUpdateRequest is null");
 
+        // 任务执行时的Session
         Session session = taskUpdateRequest.getSession().toSession(sessionPropertyManager, taskUpdateRequest.getExtraCredentials());
         TaskInfo taskInfo = taskManager.updateTask(session,
                 taskId,
@@ -158,6 +173,14 @@ public class TaskResource
         return Response.ok().entity(taskInfo).build();
     }
 
+    /**
+     * 查询某个任务的任务信息
+     * @param taskId
+     * @param currentState
+     * @param maxWait
+     * @param uriInfo
+     * @param asyncResponse
+     */
     @GET
     @Path("{taskId}")
     @Consumes({APPLICATION_JSON, APPLICATION_JACKSON_SMILE})

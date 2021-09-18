@@ -20,10 +20,14 @@ import javax.annotation.concurrent.Immutable;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 段ID
+ */
 @Immutable
 public class PlanFragmentId
         implements Comparable<PlanFragmentId>
 {
+    // 从0开始自增
     private final int id;
 
     public PlanFragmentId(int id)

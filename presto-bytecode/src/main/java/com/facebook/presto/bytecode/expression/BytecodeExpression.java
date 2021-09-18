@@ -35,6 +35,13 @@ import static java.util.Arrays.stream;
 import static java.util.Objects.requireNonNull;
 
 /**
+ * 字节码表达式是一系列类似Java的表达式，它们最多只能在堆栈上推送的单个值。
+ *
+ * 链从一个常量开始，局部变量、静态字段、静态方法或调用动态方法
+ * 通过零次或多次调用、字段取消引用、数组元素获取或强制转换。
+ *
+ * 表达式可以选择性地由集合表达式终止，在这种情况下没有值被推送到堆栈上。
+ *
  * A BytecodeExpression is chain of Java like expressions that results in at most
  * a single value being pushed on the stack.  The chain starts with a constant,
  * local variable, static field, static method or invoke dynamic followed

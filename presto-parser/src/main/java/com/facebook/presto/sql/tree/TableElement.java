@@ -15,6 +15,9 @@ package com.facebook.presto.sql.tree;
 
 import java.util.Optional;
 
+/**
+ * 表示建表语句中描述表的每一列，包括列名和类型
+ */
 public abstract class TableElement
         extends Node
 {

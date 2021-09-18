@@ -22,11 +22,17 @@ import java.util.Optional;
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 表示窗口函数
+ */
 public class Window
         extends Node
 {
+    // partitionBy表达式
     private final List<Expression> partitionBy;
+    // orderBy语句
     private final Optional<OrderBy> orderBy;
+    // 滑动窗口可选参数
     private final Optional<WindowFrame> frame;
 
     public Window(List<Expression> partitionBy, Optional<OrderBy> orderBy, Optional<WindowFrame> frame)

@@ -35,6 +35,8 @@ import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static javax.ws.rs.core.Response.Status.NOT_FOUND;
 
 /**
+ * 内存资源Controller
+ *
  * Manages memory pools on this worker node
  */
 @Path("/v1/memory")

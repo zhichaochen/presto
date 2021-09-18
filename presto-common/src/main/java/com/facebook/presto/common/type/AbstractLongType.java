@@ -23,6 +23,9 @@ import io.airlift.slice.Slice;
 
 import static java.lang.Long.rotateLeft;
 
+/**
+ * long类型的字段
+ */
 public abstract class AbstractLongType
         extends AbstractType
         implements FixedWidthType

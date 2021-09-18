@@ -20,6 +20,10 @@ import com.facebook.presto.spi.RecordSet;
 
 import java.util.List;
 
+/**
+ * 给定一个split和一组columns列表，RecordSetProvider负责将数据传输到Presto的执行引擎execution engine。
+ * 它会构建一个RecordSet记录集，继而建立RecordCursor游标，供Presto行行读取各行中的列值（类似于JDBC）
+ */
 public interface ConnectorRecordSetProvider
 {
     RecordSet getRecordSet(ConnectorTransactionHandle transactionHandle, ConnectorSession session, ConnectorSplit split, List<? extends ColumnHandle> columns);

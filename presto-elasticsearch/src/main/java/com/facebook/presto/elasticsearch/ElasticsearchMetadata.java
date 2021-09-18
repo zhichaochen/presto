@@ -63,6 +63,9 @@ import static com.google.common.collect.ImmutableMap.toImmutableMap;
 import static java.util.Locale.ENGLISH;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 用于获取源数据
+ */
 public class ElasticsearchMetadata
         implements ConnectorMetadata
 {

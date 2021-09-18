@@ -37,6 +37,9 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 事件监听管理器，从配置文件中动态加载事件监听器
+ */
 public class EventListenerManager
 {
     private static final Logger log = Logger.get(EventListenerManager.class);

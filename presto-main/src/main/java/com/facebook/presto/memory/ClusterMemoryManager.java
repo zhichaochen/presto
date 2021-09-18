@@ -92,6 +92,9 @@ import static java.util.Comparator.comparingLong;
 import static java.util.Objects.requireNonNull;
 import static org.weakref.jmx.ObjectNames.generatedNameOf;
 
+/**
+ * 集群内存管理器
+ */
 public class ClusterMemoryManager
         implements ClusterMemoryPoolManager
 {
@@ -222,6 +225,11 @@ public class ClusterMemoryManager
         return pools.containsKey(poolId);
     }
 
+    /**
+     * 处理查询
+     * @param runningQueries
+     * @param allQueryInfoSupplier
+     */
     public synchronized void process(Iterable<QueryExecution> runningQueries, Supplier<List<BasicQueryInfo>> allQueryInfoSupplier)
     {
         if (!enabled) {
@@ -230,8 +238,10 @@ public class ClusterMemoryManager
 
         // TODO revocable memory reservations can also leak and may need to be detected in the future
         // We are only concerned about the leaks in general pool.
+        // 检测内存泄漏
         memoryLeakDetector.checkForMemoryLeaks(allQueryInfoSupplier, pools.get(GENERAL_POOL).getQueryMemoryReservations());
 
+        // 检测是否内存不足
         boolean outOfMemory = isClusterOutOfMemory();
         if (!outOfMemory) {
             lastTimeNotOutOfMemory = System.nanoTime();
@@ -240,9 +250,12 @@ public class ClusterMemoryManager
         boolean queryKilled = false;
         long totalUserMemoryBytes = 0L;
         long totalMemoryBytes = 0L;
+        // 遍历正在执行的查询
         for (QueryExecution query : runningQueries) {
             boolean resourceOvercommit = resourceOvercommit(query.getSession());
+            // 已使用的内存
             long userMemoryReservation = query.getUserMemoryReservation().toBytes();
+            // 总内存
             long totalMemoryReservation = query.getTotalMemoryReservation().toBytes();
 
             if (resourceOvercommit && outOfMemory) {
@@ -282,10 +295,12 @@ public class ClusterMemoryManager
                 killOnOomDelayPassed &&
                 lastKilledQueryGone;
 
+        // 如果内存不够，则杀掉某个查询
         if (shouldCallOomKiller) {
             callOomKiller(runningQueries);
         }
         else {
+            // 输出内存不够日志
             // if the cluster is out of memory and we didn't trigger the oom killer we log the state to make debugging easier
             if (outOfMemory) {
                 log.debug("The cluster is out of memory and the OOM killer is not called (query killed: %s, kill on OOM delay passed: %s, last killed query gone: %s).",
@@ -301,6 +316,7 @@ public class ClusterMemoryManager
             countByPool.put(id, countByPool.getOrDefault(id, 0) + 1);
         }
 
+        // 更新内存池
         updatePools(countByPool);
 
         MemoryPoolAssignmentsRequest assignmentsRequest;
@@ -314,9 +330,14 @@ public class ClusterMemoryManager
             // this piece of code.
             assignmentsRequest = new MemoryPoolAssignmentsRequest(coordinatorId, Long.MIN_VALUE, ImmutableList.of());
         }
+        // 更新节点信息
         updateNodes(assignmentsRequest);
     }
 
+    /**
+     * 如果发生了OOM，调用该方法去杀死某个查询
+     * @param runningQueries
+     */
     private synchronized void callOomKiller(Iterable<QueryExecution> runningQueries)
     {
         List<QueryMemoryInfo> queryMemoryInfoList = Streams.stream(runningQueries)
@@ -410,6 +431,10 @@ public class ClusterMemoryManager
         return builder.build();
     }
 
+    /**
+     * 是否内存不足，如果有阻塞的节点，说明内存不足
+     * @return
+     */
     private synchronized boolean isClusterOutOfMemory()
     {
         ClusterMemoryPool reservedPool = pools.get(RESERVED_POOL);

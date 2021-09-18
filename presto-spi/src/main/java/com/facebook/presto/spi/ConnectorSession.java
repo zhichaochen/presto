@@ -22,6 +22,9 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
+/**
+ * 连接Session, 一个
+ */
 public interface ConnectorSession
 {
     String getQueryId();

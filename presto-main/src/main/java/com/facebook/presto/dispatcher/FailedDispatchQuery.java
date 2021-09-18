@@ -37,6 +37,9 @@ import static io.airlift.units.DataSize.Unit.BYTE;
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
+/**
+ * 派发失败
+ */
 public class FailedDispatchQuery
         implements DispatchQuery
 {

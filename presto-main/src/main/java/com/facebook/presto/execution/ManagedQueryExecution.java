@@ -22,6 +22,9 @@ import io.airlift.units.Duration;
 
 import java.util.Optional;
 
+/**
+ * 管理查询异常
+ */
 public interface ManagedQueryExecution
 {
     void startWaitingForResources();
@@ -29,6 +32,7 @@ public interface ManagedQueryExecution
     void fail(Throwable cause);
 
     /**
+     * 添加状态改变监听器
      * Listener is always notified asynchronously using a dedicated notification thread pool so, care should
      * be taken to avoid leaking {@code this} when adding a listener in a constructor. Additionally, it is
      * possible notifications are observed out of order due to the asynchronous execution.

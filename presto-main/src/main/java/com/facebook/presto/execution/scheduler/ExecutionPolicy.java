@@ -15,6 +15,9 @@ package com.facebook.presto.execution.scheduler;
 
 import java.util.Collection;
 
+/**
+ * 执行策略
+ */
 public interface ExecutionPolicy
 {
     ExecutionSchedule createExecutionSchedule(Collection<StageExecutionAndScheduler> stages);

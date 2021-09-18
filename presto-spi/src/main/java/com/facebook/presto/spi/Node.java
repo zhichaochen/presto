@@ -15,6 +15,9 @@ package com.facebook.presto.spi;
 
 import java.net.URI;
 
+/**
+ * 节点：此处的节点不是表示Sql解析后的节点，而是表示连接节点
+ */
 public interface Node
 {
     String getHost();

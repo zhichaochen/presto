@@ -42,6 +42,9 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
+/**
+ * 查询运行器，向协调器提交sql
+ */
 public class QueryRunner
         implements Closeable
 {
@@ -129,6 +132,12 @@ public class QueryRunner
         return startInternalQuery(stripTransactionId(session.get()), query);
     }
 
+    /**
+     * 创建一个客户端
+     * @param session
+     * @param query
+     * @return
+     */
     private StatementClient startInternalQuery(ClientSession session, String query)
     {
         OkHttpClient.Builder builder = httpClient.newBuilder();

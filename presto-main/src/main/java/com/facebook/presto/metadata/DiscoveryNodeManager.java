@@ -78,6 +78,9 @@ import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.Executors.newCachedThreadPool;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 
+/**
+ * 我理解是通过zk管理节点
+ */
 @ThreadSafe
 public final class DiscoveryNodeManager
         implements InternalNodeManager

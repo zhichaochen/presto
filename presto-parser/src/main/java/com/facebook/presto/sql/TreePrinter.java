@@ -56,6 +56,9 @@ import java.io.PrintStream;
 import java.util.IdentityHashMap;
 import java.util.List;
 
+/**
+ * 树形打印器，我理解是打印出树状的日志
+ */
 public class TreePrinter
 {
     private static final String INDENT = "   ";

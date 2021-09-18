@@ -32,6 +32,9 @@ import java.util.concurrent.TimeUnit;
 
 import static io.airlift.units.DataSize.Unit.PETABYTE;
 
+/**
+ * 查询的配置信息
+ */
 @DefunctConfig({
         "query.max-pending-splits-per-node",
         "query.queue-config-file",

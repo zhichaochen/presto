@@ -71,6 +71,9 @@ import static com.facebook.presto.server.PrestoSystemRequirements.verifySystemTi
 import static com.google.common.base.Strings.nullToEmpty;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * Server启动入口
+ */
 public class PrestoServer
         implements Runnable
 {
@@ -99,6 +102,7 @@ public class PrestoServer
 
         Logger log = Logger.get(PrestoServer.class);
 
+        // 依赖的模块列表
         ImmutableList.Builder<Module> modules = ImmutableList.builder();
         modules.add(
                 new NodeModule(),
@@ -131,10 +135,13 @@ public class PrestoServer
         Bootstrap app = new Bootstrap(modules.build());
 
         try {
+            // 初始化模块
             Injector injector = app.initialize();
 
+            // 加载所有插件
             injector.getInstance(PluginManager.class).loadPlugins();
 
+            // 加载所有不同数据库
             injector.getInstance(StaticCatalogStore.class).loadCatalogs();
 
             // TODO: remove this huge hack
@@ -162,6 +169,7 @@ public class PrestoServer
             log.info("======== SERVER STARTED ========");
         }
         catch (Throwable e) {
+            // 如果有异常，打印异常并退出
             log.error(e);
             System.exit(1);
         }
@@ -172,6 +180,13 @@ public class PrestoServer
         return ImmutableList.of();
     }
 
+    /**
+     *
+     * @param announcer
+     * @param metadata
+     * @param serverConfig
+     * @param schedulerConfig
+     */
     private static void updateConnectorIds(Announcer announcer, CatalogManager metadata, ServerConfig serverConfig, NodeSchedulerConfig schedulerConfig)
     {
         // get existing announcement

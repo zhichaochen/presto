@@ -25,15 +25,24 @@ import java.util.List;
 
 import static com.google.common.base.Preconditions.checkState;
 
+/**
+ * 生成 do while 循环 字节码，详细参考accept
+ */
 public class DoWhileLoop
         implements FlowControl
 {
+    // 备注
     private final String comment;
+    // 字节码内容
     private final BytecodeBlock body = new BytecodeBlock();
+    // 条件的字节码
     private final BytecodeBlock condition = new BytecodeBlock();
 
+    // 开始的字节码位置
     private final LabelNode beginLabel = new LabelNode("begin");
+    // continue字节码位置
     private final LabelNode continueLabel = new LabelNode("continue");
+    // 结束的位置
     private final LabelNode endLabel = new LabelNode("end");
 
     public DoWhileLoop()
@@ -92,16 +101,22 @@ public class DoWhileLoop
         checkState(!condition.isEmpty(), "DoWhileLoop does not have a condition set");
 
         BytecodeBlock block = new BytecodeBlock()
+                // 访问开始的label
                 .visitLabel(beginLabel)
+                // 拼接do中的内容
                 .append(new BytecodeBlock()
                         .setDescription("body")
                         .append(body))
                 .visitLabel(continueLabel)
+                // 条件字节码
                 .append(new BytecodeBlock()
                         .setDescription("condition")
                         .append(condition))
+                // 如果报错字节跳转到循环结束位置
                 .ifFalseGoto(endLabel)
+                // 否则跳转到开始label
                 .gotoLabel(beginLabel)
+                // 访问结束label。
                 .visitLabel(endLabel);
 
         block.accept(visitor, generationContext);

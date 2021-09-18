@@ -25,17 +25,25 @@ import java.util.function.Supplier;
 import static com.google.common.util.concurrent.Futures.immediateFuture;
 import static java.util.Collections.emptyList;
 
+/**
+ * 查询数据源工厂
+ */
 public interface LookupSourceFactory
         extends JoinBridge
 {
+    // 设计到那些类
     List<Type> getTypes();
 
+    // 输出结果类型
     List<Type> getOutputTypes();
 
+    // 创建数据源提供者
     ListenableFuture<LookupSourceProvider> createLookupSourceProvider();
 
+    // 分区
     int partitions();
 
+    // 完成探针算子
     default ListenableFuture<PartitionedConsumption<Supplier<LookupSource>>> finishProbeOperator(OptionalInt lookupJoinsCount)
     {
         return immediateFuture(new PartitionedConsumption<>(

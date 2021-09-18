@@ -16,6 +16,9 @@ package com.facebook.presto.common.block;
 import io.airlift.slice.Slice;
 import io.airlift.slice.SliceInput;
 
+/**
+ * 一列数据构建器
+ */
 public interface BlockBuilder
         extends Block
 {

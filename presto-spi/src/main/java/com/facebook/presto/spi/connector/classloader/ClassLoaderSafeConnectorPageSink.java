@@ -23,6 +23,9 @@ import java.util.concurrent.CompletableFuture;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 使用自定义的类加载器安全地
+ */
 public class ClassLoaderSafeConnectorPageSink
         implements ConnectorPageSink
 {

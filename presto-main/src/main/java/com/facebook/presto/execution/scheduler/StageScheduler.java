@@ -15,10 +15,14 @@ package com.facebook.presto.execution.scheduler;
 
 import java.io.Closeable;
 
+/**
+ * 阶段调度器
+ */
 public interface StageScheduler
         extends Closeable
 {
     /**
+     * 调度
      * Schedules as much work as possible without blocking.
      * The schedule results is a hint to the query scheduler if and
      * when the stage scheduler should be invoked again.  It is
@@ -27,6 +31,9 @@ public interface StageScheduler
      */
     ScheduleResult schedule();
 
+    /**
+     * 关闭
+     */
     @Override
     default void close() {}
 }

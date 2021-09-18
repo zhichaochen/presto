@@ -22,6 +22,9 @@ import com.google.common.util.concurrent.ListenableFuture;
 
 import java.net.URI;
 
+/**
+ * 表示一个远程任务，可以与远程worker node进行交互
+ */
 public interface RemoteTask
 {
     TaskId getTaskId();
@@ -37,8 +40,10 @@ public interface RemoteTask
      */
     URI getRemoteTaskLocation();
 
+    // 启动task
     void start();
 
+    // 更新task，主要给task更新输入（splits）
     void addSplits(Multimap<PlanNodeId, Split> splits);
 
     void noMoreSplits(PlanNodeId sourceId);

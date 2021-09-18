@@ -26,6 +26,9 @@ import java.security.Principal;
 import java.util.Optional;
 import java.util.Set;
 
+/**
+ * 访问控制
+ */
 public interface AccessControl
 {
     /**

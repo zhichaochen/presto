@@ -18,8 +18,12 @@ import java.util.Optional;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 节点，语法数上的每一个节点都是一个Node
+ */
 public abstract class Node
 {
+    // 所在位置
     private final Optional<NodeLocation> location;
 
     protected Node(Optional<NodeLocation> location)
@@ -28,6 +32,7 @@ public abstract class Node
     }
 
     /**
+     * 代替
      * Accessible for {@link AstVisitor}, use {@link AstVisitor#process(Node, Object)} instead.
      */
     protected <R, C> R accept(AstVisitor<R, C> visitor, C context)

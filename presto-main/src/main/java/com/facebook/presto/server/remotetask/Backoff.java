@@ -29,6 +29,9 @@ import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
+/**
+ * 回退，补偿，该类主要用于计算间隔
+ */
 @ThreadSafe
 public class Backoff
 {
@@ -85,6 +88,10 @@ public class Backoff
         return failureCount;
     }
 
+    /**
+     * 计算距离第一次失败的时长
+     * @return
+     */
     public synchronized Duration getFailureDuration()
     {
         if (firstFailureTime == 0) {
@@ -99,6 +106,7 @@ public class Backoff
         return new Duration(max(0, failureRequestTimeTotal), NANOSECONDS);
     }
 
+    /*开始请求*/
     public synchronized void startRequest()
     {
         lastRequestStart = ticker.read();

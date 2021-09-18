@@ -32,19 +32,26 @@ import static java.util.Collections.unmodifiableList;
 import static java.util.Collections.unmodifiableMap;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 用于读取表数据
+ */
 @Immutable
 public final class TableScanNode
         extends PlanNode
 {
+    // 表句柄，存储了表信息
     private final TableHandle table;
+    // 列表达式和列的映射关系，比如这个sum(b.a) : b.a
     private final Map<VariableReferenceExpression, ColumnHandle> assignments;
+    // 输出表达式
     private final List<VariableReferenceExpression> outputVariables;
 
     // Used during predicate refinement over multiple passes of predicate pushdown
     // TODO: think about how to get rid of this in new planner
     // TODO: these two fields will not be effective if they are created by connectors until we have refactored PickTableLayout
+    // 在谓词下推的多次过程中进行谓词细化时使用
     private final TupleDomain<ColumnHandle> currentConstraint;
-
+    // 强制约束
     private final TupleDomain<ColumnHandle> enforcedConstraint;
 
     /**

@@ -35,19 +35,22 @@ import static java.util.Objects.requireNonNull;
 import static org.objectweb.asm.Opcodes.ACC_SUPER;
 import static org.objectweb.asm.Opcodes.V1_8;
 
+/**
+ * 类定义
+ */
 @NotThreadSafe
 public class ClassDefinition
 {
-    private final EnumSet<Access> access;
-    private final ParameterizedType type;
-    private final ParameterizedType superClass;
-    private final List<ParameterizedType> interfaces = new ArrayList<>();
-    private final List<AnnotationDefinition> annotations = new ArrayList<>();
-    private final List<FieldDefinition> fields = new ArrayList<>();
-    private final List<MethodDefinition> methods = new ArrayList<>();
-    private final MethodDefinition classInitializer;
-    private String source;
-    private String debug;
+    private final EnumSet<Access> access; // 访问标识符
+    private final ParameterizedType type; // 参数类型
+    private final ParameterizedType superClass; // 参数父类类型
+    private final List<ParameterizedType> interfaces = new ArrayList<>(); // 接口类型
+    private final List<AnnotationDefinition> annotations = new ArrayList<>(); // 注解类型
+    private final List<FieldDefinition> fields = new ArrayList<>(); // 字段定义
+    private final List<MethodDefinition> methods = new ArrayList<>(); // 方法定义
+    private final MethodDefinition classInitializer; // 应该指的是构造方法
+    private String source; // 源代码
+    private String debug; //
 
     public ClassDefinition(
             EnumSet<Access> access,

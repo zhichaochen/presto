@@ -13,9 +13,14 @@
  */
 package com.facebook.presto.sql.tree;
 
+/**
+ * 节点所在位置
+ */
 public final class NodeLocation
 {
+    // 第几行
     private final int line;
+    // 第几列
     private final int charPositionInLine;
 
     public NodeLocation(int line, int charPositionInLine)

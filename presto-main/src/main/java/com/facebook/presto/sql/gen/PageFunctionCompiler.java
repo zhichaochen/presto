@@ -118,6 +118,9 @@ import static com.google.common.collect.ImmutableMap.toImmutableMap;
 import static java.util.Collections.emptyMap;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 提供Page相关的操做
+ */
 public class PageFunctionCompiler
 {
     private static Logger log = Logger.get(PageFunctionCompiler.class);

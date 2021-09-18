@@ -63,6 +63,9 @@ import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.Executors.newCachedThreadPool;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 
+/**
+ * 远程任务
+ */
 public class HttpRemoteTaskFactory
         implements RemoteTaskFactory
 {

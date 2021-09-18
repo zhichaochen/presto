@@ -43,6 +43,9 @@ import static com.google.common.collect.ImmutableMap.toImmutableMap;
 import static java.util.Objects.requireNonNull;
 import static java.util.function.Function.identity;
 
+/**
+ * 内存池
+ */
 public class MemoryPool
 {
     private static final String MOVE_QUERY_TAG = "MOVE_QUERY_OPERATION";

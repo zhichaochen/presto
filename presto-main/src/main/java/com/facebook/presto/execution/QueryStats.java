@@ -43,6 +43,9 @@ import static java.lang.Math.min;
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
+/**
+ * 查询信息统计
+ */
 public class QueryStats
 {
     private final DateTime createTime;
@@ -302,6 +305,7 @@ public class QueryStats
 
         ImmutableList.Builder<OperatorStats> operatorStatsSummary = ImmutableList.builder();
         boolean completeInfo = true;
+        // 遍历所有阶段
         for (StageInfo stageInfo : getAllStages(rootStage)) {
             StageExecutionStats stageExecutionStats = stageInfo.getLatestAttemptExecutionInfo().getStats();
             totalTasks += stageExecutionStats.getTotalTasks();
@@ -318,6 +322,7 @@ public class QueryStats
             userMemoryReservation += stageExecutionStats.getUserMemoryReservation().toBytes();
             totalMemoryReservation += stageExecutionStats.getTotalMemoryReservation().toBytes();
             totalScheduledTime += stageExecutionStats.getTotalScheduledTime().roundTo(MILLISECONDS);
+            // cpu总时间
             totalCpuTime += stageExecutionStats.getTotalCpuTime().roundTo(MILLISECONDS);
             retriedCpuTime += computeRetriedCpuTime(stageInfo);
             totalBlockedTime += stageExecutionStats.getTotalBlockedTime().roundTo(MILLISECONDS);

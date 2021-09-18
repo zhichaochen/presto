@@ -13,6 +13,9 @@
  */
 package com.facebook.presto.spi;
 
+/**
+ * 错误编码提供器
+ */
 public interface ErrorCodeSupplier
 {
     ErrorCode toErrorCode();

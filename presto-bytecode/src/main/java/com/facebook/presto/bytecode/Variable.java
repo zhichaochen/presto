@@ -24,6 +24,9 @@ import static com.facebook.presto.bytecode.expression.BytecodeExpressions.add;
 import static com.facebook.presto.bytecode.expression.BytecodeExpressions.constantInt;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 变量
+ */
 public class Variable
         extends BytecodeExpression
 {

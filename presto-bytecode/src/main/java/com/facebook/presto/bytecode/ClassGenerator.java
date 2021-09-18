@@ -44,6 +44,9 @@ import static com.google.common.io.CharStreams.nullWriter;
 import static java.nio.file.Files.createDirectories;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 类生成器
+ */
 public class ClassGenerator
 {
     private final DynamicClassLoader classLoader;

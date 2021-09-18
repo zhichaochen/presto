@@ -31,6 +31,9 @@ import java.util.function.LongConsumer;
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 节点任务Map
+ */
 @ThreadSafe
 public class NodeTaskMap
 {
@@ -118,13 +121,22 @@ public class NodeTaskMap
             }
         }
 
+        /**
+         * 创建任务统计跟踪器
+         * @param taskId
+         * @return
+         */
         public NodeStatsTracker createTaskStatsTrackers(TaskId taskId)
         {
             requireNonNull(taskId, "taskId is null");
 
+            // split跟踪器
             TaskStatsTracker splitTracker = new TaskStatsTracker("SplitTracker", taskId, nodeTotalPartitionedSplitCount);
+            // 内存使用跟踪器
             TaskStatsTracker memoryUsageTracker = new TaskStatsTracker("MemoryTracker", taskId, nodeTotalMemoryUsageInBytes);
+            // cpu利用率百分比跟踪器
             AccumulatedTaskStatsTracker cpuUtilizationPercentageTracker = new AccumulatedTaskStatsTracker("CpuTracker", taskId, nodeTotalCpuTimePerMillis);
+            // 节点统计跟踪器
             NodeStatsTracker nodeStatsTracker = new NodeStatsTracker(splitTracker::setValue, memoryUsageTracker::setValue, cpuUtilizationPercentageTracker::setValue);
 
             // when nodeStatsTracker is garbage collected, run the cleanup method on the tracker

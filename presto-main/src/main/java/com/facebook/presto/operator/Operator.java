@@ -17,14 +17,22 @@ import com.facebook.presto.common.Page;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 
+/**
+ * 算子
+ */
 public interface Operator
         extends AutoCloseable
 {
     ListenableFuture<?> NOT_BLOCKED = Futures.immediateFuture(null);
 
+    /**
+     * 算子上下文
+     * @return
+     */
     OperatorContext getOperatorContext();
 
     /**
+     * 是否阻塞
      * Returns a future that will be completed when the operator becomes
      * unblocked.  If the operator is not blocked, this method should return
      * {@code NOT_BLOCKED}.
@@ -35,17 +43,20 @@ public interface Operator
     }
 
     /**
+     * 这个算子是否接受一个上游输入
      * Returns true if and only if this operator can accept an input page.
      */
     boolean needsInput();
 
     /**
+     * 如果接受输入，那么需要添加Page
      * Adds an input page to the operator.  This method will only be called if
      * {@code needsInput()} returns true.
      */
     void addInput(Page page);
 
     /**
+     * 获取当前算子的处理结果
      * Gets an output page from the operator.  If no output data is currently
      * available, return null.
      */
@@ -79,6 +90,7 @@ public interface Operator
     }
 
     /**
+     * 刷写出处理
      * Notifies the operator that no more pages will be added and the
      * operator should finish processing and flush results. This method
      * will not be called if the Task is already failed or canceled.
@@ -86,6 +98,7 @@ public interface Operator
     void finish();
 
     /**
+     * 是否完成
      * Is this operator completely finished processing and no more
      * output pages will be produced.
      */

@@ -90,6 +90,13 @@ import static io.airlift.units.DataSize.succinctBytes;
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
+/**
+ * Sql查询执行对象
+ *
+ * CLI提交SQL之后，查询请求会被封装成一个 SqlQueryExecution对象提交给 Coordinator去处理。
+ *
+ * 该对象持有了QueryStateMachine，是提交查询之后与等待查询结果的有无的bridge
+ */
 @ThreadSafe
 public class SqlQueryExecution
         implements QueryExecution
@@ -101,7 +108,7 @@ public class SqlQueryExecution
     private final Metadata metadata;
     private final SqlParser sqlParser;
     private final SplitManager splitManager;
-    private final List<PlanOptimizer> planOptimizers;
+    private final List<PlanOptimizer> planOptimizers; // 查询优化器列表
     private final List<PlanOptimizer> runtimePlanOptimizers;
     private final PlanFragmenter planFragmenter;
     private final RemoteTaskFactory remoteTaskFactory;
@@ -118,7 +125,7 @@ public class SqlQueryExecution
     private final StatsCalculator statsCalculator;
     private final CostCalculator costCalculator;
     private final PlanChecker planChecker;
-    private final PlanNodeIdAllocator idAllocator = new PlanNodeIdAllocator();
+    private final PlanNodeIdAllocator idAllocator = new PlanNodeIdAllocator(); // 自增ID
     private final AtomicReference<PlanVariableAllocator> variableAllocator = new AtomicReference<>();
 
     private SqlQueryExecution(
@@ -329,23 +336,30 @@ public class SqlQueryExecution
         return stateMachine.getCurrentRunningTaskCount();
     }
 
+    /**
+     * 开始查询
+     */
     @Override
     public void start()
     {
         try (SetThreadName ignored = new SetThreadName("Query-%s", stateMachine.getQueryId())) {
             try {
                 // transition to planning
+                // 过度到计划
                 if (!stateMachine.transitionToPlanning()) {
                     // query already started or finished
+                    // 查询已经开始或完成
                     return;
                 }
 
-                // analyze query
+                // analyze query 分析查询语句
                 PlanRoot plan = analyzeQuery();
 
+                // 开始查询，这里相当于给Connector发送了一个通知，告诉Connector准备开始查询了。
                 metadata.beginQuery(getSession(), plan.getConnectors());
 
                 // plan distribution of query
+                // 生成分布式查询计划
                 planDistribution(plan);
 
                 // transition to starting
@@ -357,12 +371,15 @@ public class SqlQueryExecution
                 // if query is not finished, start the scheduler, otherwise cancel it
                 SqlQuerySchedulerInterface scheduler = queryScheduler.get();
 
+                // 开始分布式调度SQL
                 if (!stateMachine.isDone()) {
                     scheduler.start();
                 }
             }
             catch (Throwable e) {
+                // 做失败处理
                 fail(e);
+                // 如果是Error，抛出error
                 throwIfInstanceOf(e, Error.class);
             }
         }
@@ -398,17 +415,24 @@ public class SqlQueryExecution
         }
     }
 
+    /**
+     * 生成逻辑执行计划，并分段
+     *
+     * @return
+     */
     private PlanRoot doAnalyzeQuery()
     {
         // time analysis phase
+        // 记录分析开始时间
         stateMachine.beginAnalysis();
 
         // plan query
+        // 创建生成逻辑计划（包括优化）
         LogicalPlanner logicalPlanner = new LogicalPlanner(false, stateMachine.getSession(), planOptimizers, idAllocator, metadata, sqlParser, statsCalculator, costCalculator, stateMachine.getWarningCollector(), planChecker);
         Plan plan = logicalPlanner.plan(analysis);
         queryPlan.set(plan);
 
-        // extract inputs
+        // extract inputs 提取inputs
         List<Input> inputs = new InputExtractor(metadata, stateMachine.getSession()).extractInputs(plan.getRoot());
         stateMachine.setInputs(inputs);
 
@@ -416,14 +440,17 @@ public class SqlQueryExecution
         Optional<Output> output = new OutputExtractor().extractOutput(plan.getRoot());
         stateMachine.setOutput(output);
 
-        // fragment the plan
+        // fragment the planplanDistribution
         // the variableAllocator is finally passed to SqlQueryScheduler for runtime cost-based optimizations
         variableAllocator.set(new PlanVariableAllocator(plan.getTypes().allVariables()));
+        // 逻辑执行计划分段
         SubPlan fragmentedPlan = planFragmenter.createSubPlans(stateMachine.getSession(), plan, false, idAllocator, variableAllocator.get(), stateMachine.getWarningCollector());
 
         // record analysis time
+        // 记录分析结束时间
         stateMachine.endAnalysis();
 
+        // 是否explain
         boolean explainAnalyze = analysis.getStatement() instanceof Explain && ((Explain) analysis.getStatement()).isAnalyze();
         return new PlanRoot(fragmentedPlan, !explainAnalyze, extractConnectors(analysis));
     }
@@ -444,11 +471,18 @@ public class SqlQueryExecution
         return connectors.build();
     }
 
+    /**
+     * 生成分布式执行计划（生成了stage执行计划）
+     * 最终会交给调度器，调度器会将任务发送到远程节点执行。
+     * @param plan
+     */
     private void planDistribution(PlanRoot plan)
     {
+        // 资源切分器（对数据怎么切分，比如ES就是一个节点一个分区）
         CloseableSplitSourceProvider splitSourceProvider = new CloseableSplitSourceProvider(splitManager::getSplits);
 
         // ensure split sources are closed
+        // 添加状态改变监听器
         stateMachine.addStateChangeListener(state -> {
             if (state.isDone()) {
                 splitSourceProvider.close();
@@ -456,15 +490,19 @@ public class SqlQueryExecution
         });
 
         // if query was canceled, skip creating scheduler
+        // 如果查询取消了，跳过创建调度器
         if (stateMachine.isDone()) {
             return;
         }
 
+        // 执行计划根节点
         SubPlan outputStagePlan = plan.getRoot();
 
         // record output field
+        // 记录输出字段
         stateMachine.setColumns(((OutputNode) outputStagePlan.getFragment().getRoot()).getColumnNames(), outputStagePlan.getFragment().getTypes());
 
+        // 分割句柄
         PartitioningHandle partitioningHandle = outputStagePlan.getFragment().getPartitioningScheme().getPartitioning().getHandle();
         OutputBuffers rootOutputBuffers;
         if (isSpoolingOutputBufferEnabled(getSession())) {
@@ -478,6 +516,7 @@ public class SqlQueryExecution
 
         SplitSourceFactory splitSourceFactory = new SplitSourceFactory(splitSourceProvider, stateMachine.getWarningCollector());
         // build the stage execution objects (this doesn't schedule execution)
+        // 构建阶段执行对象，还没有调度执行
         SqlQuerySchedulerInterface scheduler = isUseLegacyScheduler(getSession()) ?
                 LegacySqlQueryScheduler.createSqlQueryScheduler(
                         locationFactory,
@@ -556,12 +595,15 @@ public class SqlQueryExecution
     {
         requireNonNull(cause, "cause is null");
 
+        // 事务失败
         stateMachine.transitionToFailed(cause);
 
         // acquire reference to scheduler before checking finalQueryInfo, because
         // state change listener sets finalQueryInfo and then clears scheduler when
         // the query finishes.
+        // 调度器接口
         SqlQuerySchedulerInterface scheduler = queryScheduler.get();
+        // 更新查询信息
         stateMachine.updateQueryInfo(Optional.ofNullable(scheduler).map(SqlQuerySchedulerInterface::getStageInfo));
     }
 
@@ -642,6 +684,9 @@ public class SqlQueryExecution
         return queryInfo;
     }
 
+    /**
+     * 根计划
+     */
     private static class PlanRoot
     {
         private final SubPlan root;
@@ -735,6 +780,15 @@ public class SqlQueryExecution
             this.planChecker = requireNonNull(planChecker, "planChecker is null");
         }
 
+        /**
+         * 创建一个查询执行对象
+         * @param preparedQuery
+         * @param stateMachine
+         * @param slug
+         * @param warningCollector
+         * @param queryType
+         * @return
+         */
         @Override
         public QueryExecution createQueryExecution(
                 PreparedQuery preparedQuery,

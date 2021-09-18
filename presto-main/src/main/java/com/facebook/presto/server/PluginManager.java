@@ -63,6 +63,9 @@ import static com.facebook.presto.server.PluginDiscovery.discoverPlugins;
 import static com.facebook.presto.server.PluginDiscovery.writePluginServices;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 插件管理器
+ */
 @ThreadSafe
 public class PluginManager
 {
@@ -144,25 +147,33 @@ public class PluginManager
         this.disabledConnectors = requireNonNull(config.getDisabledConnectors(), "disabledConnectors is null");
     }
 
+    /**
+     * 加载所有插件
+     * @throws Exception
+     */
     public void loadPlugins()
             throws Exception
     {
+        // 设置正在加载插件中
         if (!pluginsLoading.compareAndSet(false, true)) {
             return;
         }
 
+        // 查找插件目录下的所有插件
         for (File file : listFiles(installedPluginsDir)) {
             if (file.isDirectory()) {
                 loadPlugin(file.getAbsolutePath());
             }
         }
 
+        // 加载指定插件目录下的插件
         for (String plugin : plugins) {
             loadPlugin(plugin);
         }
 
         metadata.verifyComparableOrderableContract();
 
+        // 设置插件加载完毕
         pluginsLoaded.set(true);
     }
 
@@ -170,7 +181,9 @@ public class PluginManager
             throws Exception
     {
         log.info("-- Loading plugin %s --", plugin);
+        // 构建插件
         URLClassLoader pluginClassLoader = buildClassLoader(plugin);
+        // 将插件加载器设置为上下文加载器
         try (ThreadContextClassLoader ignored = new ThreadContextClassLoader(pluginClassLoader)) {
             loadPlugin(pluginClassLoader);
         }
@@ -179,6 +192,7 @@ public class PluginManager
 
     private void loadPlugin(URLClassLoader pluginClassLoader)
     {
+        // 通过spi加载所有插件
         ServiceLoader<Plugin> serviceLoader = ServiceLoader.load(Plugin.class, pluginClassLoader);
         List<Plugin> plugins = ImmutableList.copyOf(serviceLoader);
 
@@ -186,6 +200,7 @@ public class PluginManager
             log.warn("No service providers of type %s", Plugin.class.getName());
         }
 
+        // 安装所有插件
         for (Plugin plugin : plugins) {
             log.info("Installing %s", plugin.getClass().getName());
             installPlugin(plugin);
@@ -263,6 +278,7 @@ public class PluginManager
             throws Exception
     {
         File file = new File(plugin);
+        // 判断file是否是pom文件
         if (file.isFile() && (file.getName().equals("pom.xml") || file.getName().endsWith(".pom"))) {
             return buildClassLoaderFromPom(file);
         }

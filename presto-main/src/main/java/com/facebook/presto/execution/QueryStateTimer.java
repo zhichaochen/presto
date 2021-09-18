@@ -26,6 +26,9 @@ import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
+/**
+ * 查询状态计时器
+ */
 public class QueryStateTimer
 {
     private final Ticker ticker;
@@ -146,6 +149,9 @@ public class QueryStateTimer
     //  Additional timings
     //
 
+    /**
+     * 开始分析
+     */
     public void beginAnalyzing()
     {
         beginAnalysisNanos.compareAndSet(null, tickerNanos());

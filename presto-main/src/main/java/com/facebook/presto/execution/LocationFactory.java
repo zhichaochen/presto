@@ -18,6 +18,9 @@ import com.facebook.presto.spi.QueryId;
 
 import java.net.URI;
 
+/**
+ * 位置工厂，用于提供各种位置
+ */
 public interface LocationFactory
 {
     URI createQueryLocation(QueryId queryId);

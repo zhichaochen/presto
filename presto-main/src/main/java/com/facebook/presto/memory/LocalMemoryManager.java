@@ -36,12 +36,19 @@ import static io.airlift.units.DataSize.Unit.BYTE;
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 本地内存管理器
+ */
 public final class LocalMemoryManager
 {
+    // 通用内存池
     public static final MemoryPoolId GENERAL_POOL = new MemoryPoolId("general");
+    //
     public static final MemoryPoolId RESERVED_POOL = new MemoryPoolId("reserved");
 
+    // 最大内存
     private DataSize maxMemory;
+    // 内存池集合
     private Map<MemoryPoolId, MemoryPool> pools;
 
     @Inject
@@ -57,6 +64,11 @@ public final class LocalMemoryManager
         configureMemoryPools(config, availableMemory);
     }
 
+    /**
+     * 配置内存池
+     * @param config
+     * @param availableMemory
+     */
     private void configureMemoryPools(NodeMemoryConfig config, long availableMemory)
     {
         validateHeapHeadroom(config, availableMemory);

@@ -13,6 +13,9 @@
  */
 package com.facebook.presto.spi.function;
 
+/**
+ * 累加器状态
+ */
 public interface AccumulatorState
 {
     long getEstimatedSize();

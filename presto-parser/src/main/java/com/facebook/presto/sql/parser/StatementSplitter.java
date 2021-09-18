@@ -26,6 +26,9 @@ import java.util.Set;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 语句分割器
+ */
 public class StatementSplitter
 {
     private final List<Statement> completeStatements;

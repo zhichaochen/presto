@@ -15,6 +15,9 @@ package com.facebook.presto.operator.aggregation.state;
 
 import com.facebook.presto.spi.function.AccumulatorState;
 
+/**
+ * long或者double状态
+ */
 public interface LongAndDoubleState
         extends AccumulatorState
 {

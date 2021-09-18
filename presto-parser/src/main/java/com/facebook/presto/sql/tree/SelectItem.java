@@ -15,6 +15,9 @@ package com.facebook.presto.sql.tree;
 
 import java.util.Optional;
 
+/**
+ * 表示select语句中要查询的列
+ */
 public abstract class SelectItem
         extends Node
 {

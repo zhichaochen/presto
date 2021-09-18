@@ -28,6 +28,9 @@ import static com.facebook.presto.spi.schedule.NodeSelectionStrategy.NO_PREFEREN
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 远程切分
+ */
 public class RemoteSplit
         implements ConnectorSplit
 {

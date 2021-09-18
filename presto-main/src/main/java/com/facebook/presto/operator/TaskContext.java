@@ -58,6 +58,9 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.stream.Collectors.toList;
 
+/**
+ * 任务上下文，在创建任务执行器的时候创建
+ */
 @ThreadSafe
 public class TaskContext
 {

@@ -24,6 +24,9 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 一个列
+ */
 public final class ElasticsearchColumn
 {
     private final String name;

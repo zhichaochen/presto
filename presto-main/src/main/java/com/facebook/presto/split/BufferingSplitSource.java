@@ -29,6 +29,9 @@ import static com.google.common.util.concurrent.Futures.immediateFuture;
 import static com.google.common.util.concurrent.MoreExecutors.directExecutor;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 缓存
+ */
 public class BufferingSplitSource
         implements SplitSource
 {

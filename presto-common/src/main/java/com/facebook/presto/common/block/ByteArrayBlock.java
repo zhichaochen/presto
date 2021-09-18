@@ -31,6 +31,9 @@ import static com.facebook.presto.common.block.BlockUtil.internalPositionInRange
 import static io.airlift.slice.SizeOf.sizeOf;
 import static java.lang.String.format;
 
+/**
+ * 字节类型的block
+ */
 public class ByteArrayBlock
         implements Block
 {

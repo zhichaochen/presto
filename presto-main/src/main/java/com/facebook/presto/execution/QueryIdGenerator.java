@@ -29,6 +29,9 @@ import java.util.concurrent.TimeUnit;
 import static com.google.common.base.Preconditions.checkState;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
+/**
+ * 查询ID生成器
+ */
 public class QueryIdGenerator
 {
     // a-z, 0-9, except: l, o, 0, 1

@@ -30,6 +30,9 @@ import javax.validation.constraints.NotNull;
 import java.math.BigDecimal;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * 任务管理器配置
+ */
 @DefunctConfig({
         "experimental.big-query-max-task-memory",
         "task.max-memory",

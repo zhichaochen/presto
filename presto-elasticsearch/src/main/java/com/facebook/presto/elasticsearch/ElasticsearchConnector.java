@@ -32,6 +32,9 @@ import static com.facebook.presto.spi.transaction.IsolationLevel.READ_COMMITTED;
 import static com.facebook.presto.spi.transaction.IsolationLevel.checkConnectorSupports;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * ES连接器
+ */
 public class ElasticsearchConnector
         implements Connector
 {

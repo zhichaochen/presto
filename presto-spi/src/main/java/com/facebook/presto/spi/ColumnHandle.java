@@ -18,6 +18,9 @@ import com.facebook.presto.spi.api.Experimental;
 
 import java.util.List;
 
+/**
+ * 列句柄
+ */
 public interface ColumnHandle
 {
     /**

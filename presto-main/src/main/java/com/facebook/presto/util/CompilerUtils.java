@@ -33,17 +33,28 @@ import static com.facebook.presto.bytecode.ParameterizedType.typeFromJavaClassNa
 import static com.facebook.presto.spi.StandardErrorCode.GENERATED_BYTECODE_TOO_LARGE;
 import static java.time.ZoneOffset.UTC;
 
+/**
+ * 编译工具类。
+ */
 public final class CompilerUtils
 {
     private static final Logger log = Logger.get(CompilerUtils.class);
 
+    // class id
     private static final AtomicLong CLASS_ID = new AtomicLong();
+    // 时间格式化起
     private static final DateTimeFormatter TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("YYYYMMdd_HHmmss");
-
+    // 错误
     public static final String ERROR_LARGE_BYTECODE = "Query results in large bytecode exceeding the limits imposed by JVM";
 
     private CompilerUtils() {}
 
+    /**
+     * 制作类名
+     * @param baseName
+     * @param suffix
+     * @return
+     */
     public static ParameterizedType makeClassName(String baseName, Optional<String> suffix)
     {
         String className = baseName.length() > 100 ? baseName.substring(0, 100) : baseName
@@ -52,11 +63,20 @@ public final class CompilerUtils
         return typeFromJavaClassName("com.facebook.presto.$gen." + toJavaIdentifierString(className));
     }
 
+    /**
+     * 构建类名
+     * @param baseName
+     * @return
+     */
     public static ParameterizedType makeClassName(String baseName)
     {
         return makeClassName(baseName, Optional.empty());
     }
 
+    /**
+     * 定义类
+     * @return
+     */
     public static <T> Class<? extends T> defineClass(ClassDefinition classDefinition, Class<T> superType, Map<Long, MethodHandle> callSiteBindings, ClassLoader parentClassLoader)
     {
         return defineClass(classDefinition, superType, new DynamicClassLoader(parentClassLoader, callSiteBindings));

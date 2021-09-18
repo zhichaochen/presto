@@ -15,9 +15,22 @@ package com.facebook.presto.operator;
 
 import com.facebook.presto.common.Page;
 
+/**
+ * 分区函数
+ */
 public interface PartitionFunction
 {
+    /**
+     * 分区数量
+     * @return
+     */
     int getPartitionCount();
 
+    /**
+     * 查询分区
+     * @param page
+     * @param position
+     * @return
+     */
     int getPartition(Page page, int position);
 }

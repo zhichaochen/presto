@@ -25,13 +25,19 @@ import java.util.List;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 表示切分资源的结果
+ */
 public interface SplitSource
         extends Closeable
 {
+    // 连接器ID
     ConnectorId getConnectorId();
 
+    // 事务句柄
     ConnectorTransactionHandle getTransactionHandle();
 
+    // 下一批次数据
     ListenableFuture<SplitBatch> getNextBatch(ConnectorPartitionHandle partitionHandle, Lifespan lifespan, int maxSize);
 
     void rewind(ConnectorPartitionHandle partitionHandle);
@@ -43,7 +49,9 @@ public interface SplitSource
 
     class SplitBatch
     {
+        // split列表
         private final List<Split> splits;
+        // 是否最后一批
         private final boolean lastBatch;
 
         public SplitBatch(List<Split> splits, boolean lastBatch)

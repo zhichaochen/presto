@@ -27,6 +27,9 @@ import java.util.Optional;
 
 import static com.facebook.presto.sql.gen.SpecialFormBytecodeGenerator.generateWrite;
 
+/**
+ * if代码生成器
+ */
 public class IfCodeGenerator
         implements SpecialFormBytecodeGenerator
 {
@@ -40,9 +43,11 @@ public class IfCodeGenerator
         BytecodeBlock block = new BytecodeBlock()
                 .append(context.generate(arguments.get(0), Optional.empty()));
 
+        // if语句
         IfStatement ifStatement = new IfStatement("... and condition value was not null")
                 .condition(wasNull);
 
+        //
         ifStatement.ifTrue()
                 .putVariable(wasNull, false)
                 .pop(boolean.class)

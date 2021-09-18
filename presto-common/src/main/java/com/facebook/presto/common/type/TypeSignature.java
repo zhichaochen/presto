@@ -43,6 +43,9 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.unmodifiableList;
 import static java.util.Locale.ENGLISH;
 
+/**
+ * 类型签名
+ */
 public class TypeSignature
 {
     private final TypeSignatureBase base;

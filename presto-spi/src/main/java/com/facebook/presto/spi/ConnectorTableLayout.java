@@ -23,6 +23,9 @@ import java.util.Set;
 import static java.util.Collections.emptyList;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 连接器表布局
+ */
 public class ConnectorTableLayout
 {
     private final ConnectorTableLayoutHandle handle;

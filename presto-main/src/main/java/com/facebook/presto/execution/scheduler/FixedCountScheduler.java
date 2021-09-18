@@ -25,6 +25,9 @@ import java.util.stream.IntStream;
 import static com.google.common.collect.ImmutableList.toImmutableList;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 主要调度 Fixed task
+ */
 public class FixedCountScheduler
         implements StageScheduler
 {
@@ -33,7 +36,9 @@ public class FixedCountScheduler
         Optional<RemoteTask> scheduleTask(InternalNode node, int partition);
     }
 
+    // 任务调度器
     private final TaskScheduler taskScheduler;
+    // 分区节点
     private final List<InternalNode> partitionToNode;
 
     public FixedCountScheduler(SqlStageExecution stage, List<InternalNode> partitionToNode)
@@ -50,6 +55,10 @@ public class FixedCountScheduler
         this.partitionToNode = requireNonNull(partitionToNode, "partitionToNode is null");
     }
 
+    /**
+     * 调度
+     * @return
+     */
     @Override
     public ScheduleResult schedule()
     {

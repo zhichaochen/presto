@@ -58,6 +58,9 @@ import static com.google.common.collect.ImmutableList.toImmutableList;
 import static java.lang.Math.toIntExact;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 调度Fixed任务
+ */
 public class FixedSourcePartitionedScheduler
         implements StageScheduler
 {

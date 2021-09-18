@@ -32,13 +32,19 @@ import static com.facebook.airlift.concurrent.Threads.daemonThreadsNamed;
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.Executors.newSingleThreadExecutor;
 
+/**
+ * 终结器服务
+ */
 @ThreadSafe
 public class FinalizerService
 {
     private static final Logger log = Logger.get(FinalizerService.class);
 
+    // 终结器引用集合
     private final Set<FinalizerReference> finalizers = Sets.newConcurrentHashSet();
+    // 终结器队列
     private final ReferenceQueue<Object> finalizerQueue = new ReferenceQueue<>();
+    // 执行器
     @GuardedBy("this")
     private ExecutorService executor;
 
@@ -51,6 +57,7 @@ public class FinalizerService
         if (finalizerTask != null) {
             return;
         }
+        // 开启一个
         if (executor == null) {
             executor = newSingleThreadExecutor(daemonThreadsNamed("FinalizerService"));
         }

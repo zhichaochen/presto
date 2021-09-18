@@ -17,6 +17,9 @@ import java.util.Optional;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 节点信息
+ */
 public class ElasticsearchNode
 {
     private final String id;

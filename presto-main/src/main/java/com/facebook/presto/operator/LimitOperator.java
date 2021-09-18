@@ -20,15 +20,24 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * limit算子
+ */
 public class LimitOperator
         implements Operator
 {
+    /**
+     * limit算子工厂
+     */
     public static class LimitOperatorFactory
             implements OperatorFactory
     {
+        // 算子id
         private final int operatorId;
         private final PlanNodeId planNodeId;
+        // 限制条数
         private final long limit;
+        // 是否关闭
         private boolean closed;
 
         public LimitOperatorFactory(int operatorId, PlanNodeId planNodeId, long limit)

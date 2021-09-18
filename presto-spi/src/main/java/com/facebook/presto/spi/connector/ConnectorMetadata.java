@@ -63,6 +63,12 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.stream.Collectors.toList;
 
+/**
+ * 连接器的元数据
+ *
+ * 为Presto提供【大量方法】列举特定数据的schemas列表,tables列表, columns列表,
+ * 和其他元数据metadata，
+ */
 public interface ConnectorMetadata
 {
     /**
@@ -467,6 +473,7 @@ public interface ConnectorMetadata
     }
 
     /**
+     * 启动选择/更新/插入/删除查询。此通知在计划阶段完成后触发。
      * Start a SELECT/UPDATE/INSERT/DELETE query. This notification is triggered after the planning phase completes.
      */
     default void beginQuery(ConnectorSession session) {}

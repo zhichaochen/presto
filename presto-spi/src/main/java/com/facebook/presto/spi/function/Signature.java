@@ -29,6 +29,9 @@ import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Stream.concat;
 
+/**
+ * 函数签名
+ */
 public final class Signature
 {
     private final QualifiedObjectName name;

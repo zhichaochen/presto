@@ -27,6 +27,9 @@ import static com.facebook.presto.common.type.RealType.REAL;
 import static java.lang.Float.floatToRawIntBits;
 import static java.lang.Float.intBitsToFloat;
 
+/**
+ * sum聚合
+ */
 @AggregationFunction("sum")
 public final class RealSumAggregation
 {

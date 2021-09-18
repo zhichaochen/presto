@@ -80,6 +80,10 @@ import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
+/**
+ * 任务执行器，真正执行split
+ * 通过Guice注入SqltaskManager，并且构造完成后即启动start
+ */
 @ThreadSafe
 public class TaskExecutor
 {
@@ -90,7 +94,7 @@ public class TaskExecutor
 
     private static final AtomicLong NEXT_RUNNER_ID = new AtomicLong();
 
-    private final ExecutorService executor;
+    private final ExecutorService executor; // 任务执行线程池
     private final ThreadPoolExecutorMBean executorMBean;
 
     private final int runnerThreads;
@@ -105,7 +109,7 @@ public class TaskExecutor
     private final SortedSet<RunningSplitInfo> runningSplitInfos = new ConcurrentSkipListSet<>();
 
     @GuardedBy("this")
-    private final List<TaskHandle> tasks;
+    private final List<TaskHandle> tasks; // 任务列表
 
     /**
      * All splits registered with the task executor.
@@ -120,6 +124,7 @@ public class TaskExecutor
     private final Set<PrioritizedSplitRunner> intermediateSplits = new HashSet<>();
 
     /**
+     * 分片
      * Splits waiting for a runner thread.
      */
     private final MultilevelSplitQueue waitingSplits;
@@ -164,7 +169,7 @@ public class TaskExecutor
     private final TimeStat blockedQuantaWallTime = new TimeStat(MICROSECONDS);
     private final TimeStat unblockedQuantaWallTime = new TimeStat(MICROSECONDS);
 
-    private volatile boolean closed;
+    private volatile boolean closed; // 任务是否被关闭
 
     @Inject
     public TaskExecutor(TaskManagerConfig config, EmbedVersion embedVersion, MultilevelSplitQueue splitQueue)
@@ -265,11 +270,15 @@ public class TaskExecutor
         this.tasks = new LinkedList<>();
     }
 
+    /**
+     * 启动任务执行器，默认启动Runtime.getRuntime().availableProcessors() * 2个线程
+     */
     @PostConstruct
     public synchronized void start()
     {
         checkState(!closed, "TaskExecutor is closed");
         for (int i = 0; i < runnerThreads; i++) {
+            // 添加一个处理split的线程
             addRunnerThread();
         }
     }
@@ -298,12 +307,22 @@ public class TaskExecutor
     private synchronized void addRunnerThread()
     {
         try {
+            // 在线程池添加一个执行split的线程
             executor.execute(embedVersion.embedVersion(new TaskRunner()));
         }
         catch (RejectedExecutionException ignored) {
         }
     }
 
+    /**
+     * 添加任务
+     * @param taskId
+     * @param utilizationSupplier
+     * @param initialSplitConcurrency
+     * @param splitConcurrencyAdjustFrequency
+     * @param maxDriversPerTask
+     * @return
+     */
     public synchronized TaskHandle addTask(
             TaskId taskId,
             DoubleSupplier utilizationSupplier,
@@ -514,6 +533,9 @@ public class TaskExecutor
         return null;
     }
 
+    /**
+     * 任务运行器
+     */
     private class TaskRunner
             implements Runnable
     {
@@ -523,10 +545,12 @@ public class TaskExecutor
         public void run()
         {
             try (SetThreadName runnerName = new SetThreadName("SplitRunner-%s", runnerId)) {
+                // 线程没被关闭或者没被打断，一直执行
                 while (!closed && !Thread.currentThread().isInterrupted()) {
                     // select next worker
                     final PrioritizedSplitRunner split;
                     try {
+                        // 获取下一个待处理的split
                         split = waitingSplits.take();
                     }
                     catch (InterruptedException e) {
@@ -534,30 +558,38 @@ public class TaskExecutor
                         return;
                     }
 
+                    // 线程id
                     String threadId = split.getTaskHandle().getTaskId() + "-" + split.getSplitId();
                     try (SetThreadName splitName = new SetThreadName(threadId)) {
+                        // 将split加入有序执行集合runningSplits
                         RunningSplitInfo splitInfo = new RunningSplitInfo(ticker.read(), threadId, Thread.currentThread(), split);
                         runningSplitInfos.add(splitInfo);
                         runningSplits.add(split);
 
                         ListenableFuture<?> blocked;
                         try {
+                            // 处理split。
+                            // 处理固定时间片后无论是否完毕，都会返回
                             blocked = split.process();
                         }
                         finally {
+                            // 处理完成后移除split，
                             runningSplitInfos.remove(splitInfo);
                             runningSplits.remove(split);
                         }
 
+                        // 整体split完成
                         if (split.isFinished()) {
                             log.debug("%s is finished", split.getInfo());
                             splitFinished(split);
                         }
                         else {
+                            // 本次执行完成，则放入pending队列中
                             if (blocked.isDone()) {
                                 waitingSplits.offer(split);
                             }
                             else {
+                                // 没有完成，放入阻塞队列中，并添加执行完毕监听器
                                 blockedSplits.put(split, blocked);
                                 blocked.addListener(() -> {
                                     blockedSplits.remove(split);
@@ -585,6 +617,7 @@ public class TaskExecutor
             }
             finally {
                 // unless we have been closed, we need to replace this thread
+                // 如果不是因为关闭而停止，需要创建新的线程替换当前线程
                 if (!closed) {
                     addRunnerThread();
                 }
@@ -891,6 +924,9 @@ public class TaskExecutor
         return count;
     }
 
+    /**
+     * 正在运行的Split信息
+     */
     private static class RunningSplitInfo
             implements Comparable<RunningSplitInfo>
     {

@@ -106,6 +106,9 @@ import static java.util.Collections.list;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static org.elasticsearch.action.search.SearchType.QUERY_THEN_FETCH;
 
+/**
+ * 客户端
+ */
 public class ElasticsearchClient
 {
     private static final Logger LOG = Logger.get(ElasticsearchClient.class);

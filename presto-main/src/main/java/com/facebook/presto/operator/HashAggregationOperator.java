@@ -44,6 +44,10 @@ import static com.google.common.base.Verify.verify;
 import static io.airlift.units.DataSize.Unit.MEGABYTE;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 用于处理聚合操作
+ * 相同的group key可以聚合在一起，完成最终聚合操作
+ */
 public class HashAggregationOperator
         implements Operator
 {

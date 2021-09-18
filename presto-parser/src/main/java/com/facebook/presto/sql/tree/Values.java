@@ -22,6 +22,9 @@ import java.util.Optional;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * Values 语句，insert into values
+ */
 public final class Values
         extends QueryBody
 {

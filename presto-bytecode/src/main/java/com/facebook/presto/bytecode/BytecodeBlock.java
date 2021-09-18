@@ -52,6 +52,11 @@ import static com.facebook.presto.bytecode.instruction.VariableInstruction.loadV
 import static com.facebook.presto.bytecode.instruction.VariableInstruction.storeVariable;
 import static com.google.common.base.Preconditions.checkArgument;
 
+/**
+ * 字节码块（表示代码的字节码内容）
+ *
+ * 其中：定义了很多操作字节码的方法
+ */
 @SuppressWarnings("UnusedDeclaration")
 @NotThreadSafe
 public class BytecodeBlock

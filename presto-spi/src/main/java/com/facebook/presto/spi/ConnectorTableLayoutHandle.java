@@ -15,6 +15,11 @@ package com.facebook.presto.spi;
 
 import java.util.Optional;
 
+
+/**
+ * 表布局句柄
+ * 要查那张表，以及表中的那些数据
+ */
 public interface ConnectorTableLayoutHandle
 {
     default Object getIdentifier(Optional<ConnectorSplit> split)

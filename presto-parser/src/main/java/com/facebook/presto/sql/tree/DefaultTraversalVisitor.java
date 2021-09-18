@@ -13,6 +13,12 @@
  */
 package com.facebook.presto.sql.tree;
 
+/**
+ * 默认的遍历访问者，关系型计划会使用该访问者
+ *
+ * @param <R>
+ * @param <C>
+ */
 public abstract class DefaultTraversalVisitor<R, C>
         extends AstVisitor<R, C>
 {

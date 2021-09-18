@@ -25,12 +25,19 @@ import com.google.common.util.concurrent.ListenableFuture;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * 数据定义任务，任务的相关实现。
+ * @param <T>
+ */
 public interface DataDefinitionTask<T extends Statement>
 {
+    // 任务名
     String getName();
 
+    // 任务执行
     ListenableFuture<?> execute(T statement, TransactionManager transactionManager, Metadata metadata, AccessControl accessControl, QueryStateMachine stateMachine, List<Expression> parameters);
 
+    // 解释Sql
     default String explain(T statement, List<Expression> parameters)
     {
         if (statement instanceof Prepare) {
@@ -40,6 +47,7 @@ public interface DataDefinitionTask<T extends Statement>
         return SqlFormatter.formatSql(statement, Optional.of(parameters));
     }
 
+    // 是否有事务控制
     default boolean isTransactionControl()
     {
         return false;

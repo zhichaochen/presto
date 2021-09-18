@@ -23,9 +23,19 @@ import static com.google.common.base.MoreObjects.toStringHelper;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * Join节点
+ */
 public class Join
         extends Relation
 {
+    /**
+     * 创建JOIN节点
+     * @param type join类型
+     * @param left 左边的节点
+     * @param right 右边的节点
+     * @param criteria
+     */
     public Join(Type type, Relation left, Relation right, Optional<JoinCriteria> criteria)
     {
         this(Optional.empty(), type, left, right, criteria);

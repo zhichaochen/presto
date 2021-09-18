@@ -42,6 +42,9 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
+/**
+ * 查询预处理器
+ */
 public final class QueryPreprocessor
 {
     public static final String ENV_PREPROCESSOR = "PRESTO_PREPROCESSOR";

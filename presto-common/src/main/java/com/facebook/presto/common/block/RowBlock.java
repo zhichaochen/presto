@@ -24,6 +24,9 @@ import static io.airlift.slice.SizeOf.sizeOf;
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 
+/**
+ *
+ */
 public class RowBlock
         extends AbstractRowBlock
         implements Block

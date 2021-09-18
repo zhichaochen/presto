@@ -22,6 +22,9 @@ import java.util.Optional;
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 滑动窗口可选参数
+ */
 public class WindowFrame
         extends Node
 {

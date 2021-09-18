@@ -16,6 +16,10 @@ package com.facebook.presto.spi;
 import com.facebook.presto.common.type.Type;
 import com.facebook.presto.spi.relation.VariableReferenceExpression;
 
+/**
+ * 变量分配器
+ * 什么是变量：是别名么？
+ */
 public interface VariableAllocator
 {
     VariableReferenceExpression newVariable(String nameHint, Type type);

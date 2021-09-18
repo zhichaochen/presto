@@ -55,6 +55,10 @@ import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.stream.Collectors.toList;
 
+/**
+ * 管道上下文
+ * 一个stage会有多个算子，多个算子每次处理one page数据，多个算子组成的通道就是管道。
+ */
 @ThreadSafe
 public class PipelineContext
 {

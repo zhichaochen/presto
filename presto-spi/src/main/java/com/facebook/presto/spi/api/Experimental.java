@@ -20,6 +20,10 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
+ * 实验性的
+ *
+ * 表示可以随时更改的公共API，并且不能保证API的稳定性和可用性向后兼容性。
+ *
  * Indicates a public API that can change at any time, and has no guarantee of API stability and
  * backward-compatibility.
  *

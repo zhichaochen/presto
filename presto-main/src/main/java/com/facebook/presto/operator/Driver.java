@@ -59,7 +59,14 @@ import static com.google.common.util.concurrent.MoreExecutors.directExecutor;
 import static java.lang.Boolean.TRUE;
 import static java.util.Objects.requireNonNull;
 
-//
+
+/**
+ * 驱动
+ * 驱动管道里的算子列表执行
+ *
+ */
+// taskSource会最终会通过Driver#updateSource，交给驱动管理
+// TaskRunner线程最终也会通过Driver#processFor，处理split（taskSource）
 // NOTE:  As a general strategy the methods should "stage" a change and only
 // process the actual change before lock release (DriverLockResult.close()).
 // The assures that only one thread will be working with the operators at a
@@ -70,13 +77,19 @@ public class Driver
 {
     private static final Logger log = Logger.get(Driver.class);
 
+    // 驱动上下文
     private final DriverContext driverContext;
+    // 阶段结果
     private final AtomicReference<Optional<FragmentResultCacheContext>> fragmentResultCacheContext;
+    // 活跃的算子列表
     private final List<Operator> activeOperators;
     // this is present only for debugging
     @SuppressWarnings("unused")
+    // 所有算子列表
     private final List<Operator> allOperators;
+    // source 算子
     private final Optional<SourceOperator> sourceOperator;
+    //
     private final Optional<DeleteOperator> deleteOperator;
 
     // This variable acts as a staging area. When new splits (encapsulated in TaskSource) are
@@ -97,6 +110,7 @@ public class Driver
 
     private final AtomicReference<Optional<Iterator<Page>>> cachedResult = new AtomicReference<>(Optional.empty());
     private final AtomicReference<Split> split = new AtomicReference<>();
+    // 输出page列表
     private final List<Page> outputPages = new ArrayList<>();
 
     private enum State
@@ -212,6 +226,10 @@ public class Driver
         return finished;
     }
 
+    /**
+     *
+     * @param sourceUpdate
+     */
     public void updateSource(TaskSource sourceUpdate)
     {
         checkLockNotHeld("Can not update sources while holding the driver lock");
@@ -277,6 +295,11 @@ public class Driver
         currentTaskSource = newSource;
     }
 
+    /**
+     * 处理
+     * @param duration
+     * @return
+     */
     public ListenableFuture<?> processFor(Duration duration)
     {
         checkLockNotHeld("Can not process for a duration while holding the driver lock");
@@ -289,8 +312,10 @@ public class Driver
             return blockedFuture;
         }
 
+        // 计算最多可运行的时间
         long maxRuntime = duration.roundTo(TimeUnit.NANOSECONDS);
 
+        // 获取锁
         Optional<ListenableFuture<?>> result = tryWithLock(100, TimeUnit.MILLISECONDS, () -> {
             OperationTimer operationTimer = createTimer();
             driverContext.startProcessTimer();
@@ -298,6 +323,7 @@ public class Driver
             try {
                 long start = System.nanoTime();
                 do {
+                    // 真正做处理
                     ListenableFuture<?> future = processInternal(operationTimer);
                     if (!future.isDone()) {
                         return updateDriverBlockedFuture(future);
@@ -376,6 +402,7 @@ public class Driver
         handleMemoryRevoke();
 
         try {
+            // 合并新的source，同时将合并后的source加入sourceOperator
             processNewSources();
 
             // If there is only one operator, finish it
@@ -403,18 +430,24 @@ public class Driver
                 }
             }
             else {
+                // 遍历所有算子，然后处理他
                 for (int i = 0; i < activeOperators.size() - 1 && !driverContext.isDone(); i++) {
+                    // 当前算子
                     Operator current = activeOperators.get(i);
+                    // 下一个算子
                     Operator next = activeOperators.get(i + 1);
 
                     // skip blocked operator
+                    // 跳过被阻塞的算子
                     if (getBlockedFuture(current).isPresent()) {
                         continue;
                     }
 
                     // if the current operator is not finished and next operator isn't blocked and needs input...
+                    // 如果当前未完成结束，后者需要输入
                     if (!current.isFinished() && !getBlockedFuture(next).isPresent() && next.needsInput()) {
                         // get an output page from current operator
+                        // 从当前获取输出数据page
                         Page page = current.getOutput();
                         current.getOperatorContext().recordGetOutput(operationTimer, page);
 
@@ -424,6 +457,7 @@ public class Driver
                         }
 
                         // if we got an output page, add it to the next operator
+                        // 将前者的输出作为后者的输入
                         if (page != null && page.getPositionCount() != 0) {
                             next.addInput(page);
                             next.getOperatorContext().recordAddInput(operationTimer, page);
@@ -436,6 +470,7 @@ public class Driver
                     }
 
                     // if current operator is finished...
+                    // 如果当前已经完成结束，告知后者已经没有数据了
                     if (current.isFinished()) {
                         // let next operator know there will be no more data
                         next.finish();
@@ -473,6 +508,7 @@ public class Driver
             }
 
             // if we did not move any pages, check if we are blocked
+            // 如果遍历一圈后没有发生过移动，检查是否堵塞了
             if (!movedPage) {
                 List<Operator> blockedOperators = new ArrayList<>();
                 List<ListenableFuture<?>> blockedFutures = new ArrayList<>();

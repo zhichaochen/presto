@@ -23,9 +23,13 @@ import java.util.Objects;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 一个表的信息，比如，表中有哪些字段等
+ */
 public class ElasticsearchTableLayoutHandle
         implements ConnectorTableLayoutHandle
 {
+    //
     private final ElasticsearchTableHandle table;
     private final TupleDomain<ColumnHandle> tupleDomain;
 

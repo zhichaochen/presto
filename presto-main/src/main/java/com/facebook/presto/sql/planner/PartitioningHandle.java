@@ -25,10 +25,16 @@ import java.util.Optional;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 分区句柄
+ */
 public class PartitioningHandle
 {
+    // 连接ID
     private final Optional<ConnectorId> connectorId;
+    // 事务
     private final Optional<ConnectorTransactionHandle> transactionHandle;
+    // 连接器的分割句柄
     private final ConnectorPartitioningHandle connectorHandle;
 
     @JsonCreator

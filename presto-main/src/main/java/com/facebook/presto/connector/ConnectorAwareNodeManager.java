@@ -23,12 +23,15 @@ import java.util.Set;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 感知节点管理器，能够感知到节点的变化
+ */
 public class ConnectorAwareNodeManager
         implements NodeManager
 {
-    private final InternalNodeManager nodeManager;
-    private final String environment;
-    private final ConnectorId connectorId;
+    private final InternalNodeManager nodeManager;// 内部节点管理器
+    private final String environment;// 环境
+    private final ConnectorId connectorId;// 连接ID
 
     public ConnectorAwareNodeManager(InternalNodeManager nodeManager, String environment, ConnectorId connectorId)
     {
@@ -37,6 +40,10 @@ public class ConnectorAwareNodeManager
         this.connectorId = requireNonNull(connectorId, "connectorId is null");
     }
 
+    /**
+     * 查询所有节点
+     * @return
+     */
     @Override
     public Set<Node> getAllNodes()
     {

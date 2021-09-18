@@ -19,6 +19,9 @@ import com.facebook.presto.spi.ErrorType;
 
 import static com.facebook.presto.spi.ErrorType.EXTERNAL;
 
+/**
+ * 错误码
+ */
 public enum ElasticsearchErrorCode
         implements ErrorCodeSupplier
 {

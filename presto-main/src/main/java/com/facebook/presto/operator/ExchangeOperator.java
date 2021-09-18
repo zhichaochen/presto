@@ -32,6 +32,11 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 交换操作，用于从上一个stage读取数据
+ *
+ * 该操作可以从上一个stage的output buffer中读取数据
+ */
 public class ExchangeOperator
         implements SourceOperator, Closeable
 {

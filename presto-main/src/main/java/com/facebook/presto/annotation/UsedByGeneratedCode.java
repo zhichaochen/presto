@@ -21,6 +21,7 @@ import static java.lang.annotation.ElementType.METHOD;
 import static java.lang.annotation.ElementType.TYPE;
 
 /**
+ * 只能通过自动生成的字节码来调用，不能直接使用。
  * Annotates a program element that is (only) used by generated code.
  * This can be used to prevent warnings about program elements that
  * static analysis tools flag as unused.

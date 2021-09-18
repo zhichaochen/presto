@@ -42,6 +42,9 @@ import static java.util.Locale.ENGLISH;
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MINUTES;
 
+/**
+ * 客户端选项
+ */
 public class ClientOptions
 {
     private static final Splitter NAME_VALUE_SPLITTER = Splitter.on('=').limit(2);

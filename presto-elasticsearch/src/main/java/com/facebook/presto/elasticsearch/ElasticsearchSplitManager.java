@@ -28,6 +28,9 @@ import java.util.List;
 import static com.google.common.collect.ImmutableList.toImmutableList;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 数据如何切分，保存数据的切分情况
+ */
 public class ElasticsearchSplitManager
         implements ConnectorSplitManager
 {
@@ -46,6 +49,7 @@ public class ElasticsearchSplitManager
             ConnectorTableLayoutHandle layout,
             SplitSchedulingContext splitSchedulingContext)
     {
+        // 表
         ElasticsearchTableLayoutHandle layoutHandle = (ElasticsearchTableLayoutHandle) layout;
         ElasticsearchTableHandle tableHandle = layoutHandle.getTable();
 

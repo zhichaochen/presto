@@ -47,6 +47,9 @@ import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.util.concurrent.Futures.immediateFuture;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 懒加载输出缓存
+ */
 public class LazyOutputBuffer
         implements OutputBuffer
 {
@@ -372,6 +375,9 @@ public class LazyOutputBuffer
         return outputBuffer;
     }
 
+    /**
+     * 挂起的读操作
+     */
     private static class PendingRead
     {
         private final OutputBufferId bufferId;

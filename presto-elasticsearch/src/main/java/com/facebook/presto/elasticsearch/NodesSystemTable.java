@@ -38,6 +38,9 @@ import static com.facebook.presto.common.type.VarcharType.VARCHAR;
 import static com.facebook.presto.common.type.VarcharType.createUnboundedVarcharType;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 表示一张表
+ */
 public class NodesSystemTable
         implements SystemTable
 {

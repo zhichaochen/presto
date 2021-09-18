@@ -21,9 +21,14 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 内存池分配
+ */
 public class MemoryPoolAssignment
 {
+    // 查询ID
     private final QueryId queryId;
+    // 内存池ID
     private final MemoryPoolId poolId;
 
     @JsonCreator

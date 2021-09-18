@@ -21,6 +21,11 @@ import java.util.List;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
 
+/**
+ * 解释，表示一个字节码生成的类、method、fields 做了什么内容
+ * 比如：JoinCompiler#generateInstanceSize
+ * .comment("INSTANCE_SIZE = ClassLayout.parseClass(%s.class).instanceSize()", definition.getName())
+ */
 public class Comment
         implements InstructionNode
 {

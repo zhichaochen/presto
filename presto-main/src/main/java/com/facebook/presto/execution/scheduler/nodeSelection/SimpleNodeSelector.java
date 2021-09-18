@@ -57,6 +57,9 @@ import static com.google.common.collect.ImmutableList.toImmutableList;
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 简单的节点选择器
+ */
 public class SimpleNodeSelector
         implements NodeSelector
 {
@@ -129,6 +132,12 @@ public class SimpleNodeSelector
         return selectNodes(limit, randomizedNodes(nodeMap.get().get(), includeCoordinator, excludedNodes));
     }
 
+    /**
+     * 计算要分配的作业，随机分配splits到nodes
+     * @param splits the splits that need to be assigned to nodes
+     * @param existingTasks
+     * @return
+     */
     @Override
     public SplitPlacementResult computeAssignments(Set<Split> splits, List<RemoteTask> existingTasks)
     {

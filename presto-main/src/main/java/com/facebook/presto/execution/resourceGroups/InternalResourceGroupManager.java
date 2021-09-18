@@ -67,6 +67,10 @@ import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
+/**
+ * 资源组管理器
+ * @param <C>
+ */
 @ThreadSafe
 public final class InternalResourceGroupManager<C>
         implements ResourceGroupManager<C>
@@ -123,7 +127,9 @@ public final class InternalResourceGroupManager<C>
     public void submit(Statement statement, ManagedQueryExecution queryExecution, SelectionContext<C> selectionContext, Executor executor)
     {
         checkState(configurationManager.get() != null, "configurationManager not set");
+        // 如果需要则创建资源组
         createGroupIfNecessary(selectionContext, executor);
+        // 执行一个查询
         groups.get(selectionContext.getResourceGroupId()).run(queryExecution);
     }
 

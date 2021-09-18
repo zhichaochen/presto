@@ -22,6 +22,11 @@ import com.facebook.presto.spi.SplitContext;
 
 import java.util.List;
 
+/**
+ * page提供器，其中source表示
+ * 会返回一个ConnectorPageSource对象，通过该对象可以从数据库中查询数据
+ *
+ */
 public interface ConnectorPageSourceProvider
 {
     /**
@@ -39,6 +44,7 @@ public interface ConnectorPageSourceProvider
     }
 
     /**
+     *
      * @param columns columns that should show up in the output page, in this order
      */
     default ConnectorPageSource createPageSource(

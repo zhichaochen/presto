@@ -22,6 +22,7 @@ import java.util.Optional;
 import static java.util.Objects.requireNonNull;
 
 /**
+ * StreamingSubPlan与SubPlan类似，但只包含流式子计划
  * StreamingSubPlan is similar to SubPlan but only contains streaming children
  */
 public class StreamingSubPlan

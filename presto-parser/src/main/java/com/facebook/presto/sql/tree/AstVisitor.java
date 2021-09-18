@@ -15,6 +15,11 @@ package com.facebook.presto.sql.tree;
 
 import javax.annotation.Nullable;
 
+/**
+ * 抽象语法数访问器
+ * @param <R>
+ * @param <C>
+ */
 public abstract class AstVisitor<R, C>
 {
     public R process(Node node)

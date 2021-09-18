@@ -76,6 +76,9 @@ import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.stream.Collectors.toList;
 
+/**
+ * 内存事务管理器
+ */
 @ThreadSafe
 public class InMemoryTransactionManager
         implements TransactionManager
@@ -178,9 +181,17 @@ public class InMemoryTransactionManager
         return beginTransaction(DEFAULT_ISOLATION, DEFAULT_READ_ONLY, autoCommitContext);
     }
 
+    /**
+     * 开启一个事务
+     * @param isolationLevel
+     * @param readOnly
+     * @param autoCommitContext
+     * @return
+     */
     @Override
     public TransactionId beginTransaction(IsolationLevel isolationLevel, boolean readOnly, boolean autoCommitContext)
     {
+        // 事务ID
         TransactionId transactionId = TransactionId.create();
         BoundedExecutor executor = new BoundedExecutor(finishingExecutor, maxFinishingConcurrency);
         TransactionMetadata transactionMetadata = new TransactionMetadata(transactionId, isolationLevel, readOnly, autoCommitContext, catalogManager, executor, functionNamespaceManagers, companionCatalogs);
@@ -266,6 +277,10 @@ public class InMemoryTransactionManager
         tryGetTransactionMetadata(transactionId).ifPresent(TransactionMetadata::setActive);
     }
 
+    /**
+     * 设置事务不活跃
+     * @param transactionId
+     */
     @Override
     public void trySetInactive(TransactionId transactionId)
     {
@@ -319,6 +334,9 @@ public class InMemoryTransactionManager
         tryGetTransactionMetadata(transactionId).ifPresent(TransactionMetadata::asyncAbort);
     }
 
+    /**
+     * 事务元信息，每个事务对应一个TransactionMetadata
+     */
     @ThreadSafe
     private static class TransactionMetadata
     {

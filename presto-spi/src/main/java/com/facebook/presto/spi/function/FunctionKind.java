@@ -13,9 +13,12 @@
  */
 package com.facebook.presto.spi.function;
 
+/**
+ * 函数种类
+ */
 public enum FunctionKind
 {
-    SCALAR,
-    AGGREGATE,
-    WINDOW
+    SCALAR, // 标量，简单来说就是 Java 中的一个静态方法，本身没有任何状态。
+    AGGREGATE, // 聚合
+    WINDOW // 窗口
 }

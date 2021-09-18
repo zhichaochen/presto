@@ -48,6 +48,9 @@ import static io.airlift.units.DataSize.Unit.BYTE;
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
+/**
+ * DispatchQuery
+ */
 public class LocalDispatchQuery
         implements DispatchQuery
 {
@@ -55,11 +58,12 @@ public class LocalDispatchQuery
     private final QueryStateMachine stateMachine;
     private final QueryMonitor queryMonitor;
     private final ListenableFuture<QueryExecution> queryExecutionFuture;
-
+    // 集群大小监视器
     private final ClusterSizeMonitor clusterSizeMonitor;
 
     private final Executor queryExecutor;
 
+    // 提交器
     private final Consumer<QueryExecution> querySubmitter;
     private final SettableFuture<?> submitted = SettableFuture.create();
 
@@ -98,19 +102,32 @@ public class LocalDispatchQuery
         }
     }
 
+    /**
+     * 等待最低限度的Workers
+     */
     private void waitForMinimumWorkers()
     {
+        // 等待最低限度的Workers
         ListenableFuture<?> minimumWorkerFuture = clusterSizeMonitor.waitForMinimumWorkers();
         // when worker requirement is met, wait for query execution to finish construction and then start the execution
+        // 添加等待回调，如果满足，则开始执行
         addSuccessCallback(minimumWorkerFuture, () -> addSuccessCallback(queryExecutionFuture, this::startExecution));
+        // 添加异常回调
         addExceptionCallback(minimumWorkerFuture, throwable -> queryExecutor.execute(() -> fail(throwable)));
     }
 
+    /**
+     * 开始执行
+     * @param queryExecution
+     */
     private void startExecution(QueryExecution queryExecution)
     {
+        // 开启一个线程，真正的执行
         queryExecutor.execute(() -> {
             if (stateMachine.transitionToDispatching()) {
                 try {
+                    // querySubmitter是一个consumer，该consumer对应的函数是QueryManager::createQuery
+                    // 所以这里会真正的创建一个查询，开始真正的调度。
                     querySubmitter.accept(queryExecution);
                 }
                 catch (Throwable t) {

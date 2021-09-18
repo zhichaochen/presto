@@ -13,6 +13,9 @@
  */
 package com.facebook.presto.spi.connector;
 
+/**
+ * 连接器分区句柄，实现类可能是SystemPartitioningHandle
+ */
 public interface ConnectorPartitioningHandle
 {
     default boolean isSingleNode()

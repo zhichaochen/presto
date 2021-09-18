@@ -1,0 +1,25 @@
+创建计划主要处理以下几件事
+参考：https://blog.csdn.net/hjw199089/article/details/81809017
+
+传入Sql开始生成执行计划-> 判断Sql类型，已查询Sql为主线 ->
+
+1、数据从哪儿来？数据源
+2、怎么切分数据，
+3、切分好的数据交给谁执行？
+
+1、
+    LogicalPlanner : 逻辑执行计划入口
+    RelatonPlanner : 关系型查询执行计划入口
+    QueryPlanner : Query和QuerySpecification执行计划入口
+
+    LogicalPlanner::planStatement
+    分为：
+    creatTable类
+    非creatTable类：调用planStatementWithoutOutput(…)
+
+2、LogicalPlanner#createRelationPlan#process
+最后会调用到  RelatonPlanner#visitQuery
+
+查询计划调用顺序和参考文档一致
+
+

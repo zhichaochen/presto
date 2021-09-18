@@ -21,6 +21,9 @@ import java.util.stream.Stream;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.MoreCollectors.toOptional;
 
+/**
+ * 查找接口
+ */
 public interface Lookup
 {
     /**

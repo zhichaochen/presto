@@ -23,12 +23,18 @@ import java.util.Objects;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 变量引用表达式，可能用到别名的地方
+ * 比如：t.name = xxx
+ */
 @Immutable
 public final class VariableReferenceExpression
         extends RowExpression
         implements Comparable<VariableReferenceExpression>
 {
+    // 表达式内容
     private final String name;
+    // 表达式的数据类型
     private final Type type;
 
     @JsonCreator

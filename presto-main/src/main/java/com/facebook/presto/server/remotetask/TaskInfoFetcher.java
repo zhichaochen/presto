@@ -66,6 +66,9 @@ import static io.airlift.units.Duration.nanosSince;
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
+/**
+ * 任务信息拉取器
+ */
 public class TaskInfoFetcher
         implements SimpleHttpResponseCallback<TaskInfo>
 {

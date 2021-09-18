@@ -15,8 +15,12 @@ package com.facebook.presto.operator;
 
 import com.facebook.presto.execution.Lifespan;
 
+/**
+ * 算子工厂
+ */
 public interface OperatorFactory
 {
+    // 创建算子
     Operator createOperator(DriverContext driverContext);
 
     /**

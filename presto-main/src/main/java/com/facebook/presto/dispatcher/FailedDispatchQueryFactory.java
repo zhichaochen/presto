@@ -28,6 +28,9 @@ import java.util.concurrent.ExecutorService;
 import static com.facebook.presto.util.Failures.toFailure;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 派发失败后，创建FailedDispatchQuery
+ */
 public class FailedDispatchQueryFactory
 {
     private final QueryMonitor queryMonitor;

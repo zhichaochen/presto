@@ -41,6 +41,9 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * Split管理器
+ */
 public class SplitManager
 {
     private final ConcurrentMap<ConnectorId, ConnectorSplitManager> splitManagers = new ConcurrentHashMap<>();
@@ -68,11 +71,22 @@ public class SplitManager
         splitManagers.remove(connectorId);
     }
 
+    /**
+     * 获取切分器
+     * @param session
+     * @param table
+     * @param splitSchedulingStrategy
+     * @param warningCollector
+     * @return
+     */
     public SplitSource getSplits(Session session, TableHandle table, SplitSchedulingStrategy splitSchedulingStrategy, WarningCollector warningCollector)
     {
+        // 连接器ID
         ConnectorId connectorId = table.getConnectorId();
+        // 通过连接器ID获取到连接器切换管理器
         ConnectorSplitManager splitManager = getConnectorSplitManager(connectorId);
 
+        // 连接器Session
         ConnectorSession connectorSession = session.toConnectorSession(connectorId);
         // Now we will fetch the layout handle if it's not presented in TableHandle.
         // In the future, ConnectorTableHandle will be used to fetch splits since it will contain layout information.
@@ -85,12 +99,14 @@ public class SplitManager
             layout = table.getLayout().get();
         }
 
+        // 连接器切分资源
         ConnectorSplitSource source = splitManager.getSplits(
                 table.getTransaction(),
                 connectorSession,
                 layout,
                 new SplitSchedulingContext(splitSchedulingStrategy, preferSplitHostAddresses, warningCollector));
 
+        // 分割资源
         SplitSource splitSource = new ConnectorAwareSplitSource(connectorId, table.getTransaction(), source);
         if (minScheduleSplitBatchSize > 1) {
             splitSource = new BufferingSplitSource(splitSource, minScheduleSplitBatchSize);

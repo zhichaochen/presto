@@ -23,6 +23,9 @@ import com.facebook.presto.spi.function.StandardFunctionResolution;
 import com.facebook.presto.spi.plan.FilterStatsCalculatorService;
 import com.facebook.presto.spi.relation.RowExpressionService;
 
+/**
+ * 连接器上下文
+ */
 public interface ConnectorContext
 {
     default NodeManager getNodeManager()

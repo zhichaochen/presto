@@ -20,6 +20,9 @@ import java.util.Optional;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 派发信息
+ */
 public class DispatchInfo
 {
     private final Optional<CoordinatorLocation> coordinatorLocation;

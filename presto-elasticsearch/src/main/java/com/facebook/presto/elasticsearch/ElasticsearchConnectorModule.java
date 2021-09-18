@@ -35,6 +35,9 @@ import static com.google.inject.multibindings.OptionalBinder.newOptionalBinder;
 import static java.util.Objects.requireNonNull;
 import static java.util.function.Predicate.isEqual;
 
+/**
+ * java9模块管理
+ */
 public class ElasticsearchConnectorModule
         extends AbstractConfigurationAwareModule
 {

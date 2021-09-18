@@ -31,6 +31,9 @@ import java.util.Optional;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 只会处理常量，比如：select * from UNNEST(ARRAY[1, 2, 3])
+ */
 @Immutable
 public class UnnestNode
         extends InternalPlanNode

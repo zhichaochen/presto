@@ -28,6 +28,9 @@ import java.util.List;
 import static com.facebook.presto.bytecode.Access.toAccessModifier;
 import static com.facebook.presto.bytecode.ParameterizedType.type;
 
+/**
+ * 字段定义，是类定义的一部分
+ */
 @SuppressWarnings("UnusedDeclaration")
 @Immutable
 public class FieldDefinition

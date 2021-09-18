@@ -13,6 +13,9 @@
  */
 package com.facebook.presto.operator;
 
+/**
+ * 本地计划感知器，类似于监听器
+ */
 public interface LocalPlannerAware
 {
     void localPlannerComplete();

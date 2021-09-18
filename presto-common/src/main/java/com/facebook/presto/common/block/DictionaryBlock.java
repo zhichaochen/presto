@@ -35,6 +35,10 @@ import static java.lang.Math.min;
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 字典block
+ * 对于某些列，distinct值较少，适合使用字典保存。
+ */
 public class DictionaryBlock
         implements Block
 {
@@ -44,6 +48,8 @@ public class DictionaryBlock
     private final int positionCount;
     private final Block dictionary;
     private final int idsOffset;
+    // 表示每一行数据对应的value在字典中的编号。
+    // 在查找时，首先找到某一行的id，然后到字典中获取真实的值。
     private final int[] ids;
     private final long retainedSizeInBytes;
     private volatile long sizeInBytes = -1;

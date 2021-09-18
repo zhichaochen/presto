@@ -28,6 +28,9 @@ import java.util.Optional;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
+/**
+ * ES配置信息
+ */
 public class ElasticsearchConfig
 {
     public enum Security

@@ -32,6 +32,9 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 客户端Session，每个客户端对应一个session
+ */
 public class ClientSession
 {
     private final URI server;

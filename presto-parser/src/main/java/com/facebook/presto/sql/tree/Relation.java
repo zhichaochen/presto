@@ -15,6 +15,10 @@ package com.facebook.presto.sql.tree;
 
 import java.util.Optional;
 
+/**
+ * 关联，比如join，union
+ * 这种类型的节点大多包含了多个其他节点，表示多个节点之间的关系
+ */
 public abstract class Relation
         extends Node
 {

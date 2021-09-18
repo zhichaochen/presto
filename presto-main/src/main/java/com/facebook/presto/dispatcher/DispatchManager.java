@@ -60,11 +60,16 @@ import static com.google.common.util.concurrent.Futures.immediateFuture;
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 派发管理器
+ */
 public class DispatchManager
 {
+    // 查询ID生成器
     private final QueryIdGenerator queryIdGenerator;
     private final QueryPreparer queryPreparer;
     private final ResourceGroupManager<?> resourceGroupManager;
+    // 告警收集器工厂
     private final WarningCollectorFactory warningCollectorFactory;
     private final DispatchQueryFactory dispatchQueryFactory;
     private final FailedDispatchQueryFactory failedDispatchQueryFactory;
@@ -76,10 +81,11 @@ public class DispatchManager
     private final int maxQueryLength;
 
     private final Executor queryExecutor;
+    // 有界的执行器
     private final BoundedExecutor boundedQueryExecutor;
-
+    // 查询跟踪器
     private final QueryTracker<DispatchQuery> queryTracker;
-
+    //
     private final QueryManagerStats stats = new QueryManagerStats();
 
     @Inject
@@ -140,6 +146,14 @@ public class DispatchManager
         return queryIdGenerator.createNextQueryId();
     }
 
+    /**
+     * 创建一个查询
+     * @param queryId
+     * @param slug
+     * @param sessionContext
+     * @param query
+     * @return
+     */
     public ListenableFuture<?> createQuery(QueryId queryId, String slug, SessionContext sessionContext, String query)
     {
         requireNonNull(queryId, "queryId is null");
@@ -149,8 +163,10 @@ public class DispatchManager
         checkArgument(!queryTracker.tryGetQuery(queryId).isPresent(), "query %s already exists", queryId);
 
         DispatchQueryCreationFuture queryCreationFuture = new DispatchQueryCreationFuture();
+        // 异步查询
         boundedQueryExecutor.execute(() -> {
             try {
+                // 创建一个内部查询
                 createQueryInternal(queryId, slug, sessionContext, query, resourceGroupManager);
             }
             finally {
@@ -161,6 +177,7 @@ public class DispatchManager
     }
 
     /**
+     *  创建并注册
      *  Creates and registers a dispatch query with the query tracker.  This method will never fail to register a query with the query
      *  tracker.  If an error occurs while, creating a dispatch query a failed dispatch will be created and registered.
      */
@@ -169,6 +186,7 @@ public class DispatchManager
         Session session = null;
         PreparedQuery preparedQuery;
         try {
+            // 不能超过最大查询长度
             if (query.length() > maxQueryLength) {
                 int queryLength = query.length();
                 query = query.substring(0, maxQueryLength);
@@ -183,6 +201,7 @@ public class DispatchManager
             preparedQuery = queryPreparer.prepareQuery(session, query, warningCollector);
 
             // select resource group
+            // 查询类型
             Optional<QueryType> queryType = getQueryType(preparedQuery.getStatement().getClass());
             SelectionContext<C> selectionContext = resourceGroupManager.selectGroup(new SelectionCriteria(
                     sessionContext.getIdentity().getPrincipal().isPresent(),
@@ -193,11 +212,14 @@ public class DispatchManager
                     queryType.map(Enum::name)));
 
             // apply system default session properties (does not override user set properties)
+            // 应用系统默认会话属性（不覆盖用户集属性）
             session = sessionPropertyDefaults.newSessionWithDefaultProperties(session, queryType.map(Enum::name), Optional.of(selectionContext.getResourceGroupId()));
 
             // mark existing transaction as active
+            // 是事务活跃
             transactionManager.activateTransaction(session, isTransactionControlStatement(preparedQuery.getStatement()), accessControl);
 
+            // 创建一个派发查询
             DispatchQuery dispatchQuery = dispatchQueryFactory.createDispatchQuery(
                     session,
                     query,
@@ -207,9 +229,11 @@ public class DispatchManager
                     queryType,
                     warningCollector);
 
+            // 将DispatchQuery加入QueryTracker
             boolean queryAdded = queryCreated(dispatchQuery);
             if (queryAdded && !dispatchQuery.isDone()) {
                 try {
+                    // 提交查询
                     resourceGroupManager.submit(preparedQuery.getStatement(), dispatchQuery, selectionContext, queryExecutor);
                 }
                 catch (Throwable e) {
@@ -227,6 +251,7 @@ public class DispatchManager
                         .setSource(sessionContext.getSource())
                         .build();
             }
+            // 派发失败之后创建一个FailedDispatchQuery对象
             DispatchQuery failedDispatchQuery = failedDispatchQueryFactory.createFailedDispatchQuery(session, query, Optional.empty(), throwable);
             queryCreated(failedDispatchQuery);
         }

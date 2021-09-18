@@ -55,6 +55,9 @@ import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
+/**
+ * 基准查询运行器
+ */
 public class BenchmarkQueryRunner
         implements Closeable
 {
@@ -197,6 +200,15 @@ public class BenchmarkQueryRunner
         return null;
     }
 
+    /**
+     * 统计执行器
+     *
+     * @param session
+     * @param query
+     * @param queryDataConsumer
+     * @param queryErrorConsumer
+     * @return
+     */
     private StatementStats execute(ClientSession session, String query, Consumer<QueryData> queryDataConsumer, Consumer<QueryError> queryErrorConsumer)
     {
         // start query
@@ -260,6 +272,10 @@ public class BenchmarkQueryRunner
         }
     }
 
+    /**
+     * 似乎是通过查询
+     * @return
+     */
     private long getTotalCpuTime()
     {
         long totalCpuTime = 0;

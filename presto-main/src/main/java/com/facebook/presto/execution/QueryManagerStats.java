@@ -34,6 +34,10 @@ import static com.facebook.presto.spi.StandardErrorCode.USER_CANCELED;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
+/**
+ * 查询统计
+ * 主要用于统计处于不同状态的查询语句有多少
+ */
 public class QueryManagerStats
 {
     private final AtomicInteger queuedQueries = new AtomicInteger();

@@ -15,6 +15,11 @@ package com.facebook.presto.bytecode.control;
 
 import com.facebook.presto.bytecode.BytecodeNode;
 
+/**
+ * java中的流程控制接口
+ * do while、if、for、try catch、switch
+ *
+ */
 public interface FlowControl
         extends BytecodeNode
 {

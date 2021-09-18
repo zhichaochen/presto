@@ -36,6 +36,9 @@ import static com.google.common.collect.ImmutableSet.toImmutableSet;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Stream.concat;
 
+/**
+ * 内存管理节点
+ */
 public class InMemoryNodeManager
         implements InternalNodeManager
 {

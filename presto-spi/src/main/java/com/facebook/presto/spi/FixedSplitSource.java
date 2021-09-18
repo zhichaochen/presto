@@ -24,6 +24,9 @@ import static com.facebook.presto.spi.connector.NotPartitionedPartitionHandle.NO
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.CompletableFuture.completedFuture;
 
+/**
+ * 固定的切分资源
+ */
 public class FixedSplitSource
         implements ConnectorSplitSource
 {

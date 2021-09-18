@@ -23,6 +23,9 @@ import static java.util.Collections.emptyMap;
 import static java.util.Collections.unmodifiableMap;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 认证
+ */
 public class Identity
 {
     private final String user;

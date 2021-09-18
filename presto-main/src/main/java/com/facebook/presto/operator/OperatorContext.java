@@ -50,6 +50,7 @@ import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 
 /**
+ * 算子上下文
  * Only {@link #getOperatorStats()} and revocable-memory-related operations are ThreadSafe
  */
 public class OperatorContext

@@ -24,6 +24,9 @@ import java.util.List;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 参数化类型（包含类型的多个信息）
+ */
 @Immutable
 public class ParameterizedType
 {

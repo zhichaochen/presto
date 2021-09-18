@@ -24,6 +24,9 @@ import java.util.UUID;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 事务ID
+ */
 @ThriftStruct
 public final class TransactionId
 {

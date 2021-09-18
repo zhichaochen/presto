@@ -30,6 +30,7 @@ import static com.google.common.base.Strings.nullToEmpty;
 import static java.util.Objects.requireNonNull;
 
 /**
+ * 集群中可以处理查询的服务器。
  * A node is a server in a cluster than can process queries.
  */
 @ThriftStruct

@@ -32,6 +32,9 @@ import java.util.Objects;
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 集群内存池
+ */
 @ThreadSafe
 public class ClusterMemoryPool
 {

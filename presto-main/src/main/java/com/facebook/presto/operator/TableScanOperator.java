@@ -40,9 +40,16 @@ import static com.facebook.airlift.concurrent.MoreFutures.toListenableFuture;
 import static com.google.common.base.Preconditions.checkState;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 扫描表数据算子
+ */
 public class TableScanOperator
         implements SourceOperator, Closeable
 {
+
+    /**
+     * 算子工厂
+     */
     public static class TableScanOperatorFactory
             implements SourceOperatorFactory
     {
@@ -54,11 +61,12 @@ public class TableScanOperator
         private boolean closed;
 
         public TableScanOperatorFactory(
-                int operatorId,
-                PlanNodeId sourceId,
-                PageSourceProvider pageSourceProvider,
-                TableHandle table,
-                Iterable<ColumnHandle> columns)
+                int operatorId, // 下一个算子ID
+                PlanNodeId sourceId,// 逻辑计划节点ID
+                PageSourceProvider pageSourceProvider,// page资源提供器
+                TableHandle table, // 操作那个表
+                Iterable<ColumnHandle> columns // 表中有哪些列
+        )
         {
             this.operatorId = operatorId;
             this.sourceId = requireNonNull(sourceId, "sourceId is null");
@@ -238,26 +246,34 @@ public class TableScanOperator
         throw new UnsupportedOperationException(getClass().getName() + " can not take input");
     }
 
+    /**
+     * 从数据源查询数据
+     * @return
+     */
     @Override
     public Page getOutput()
     {
         if (split == null) {
             return null;
         }
+        // 获取数据源
         if (source == null) {
             source = pageSourceProvider.createPageSource(operatorContext.getSession(), split, table, columns);
         }
 
+        // 取一页数据
         Page page = source.getNextPage();
         if (page != null) {
             // assure the page is in memory before handing to another operator
             page = page.getLoadedPage();
 
             // update operator stats
+            // 记录统计信息
             recordInputStats();
         }
 
         // updating system memory usage should happen after page is loaded.
+        //
         systemMemoryContext.setBytes(source.getSystemMemoryUsage());
 
         return page;

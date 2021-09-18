@@ -29,11 +29,16 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.unmodifiableList;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * Values节点：处理values语句
+ */
 @Immutable
 public final class ValuesNode
         extends PlanNode
 {
+    // 输出变量
     private final List<VariableReferenceExpression> outputVariables;
+    // 行
     private final List<List<RowExpression>> rows;
 
     @JsonCreator

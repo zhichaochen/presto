@@ -75,6 +75,9 @@ import static com.google.common.collect.Iterables.getOnlyElement;
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 子查询的计划生成器
+ */
 class SubqueryPlanner
 {
     private final Analysis analysis;

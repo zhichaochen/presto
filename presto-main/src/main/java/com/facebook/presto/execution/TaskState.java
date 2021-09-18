@@ -21,6 +21,9 @@ import java.util.stream.Stream;
 
 import static com.google.common.collect.ImmutableSet.toImmutableSet;
 
+/**
+ * 任务状态
+ */
 @ThriftEnum
 public enum TaskState
 {

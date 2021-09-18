@@ -31,11 +31,15 @@ import static com.google.common.base.Verify.verify;
 import static com.google.common.collect.ImmutableList.toImmutableList;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 驱动工厂，为了创建启动
+ */
 public class DriverFactory
 {
     private final int pipelineId;
     private final boolean inputDriver;
     private final boolean outputDriver;
+    // 算子工厂
     private final List<OperatorFactory> operatorFactories;
     private final Optional<PlanNodeId> sourceId;
     private final OptionalInt driverInstances;
@@ -118,12 +122,18 @@ public class DriverFactory
         return operatorFactories;
     }
 
+    /**
+     * 创建驱动
+     * @param driverContext
+     * @return
+     */
     public synchronized Driver createDriver(DriverContext driverContext)
     {
         checkState(!closed, "DriverFactory is already closed");
         requireNonNull(driverContext, "driverContext is null");
         checkState(!closedLifespans.contains(driverContext.getLifespan()), "DriverFatory is already closed for driver group %s", driverContext.getLifespan());
         encounteredLifespans.add(driverContext.getLifespan());
+        // 算子列表
         ImmutableList.Builder<Operator> operators = ImmutableList.builder();
         for (OperatorFactory operatorFactory : operatorFactories) {
             Operator operator = operatorFactory.createOperator(driverContext);

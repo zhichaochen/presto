@@ -13,15 +13,23 @@
  */
 package com.facebook.presto.spi.function;
 
+/**
+ * Sql函数
+ */
 public interface SqlFunction
 {
+    // 函数签名
     Signature getSignature();
 
+    // 函数可见性
     SqlFunctionVisibility getVisibility();
 
+    //
     boolean isDeterministic();
 
+    //
     boolean isCalledOnNullInput();
 
+    // 函数描述
     String getDescription();
 }

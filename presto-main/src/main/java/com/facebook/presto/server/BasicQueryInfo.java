@@ -46,6 +46,7 @@ import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
 /**
+ * 轻量级的QueryInfo
  * Lightweight version of QueryInfo. Parts of the web UI depend on the fields
  * being named consistently across these classes.
  */
@@ -65,9 +66,7 @@ public class BasicQueryInfo
     private final ErrorType errorType;
     private final ErrorCode errorCode;
     private final ExecutionFailureInfo failureInfo;
-    private final Optional<QueryType> queryType;
     private final List<PrestoWarning> warnings;
-
     @ThriftConstructor
     @JsonCreator
     public BasicQueryInfo(
@@ -194,6 +193,8 @@ public class BasicQueryInfo
     {
         return state;
     }
+
+    private final Optional<QueryType> queryType;
 
     @ThriftField(5)
     @JsonProperty

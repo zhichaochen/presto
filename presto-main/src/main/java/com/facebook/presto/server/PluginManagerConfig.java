@@ -25,12 +25,20 @@ import javax.validation.constraints.NotNull;
 import java.io.File;
 import java.util.List;
 
+/**
+ * 插件配置管理
+ */
 public class PluginManagerConfig
 {
+    // 插件父目录
     private File installedPluginsDir = new File("plugin");
+    // 插件地址列表
     private List<String> plugins;
+    // etc
     private File pluginConfigurationDir = new File("etc/");
+    // maven本地仓库地址
     private String mavenLocalRepository = ArtifactResolver.USER_LOCAL_REPO;
+    // maven远程仓库地址
     private List<String> mavenRemoteRepository = ImmutableList.of(ArtifactResolver.MAVEN_CENTRAL_URI);
     private ImmutableSet<String> disabledConnectors = ImmutableSet.of();
 

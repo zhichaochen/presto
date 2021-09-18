@@ -23,31 +23,40 @@ import io.airlift.units.DataSize;
 import java.util.List;
 import java.util.function.Consumer;
 
+/**
+ * 输出缓存
+ * 创建一个OutputBuffer，查询出来的数据写入启动，自动从其中抽取
+ */
 public interface OutputBuffer
 {
     /**
+     * 当前buffer的状态
      * Gets the current state of this buffer.  This method is guaranteed to not block or acquire
      * contended locks, but the stats in the info object may be internally inconsistent.
      */
     OutputBufferInfo getInfo();
 
     /**
+     * 是否完成，没有更多pages了
      * A buffer is finished once no-more-pages has been set and all buffers have been closed
      * with an abort call.
      */
     boolean isFinished();
 
     /**
+     *获取内存利用率百分比
      * Get the memory utilization percentage.
      */
     double getUtilization();
 
     /**
+     * 检查缓冲区是否阻塞。
      * Check if the buffer is blocking producers.
      */
     boolean isOverutilized();
 
     /**
+     * 添加状态改变监听器
      * Add a listener which fires anytime the buffer state changes.
      * Listener is always notified asynchronously using a dedicated notification thread pool so, care should
      * be taken to avoid leaking {@code this} when adding a listener in a constructor. Additionally, it is
@@ -56,6 +65,7 @@ public interface OutputBuffer
     void addStateChangeListener(StateChangeListener<BufferState> stateChangeListener);
 
     /**
+     * 更新缓冲区配置。
      * Updates the buffer configuration.
      */
     void setOutputBuffers(OutputBuffers newOutputBuffers);

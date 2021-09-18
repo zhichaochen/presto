@@ -20,6 +20,9 @@ import com.facebook.presto.spi.plan.PlanNodeIdAllocator;
 import com.facebook.presto.sql.planner.PlanVariableAllocator;
 import com.facebook.presto.sql.planner.TypeProvider;
 
+/**
+ * 计划优化器
+ */
 public interface PlanOptimizer
 {
     PlanNode optimize(PlanNode plan,

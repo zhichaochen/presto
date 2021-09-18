@@ -23,6 +23,9 @@ import java.util.Objects;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 错误编码
+ */
 @ThriftStruct
 public final class ErrorCode
 {

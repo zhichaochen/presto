@@ -21,9 +21,13 @@ import java.util.Objects;
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * join on 连接条件
+ */
 public class JoinOn
         extends JoinCriteria
 {
+    // 表达式
     private final Expression expression;
 
     public JoinOn(Expression expression)

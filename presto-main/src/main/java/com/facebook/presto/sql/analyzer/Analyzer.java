@@ -42,6 +42,9 @@ import static com.facebook.presto.sql.analyzer.SemanticErrorCode.NOT_SUPPORTED;
 import static com.facebook.presto.sql.analyzer.UtilizedColumnsAnalyzer.analyzeForUtilizedColumns;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 分析器
+ */
 public class Analyzer
 {
     private final Metadata metadata;

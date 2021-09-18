@@ -18,6 +18,9 @@ import com.facebook.presto.spi.TableHandle;
 import com.facebook.presto.spi.WarningCollector;
 import com.facebook.presto.spi.connector.ConnectorSplitManager.SplitSchedulingStrategy;
 
+/**
+ * 切分资源，比如将stage分配到多台服务器上去执行
+ */
 public interface SplitSourceProvider
 {
     SplitSource getSplits(Session session, TableHandle tableHandle, SplitSchedulingStrategy splitSchedulingStrategy, WarningCollector warningCollector);

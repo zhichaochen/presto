@@ -25,6 +25,9 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+/**
+ * 动态字节码的类加载器
+ */
 public class DynamicClassLoader
         extends ClassLoader
 {
@@ -60,14 +63,18 @@ public class DynamicClassLoader
 
     public Map<String, Class<?>> defineClasses(Map<String, byte[]> newClasses)
     {
+        // 有冲突的类：已经存在的类，则表示冲突
         SetView<String> conflicts = Sets.intersection(pendingClasses.keySet(), newClasses.keySet());
         Preconditions.checkArgument(conflicts.isEmpty(), "The classes %s have already been defined", conflicts);
 
+        // 将新的类字节码加入缓存
         pendingClasses.putAll(newClasses);
         try {
+            // 将byte[]转化为Class<?>
             Map<String, Class<?>> classes = new HashMap<>();
             for (String className : newClasses.keySet()) {
                 try {
+                    // 加载类
                     Class<?> clazz = loadClass(className);
                     classes.put(className, clazz);
                 }
@@ -88,31 +95,50 @@ public class DynamicClassLoader
         return callSiteBindings;
     }
 
+    /**
+     * 重写其查找类方法，修改了其双亲委派机制
+     * @param name
+     * @return
+     * @throws ClassNotFoundException
+     */
     @Override
     protected Class<?> findClass(String name)
             throws ClassNotFoundException
     {
+        // 从缓存中查找
         byte[] bytecode = pendingClasses.get(name);
         if (bytecode == null) {
             throw new ClassNotFoundException(name);
         }
 
+        // 定义类
         return defineClass(name, bytecode);
     }
 
+    /**
+     * 加载类
+     * @param name
+     * @param resolve
+     * @return
+     * @throws ClassNotFoundException
+     */
     @Override
     protected Class<?> loadClass(String name, boolean resolve)
             throws ClassNotFoundException
     {
         // grab the magic lock
+        // 获取类加载锁
         synchronized (getClassLoadingLock(name)) {
             // Check if class is in the loaded classes cache
+            // 是否存在缓存中
             Class<?> cachedClass = findLoadedClass(name);
             if (cachedClass != null) {
+                // 解析类
                 return resolveClass(cachedClass, resolve);
             }
 
             try {
+                // 否则从重写的findClass()方法中查找类
                 Class<?> clazz = findClass(name);
                 return resolveClass(clazz, resolve);
             }
@@ -120,6 +146,7 @@ public class DynamicClassLoader
                 // not a local class
             }
 
+            // 是否指定了其他类加载器，如果指定了使用指定的类加载器加载
             if (overrideClassLoader.isPresent()) {
                 try {
                     return resolveClass(overrideClassLoader.get().loadClass(name), resolve);
@@ -129,6 +156,7 @@ public class DynamicClassLoader
                 }
             }
 
+            // 加载类
             Class<?> clazz = getParent().loadClass(name);
             return resolveClass(clazz, resolve);
         }

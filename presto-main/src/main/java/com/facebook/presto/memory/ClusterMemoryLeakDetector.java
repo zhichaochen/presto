@@ -35,6 +35,9 @@ import static java.util.Objects.requireNonNull;
 import static org.joda.time.DateTime.now;
 import static org.joda.time.Seconds.secondsBetween;
 
+/**
+ * 内存泄漏检测器
+ */
 @ThreadSafe
 public class ClusterMemoryLeakDetector
 {
@@ -48,6 +51,7 @@ public class ClusterMemoryLeakDetector
     private Set<QueryId> leakedQueries;
 
     /**
+     * 检查内存泄漏，如果存在则打印日志
      * @param queryInfoSupplier All queries that the coordinator knows about.
      * @param queryMemoryReservations The memory reservations of queries in the GENERAL cluster memory pool.
      */
@@ -74,6 +78,12 @@ public class ClusterMemoryLeakDetector
         }
     }
 
+    /**
+     * 判断内存是否泄漏，如果：查询内容为空，但是presto为每个查询申请了内存，所以是内存泄漏
+     * @param queryIdToInfo
+     * @param queryId
+     * @return
+     */
     private static boolean isLeaked(Map<QueryId, BasicQueryInfo> queryIdToInfo, QueryId queryId)
     {
         BasicQueryInfo queryInfo = queryIdToInfo.get(queryId);

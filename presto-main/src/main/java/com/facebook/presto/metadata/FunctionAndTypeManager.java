@@ -102,6 +102,9 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 函数和类型管理器
+ */
 @ThreadSafe
 public class FunctionAndTypeManager
         implements FunctionMetadataManager, TypeManager

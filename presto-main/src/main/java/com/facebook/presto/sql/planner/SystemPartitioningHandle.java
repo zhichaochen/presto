@@ -43,20 +43,26 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static java.lang.Math.min;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 系统分区句柄
+ * 我理解：如果没有分区，是否是使用默认该类呢？反正默认应该是使用该类啊。
+ */
 public final class SystemPartitioningHandle
         implements ConnectorPartitioningHandle
 {
     private enum SystemPartitioning
     {
-        SINGLE,
-        FIXED,
-        SOURCE,
-        SCALED,
-        COORDINATOR_ONLY,
-        ARBITRARY
+        SINGLE, // 单一
+        FIXED, // 固定
+        SOURCE, // source
+        SCALED, //
+        COORDINATOR_ONLY , // 仅仅协调器
+        ARBITRARY // 随意
     }
 
+    // 单一分布
     public static final PartitioningHandle SINGLE_DISTRIBUTION = createSystemPartitioning(SystemPartitioning.SINGLE, SystemPartitionFunction.SINGLE);
+    // 协调器分布
     public static final PartitioningHandle COORDINATOR_DISTRIBUTION = createSystemPartitioning(SystemPartitioning.COORDINATOR_ONLY, SystemPartitionFunction.SINGLE);
     public static final PartitioningHandle FIXED_HASH_DISTRIBUTION = createSystemPartitioning(SystemPartitioning.FIXED, SystemPartitionFunction.HASH);
     public static final PartitioningHandle FIXED_ARBITRARY_DISTRIBUTION = createSystemPartitioning(SystemPartitioning.FIXED, SystemPartitionFunction.ROUND_ROBIN);
@@ -95,6 +101,10 @@ public final class SystemPartitioningHandle
         return function;
     }
 
+    /**
+     * 是否是单节点
+     * @return
+     */
     @Override
     public boolean isSingleNode()
     {
@@ -181,6 +191,9 @@ public final class SystemPartitioningHandle
         return false;
     }
 
+    /**
+     * 系统分区函数
+     */
     public enum SystemPartitionFunction
     {
         SINGLE {
@@ -232,6 +245,7 @@ public final class SystemPartitioningHandle
 
         public abstract BucketFunction createBucketFunction(List<Type> partitionChannelTypes, boolean isHashPrecomputed, int bucketCount);
 
+        // 单个桶函数
         private static class SingleBucketFunction
                 implements BucketFunction
         {
@@ -242,11 +256,12 @@ public final class SystemPartitioningHandle
             }
         }
 
+        // 轮询桶函数
         private static class RoundRobinBucketFunction
                 implements BucketFunction
         {
-            private final int bucketCount;
-            private int counter;
+            private final int bucketCount; // 桶数量
+            private int counter; // 计数器
 
             public RoundRobinBucketFunction(int bucketCount)
             {
@@ -271,6 +286,9 @@ public final class SystemPartitioningHandle
             }
         }
 
+        /**
+         * hash桶函数
+         */
         private static class HashBucketFunction
                 implements BucketFunction
         {

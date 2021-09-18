@@ -93,23 +93,30 @@ import static javax.ws.rs.core.MediaType.TEXT_PLAIN_TYPE;
 import static javax.ws.rs.core.Response.Status.BAD_REQUEST;
 import static javax.ws.rs.core.Response.Status.NOT_FOUND;
 
+/**
+ * 排队语句资源（restful服务端）
+ */
 @Path("/")
 @RolesAllowed(USER)
 public class QueuedStatementResource
 {
     private static final Logger log = Logger.get(QueuedStatementResource.class);
+    // 最大的等待事件，提交查询
     private static final Duration MAX_WAIT_TIME = new Duration(1, SECONDS);
     private static final DataSize TARGET_RESULT_SIZE = new DataSize(1, MEGABYTE);
     private static final Ordering<Comparable<Duration>> WAIT_ORDERING = Ordering.natural().nullsLast();
     private static final Duration NO_DURATION = new Duration(0, MILLISECONDS);
 
+    // 派发管理器
     private final DispatchManager dispatchManager;
     private final LocalQueryProvider queryResultsProvider;
 
     private final Executor responseExecutor;
     private final ScheduledExecutorService timeoutExecutor;
 
+    // 当前正在进行的多个查询
     private final ConcurrentMap<QueryId, Query> queries = new ConcurrentHashMap<>();
+    // 查询清除器，单个线程会周期地拿出一批Sql去处理
     private final ScheduledExecutorService queryPurger = newSingleThreadScheduledExecutor(threadsNamed("dispatch-query-purger"));
     private final boolean compressionEnabled;
 
@@ -135,12 +142,14 @@ public class QueuedStatementResource
                 () -> {
                     try {
                         // snapshot the queries before checking states to avoid registration race
+                        // 遍历发送过来的查询语句
                         for (Entry<QueryId, Query> entry : ImmutableSet.copyOf(queries.entrySet())) {
                             if (!entry.getValue().isSubmissionFinished()) {
                                 continue;
                             }
 
                             // forget about this query if the query manager is no longer tracking it
+                            // 如果查询管理器不再跟踪此查询，则删除该查询
                             if (!dispatchManager.isQueryPresent(entry.getKey())) {
                                 queries.remove(entry.getKey());
                             }
@@ -174,13 +183,28 @@ public class QueuedStatementResource
             throw badRequest(BAD_REQUEST, "SQL statement is empty");
         }
 
+        // 上下文
         SessionContext sessionContext = new HttpRequestSessionContext(servletRequest, sqlParserOptions);
+        // 表示一个查询
         Query query = new Query(statement, sessionContext, dispatchManager, queryResultsProvider, timeoutExecutor);
+        // 加入缓存
         queries.put(query.getQueryId(), query);
 
+        // 响应请求
         return withCompressionConfiguration(Response.ok(query.getInitialQueryResults(uriInfo, xForwardedProto)), compressionEnabled).build();
     }
 
+    /**
+     * 通过token查询获取queryId对应的部分执行结果
+     * 这里的token主要为了保证分批次查询结果的顺序
+     * @param queryId
+     * @param token
+     * @param slug
+     * @param maxWait
+     * @param xForwardedProto
+     * @param uriInfo
+     * @param asyncResponse
+     */
     @GET
     @Path("/v1/statement/queued/{queryId}/{token}")
     @Produces(APPLICATION_JSON)
@@ -193,9 +217,11 @@ public class QueuedStatementResource
             @Context UriInfo uriInfo,
             @Suspended AsyncResponse asyncResponse)
     {
+        // 获取当前查询
         Query query = getQuery(queryId, slug);
 
         // wait for query to be dispatched, up to the wait timeout
+        // 派发查询，有超时机制
         ListenableFuture<?> futureStateChange = addTimeout(
                 query.waitForDispatched(),
                 () -> null,
@@ -203,13 +229,22 @@ public class QueuedStatementResource
                 timeoutExecutor);
 
         // when state changes, fetch the next result
+        // 当状态发生更改时，执行query.toResponse 获取下一个结果
         ListenableFuture<Response> queryResultsFuture = transformAsync(
                 futureStateChange,
                 ignored -> query.toResponse(token, uriInfo, xForwardedProto, WAIT_ORDERING.min(MAX_WAIT_TIME, maxWait), compressionEnabled),
                 responseExecutor);
+        // 异步响应
         bindAsyncResponse(asyncResponse, queryResultsFuture, responseExecutor);
     }
 
+    /**
+     * DELETE请求，这里主要用于取消一个查询
+     * @param queryId
+     * @param token
+     * @param slug
+     * @return
+     */
     @DELETE
     @Path("/v1/statement/queued/{queryId}/{token}")
     @Produces(APPLICATION_JSON)
@@ -303,6 +338,9 @@ public class QueuedStatementResource
         return builder;
     }
 
+    /**
+     * 表示一个Sql查询
+     */
     private static final class Query
     {
         private final String query;
@@ -347,11 +385,16 @@ public class QueuedStatementResource
             return querySubmissionFuture != null && querySubmissionFuture.isDone();
         }
 
+        /**
+         * 派发查询请求，并等待其返回派发结果
+         * @return
+         */
         private ListenableFuture<?> waitForDispatched()
         {
             // if query query submission has not finished, wait for it to finish
             synchronized (this) {
                 if (querySubmissionFuture == null) {
+                    // 创建一个异步查询
                     querySubmissionFuture = dispatchManager.createQuery(queryId, slug, sessionContext, query);
                 }
                 if (!querySubmissionFuture.isDone()) {

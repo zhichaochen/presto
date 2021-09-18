@@ -35,6 +35,9 @@ import static com.facebook.presto.metadata.MetadataUpdates.DEFAULT_METADATA_UPDA
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 任务信息
+ */
 @Immutable
 public class TaskInfo
 {

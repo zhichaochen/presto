@@ -15,6 +15,9 @@ package com.facebook.presto.client;
 
 import okhttp3.OkHttpClient;
 
+/**
+ * 查询语句客户端工厂
+ */
 public final class StatementClientFactory
 {
     private StatementClientFactory() {}

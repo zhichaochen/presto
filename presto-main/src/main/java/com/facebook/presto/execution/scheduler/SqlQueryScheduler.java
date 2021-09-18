@@ -111,6 +111,11 @@ import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
+/**
+ * SQL查询调度器
+ *
+ * 会构建SqlStage执行器
+ */
 public class SqlQueryScheduler
         implements SqlQuerySchedulerInterface
 {
@@ -255,6 +260,9 @@ public class SqlQueryScheduler
         });
     }
 
+    /**
+     * 启动sql查询调度器
+     */
     @Override
     public void start()
     {
@@ -263,6 +271,9 @@ public class SqlQueryScheduler
         }
     }
 
+    /**
+     * 开始调度
+     */
     private void startScheduling()
     {
         // still scheduling the previous batch of stages
@@ -288,20 +299,25 @@ public class SqlQueryScheduler
 
             while (!Thread.currentThread().isInterrupted()) {
                 // remove finished section
+                // 删除已完成的部分
                 executionSchedules.removeIf(ExecutionSchedule::isFinished);
 
                 // try to pull more section that are ready to be run
+                // 尝试拉更多准备运行的部分
                 List<StreamingPlanSection> sectionsReadyForExecution = getSectionsReadyForExecution();
 
                 // all finished
+                // 如果所有的已经完成，跳出轮训
                 if (sectionsReadyForExecution.isEmpty() && executionSchedules.isEmpty()) {
                     break;
                 }
 
                 // Apply runtime CBO on the ready sections before creating SectionExecutions.
+                // 在创建SectionExecutions之前，在ready节上应用运行时CBO。
                 List<SectionExecution> sectionExecutions = createStageExecutions(sectionsReadyForExecution.stream()
                         .map(this::tryCostBasedOptimize)
                         .collect(toImmutableList()));
+                // 如果状态机已经完成，则终止部分执行
                 if (queryStateMachine.isDone()) {
                     sectionExecutions.forEach(SectionExecution::abort);
                     break;
@@ -321,9 +337,11 @@ public class SqlQueryScheduler
                             .collect(toImmutableList());
 
                     for (StageExecutionAndScheduler executionAndScheduler : executionsToSchedule) {
+                        // 状态机设置为调度中
                         executionAndScheduler.getStageExecution().beginScheduling();
 
                         // perform some scheduling work
+                        // 执行一些调度工作
                         ScheduleResult result = executionAndScheduler.getStageScheduler()
                                 .schedule();
 
@@ -527,8 +545,13 @@ public class SqlQueryScheduler
         }
     }
 
+    /**
+     * 获取
+     * @return
+     */
     private List<StreamingPlanSection> getSectionsReadyForExecution()
     {
+        // 运行中的计划部分数
         long runningPlanSections =
                 stream(forTree(StreamingPlanSection::getChildren).depthFirstPreOrder(sectionedPlan))
                         .map(section -> getLatestSectionExecution(getStageId(section.getPlan().getFragment().getId())))
@@ -536,6 +559,7 @@ public class SqlQueryScheduler
                         .map(Optional::get)
                         .filter(SectionExecution::isRunning)
                         .count();
+        // 运行中计划的部分
         return stream(forTree(StreamingPlanSection::getChildren).depthFirstPreOrder(sectionedPlan))
                 // get all sections ready for execution
                 .filter(this::isReadyForExecution)
@@ -573,6 +597,11 @@ public class SqlQueryScheduler
         return new StageId(session.getQueryId(), fragmentId.getId());
     }
 
+    /**
+     * 创建阶段执行
+     * @param sections
+     * @return
+     */
     private List<SectionExecution> createStageExecutions(List<StreamingPlanSection> sections)
     {
         ImmutableList.Builder<SectionExecution> result = ImmutableList.builder();

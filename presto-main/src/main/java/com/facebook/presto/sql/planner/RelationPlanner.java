@@ -112,6 +112,9 @@ import static com.google.common.base.Verify.verify;
 import static com.google.common.collect.ImmutableList.toImmutableList;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 关系型查询计划
+ */
 class RelationPlanner
         extends DefaultTraversalVisitor<RelationPlan, Void>
 {
@@ -147,6 +150,12 @@ class RelationPlanner
         this.subqueryPlanner = new SubqueryPlanner(analysis, variableAllocator, idAllocator, lambdaDeclarationToVariableMap, metadata, session);
     }
 
+    /**
+     * 生成from的逻辑计划
+     * @param node
+     * @param context
+     * @return
+     */
     @Override
     protected RelationPlan visitTable(Table node, Void context)
     {
@@ -163,9 +172,12 @@ class RelationPlanner
             return new RelationPlan(withCoercions.getRoot(), scope, withCoercions.getFieldMappings());
         }
 
+        // 表句柄
         TableHandle handle = analysis.getTableHandle(node);
 
+        // 要select的字段表达式
         ImmutableList.Builder<VariableReferenceExpression> outputVariablesBuilder = ImmutableList.builder();
+        // 列信息列表
         ImmutableMap.Builder<VariableReferenceExpression, ColumnHandle> columns = ImmutableMap.builder();
         for (Field field : scope.getRelationType().getAllFields()) {
             VariableReferenceExpression variable = variableAllocator.newVariable(field.getName().get(), field.getType());
@@ -173,6 +185,7 @@ class RelationPlanner
             columns.put(variable, analysis.getColumn(field));
         }
 
+        // 构建TableScanNode：用于查询某个表中的数据
         List<VariableReferenceExpression> outputVariables = outputVariablesBuilder.build();
         PlanNode root = new TableScanNode(idAllocator.getNextId(), handle, outputVariables, columns.build(), TupleDomain.all(), TupleDomain.all());
         return new RelationPlan(root, scope, outputVariables);
@@ -220,10 +233,17 @@ class RelationPlanner
         return new RelationPlan(planNode, analysis.getScope(node), subPlan.getFieldMappings());
     }
 
+    /**
+     * 处理join
+     * @param node
+     * @param context
+     * @return
+     */
     @Override
     protected RelationPlan visitJoin(Join node, Void context)
     {
         // TODO: translate the RIGHT join into a mirrored LEFT join when we refactor (@martint)
+        // 处理join左侧，生成计划树
         RelationPlan leftPlan = process(node.getLeft(), context);
 
         Optional<Unnest> unnest = getUnnest(node.getRight());
@@ -242,6 +262,7 @@ class RelationPlanner
             return planLateralJoin(node, leftPlan, lateral.get());
         }
 
+        // 处理join右侧，生成计划树
         RelationPlan rightPlan = process(node.getRight(), context);
 
         if (node.getCriteria().isPresent() && node.getCriteria().get() instanceof JoinUsing) {
@@ -646,6 +667,12 @@ class RelationPlanner
         return process(node.getQuery(), context);
     }
 
+    /**
+     * 访问一条查询，开始走当前.plan()方法
+     * @param node
+     * @param context
+     * @return
+     */
     @Override
     protected RelationPlan visitQuery(Query node, Void context)
     {

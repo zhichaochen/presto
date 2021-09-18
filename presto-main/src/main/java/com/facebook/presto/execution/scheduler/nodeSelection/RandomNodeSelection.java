@@ -29,6 +29,9 @@ import static com.google.common.collect.Sets.newHashSet;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 
+/**
+ * 随机节点选择器
+ */
 public class RandomNodeSelection
         implements NodeSelection
 {

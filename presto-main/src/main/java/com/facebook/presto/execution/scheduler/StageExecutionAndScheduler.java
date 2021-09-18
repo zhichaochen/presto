@@ -17,10 +17,15 @@ import com.facebook.presto.execution.SqlStageExecution;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * stage的执行器和调度器，主要是将这两者放在一起了而已
+ */
 public class StageExecutionAndScheduler
 {
+    //
     private final SqlStageExecution stageExecution;
     private final StageLinkage stageLinkage;
+    //
     private final StageScheduler stageScheduler;
 
     StageExecutionAndScheduler(SqlStageExecution stageExecution, StageLinkage stageLinkage, StageScheduler stageScheduler)

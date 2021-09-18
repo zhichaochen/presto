@@ -93,25 +93,37 @@ import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.Executors.newFixedThreadPool;
 import static java.util.concurrent.Executors.newScheduledThreadPool;
 
+/**
+ * Sql任务管理器
+ */
 public class SqlTaskManager
         implements TaskManager, Closeable
 {
     private static final Logger log = Logger.get(SqlTaskManager.class);
 
+    // 任务通知线程池
     private final ExecutorService taskNotificationExecutor;
+    //
     private final ThreadPoolExecutorMBean taskNotificationExecutorMBean;
 
+    // 任务管理执行器
     private final ScheduledExecutorService taskManagementExecutor;
+    // 放弃任务执行器
     private final ScheduledExecutorService driverYieldExecutor;
 
     private final Duration infoCacheTime;
     private final Duration clientTimeout;
 
+    // 本地内存管理器
     private final LocalMemoryManager localMemoryManager;
+    // 缓存的查询列表
     private final LoadingCache<QueryId, QueryContext> queryContexts;
+    // 缓存的任务列表
     private final LoadingCache<TaskId, SqlTask> tasks;
 
+    // 缓存
     private final SqlTaskIoStats cachedStats = new SqlTaskIoStats();
+    //
     private final SqlTaskIoStats finishedTaskStats = new SqlTaskIoStats();
 
     @GuardedBy("this")
@@ -119,6 +131,9 @@ public class SqlTaskManager
 
     private final CounterStat failedTasks = new CounterStat();
 
+    /**
+     * 创建sql管理器
+     **/
     @Inject
     public SqlTaskManager(
             LocalExecutionPlanner planner,
@@ -175,6 +190,7 @@ public class SqlTaskManager
         requireNonNull(spoolingOutputBufferFactory, "spoolingOutputBufferFactory is null");
 
         tasks = CacheBuilder.newBuilder().build(CacheLoader.from(
+                // 创建Sql任务
                 taskId -> createSqlTask(
                         taskId,
                         locationFactory.createLocalTaskLocation(taskId),
@@ -192,6 +208,19 @@ public class SqlTaskManager
                         spoolingOutputBufferFactory)));
     }
 
+    /**
+     * 创建查询上下文
+     * @param queryId
+     * @param localMemoryManager
+     * @param localSpillManager
+     * @param gcMonitor
+     * @param maxQueryUserMemoryPerNode
+     * @param maxQueryTotalMemoryPerNode
+     * @param maxRevocableMemoryPerNode
+     * @param maxQuerySpillPerNode
+     * @param maxQueryBroadcastMemory
+     * @return
+     */
     private QueryContext createQueryContext(
             QueryId queryId,
             LocalMemoryManager localMemoryManager,
@@ -242,17 +271,22 @@ public class SqlTaskManager
         }
     }
 
+    /**
+     * 启动
+     */
     @PostConstruct
     public void start()
     {
         taskManagementExecutor.scheduleWithFixedDelay(() -> {
             try {
+                // 移除一些老的任务
                 removeOldTasks();
             }
             catch (Throwable e) {
                 log.error(e, "Error removing old tasks");
             }
             try {
+                // 使丢弃的任务失败
                 failAbandonedTasks();
             }
             catch (Throwable e) {
@@ -262,6 +296,7 @@ public class SqlTaskManager
 
         taskManagementExecutor.scheduleWithFixedDelay(() -> {
             try {
+                // 更新任务状态，1s一次
                 updateStats();
             }
             catch (Throwable e) {
@@ -395,14 +430,18 @@ public class SqlTaskManager
         requireNonNull(sources, "sources is null");
         requireNonNull(outputBuffers, "outputBuffers is null");
 
+        // 通过任务ID从缓存查询任务
         SqlTask sqlTask = tasks.getUnchecked(taskId);
+        // 查询上下文
         QueryContext queryContext = sqlTask.getQueryContext();
+        // 内存限制没有被初始化
         if (!queryContext.isMemoryLimitsInitialized()) {
             if (resourceOvercommit(session)) {
                 // TODO: This should have been done when the QueryContext was created. However, the session isn't available at that point.
                 queryContext.setResourceOvercommit();
             }
             else {
+                // 设置内存限制
                 queryContext.setMemoryLimits(
                         getQueryMaxMemoryPerNode(session),
                         getQueryMaxTotalMemoryPerNode(session),
@@ -410,6 +449,7 @@ public class SqlTaskManager
             }
         }
 
+        // 记录当前心跳时间
         sqlTask.recordHeartbeat();
         return sqlTask.updateTask(session, fragment, sources, outputBuffers, tableWriteInfo);
     }

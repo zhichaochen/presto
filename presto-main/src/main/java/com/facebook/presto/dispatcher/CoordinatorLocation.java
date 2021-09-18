@@ -17,6 +17,9 @@ import javax.ws.rs.core.UriInfo;
 
 import java.net.URI;
 
+/**
+ * 协调器位置
+ */
 public interface CoordinatorLocation
 {
     URI getUri(UriInfo uriInfo, String xForwardedProto);

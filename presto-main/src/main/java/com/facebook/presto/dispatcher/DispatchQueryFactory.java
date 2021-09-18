@@ -21,6 +21,9 @@ import com.facebook.presto.spi.resourceGroups.ResourceGroupId;
 
 import java.util.Optional;
 
+/**
+ * DispatchQuery工厂
+ */
 public interface DispatchQueryFactory
 {
     DispatchQuery createDispatchQuery(

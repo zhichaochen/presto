@@ -23,6 +23,9 @@ import java.util.List;
 import static com.facebook.presto.cli.AlignedTablePrinter.formatHexDump;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * Csv格式数据打印器
+ */
 public class CsvPrinter
         implements OutputPrinter
 {

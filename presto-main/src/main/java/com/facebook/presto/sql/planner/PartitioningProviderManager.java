@@ -22,9 +22,16 @@ import java.util.concurrent.ConcurrentMap;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 分区提供器管理器（管理分区的提供器）
+ *
+ * 通过一个Map管理，连接器对应的分区器
+ */
 public class PartitioningProviderManager
 {
+    // 集合
     private final ConcurrentMap<ConnectorId, ConnectorNodePartitioningProvider> partitioningProviders = new ConcurrentHashMap<>();
+
 
     public ConnectorNodePartitioningProvider getPartitioningProvider(ConnectorId connectorId)
     {

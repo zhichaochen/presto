@@ -26,8 +26,10 @@ import static java.util.Objects.requireNonNull;
 public final class ElasticsearchTableHandle
         implements ConnectorTableHandle
 {
+    // 数据表
     private final String schema;
     private final String index;
+    //
     private final Optional<String> query;
 
     @JsonCreator

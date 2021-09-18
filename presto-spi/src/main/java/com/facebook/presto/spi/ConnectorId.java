@@ -23,12 +23,16 @@ import java.util.Objects;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 连接器ID，一个远程服务一个连接
+ */
 @ThriftStruct
 public final class ConnectorId
 {
     private static final String INFORMATION_SCHEMA_CONNECTOR_PREFIX = "$info_schema@";
     private static final String SYSTEM_TABLES_CONNECTOR_PREFIX = "$system@";
 
+    // 连接类型名称：比如：mysql
     private final String catalogName;
 
     @ThriftConstructor

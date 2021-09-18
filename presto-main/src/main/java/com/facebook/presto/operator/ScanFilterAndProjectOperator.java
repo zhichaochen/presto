@@ -55,6 +55,11 @@ import static com.facebook.presto.memory.context.AggregatedMemoryContext.newSimp
 import static com.google.common.base.Preconditions.checkState;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 1、Scan操作
+ * 2、Filter操作
+ * 3、Project操作
+ */
 public class ScanFilterAndProjectOperator
         implements SourceOperator, Closeable
 {

@@ -29,6 +29,9 @@ import java.util.Optional;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 用于在【分布式】执行计划中，不同的stage之间交换数据
+ */
 @Immutable
 public class RemoteSourceNode
         extends InternalPlanNode

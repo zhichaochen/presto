@@ -46,6 +46,9 @@ import static com.facebook.presto.sql.parser.SqlParserOptions.RESERVED_WORDS_WAR
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * Sql解析器
+ */
 public class SqlParser
 {
     private static final BaseErrorListener LEXER_ERROR_LISTENER = new BaseErrorListener()
@@ -127,16 +130,28 @@ public class SqlParser
         return (Return) invokeParser("return", routineBody, SqlBaseParser::standaloneRoutineBody, parsingOptions);
     }
 
+    /**
+     * 做词法分析
+     *
+     * @param name
+     * @param sql
+     * @param parseFunction
+     * @param parsingOptions
+     * @return
+     */
     private Node invokeParser(String name, String sql, Function<SqlBaseParser, ParserRuleContext> parseFunction, ParsingOptions parsingOptions)
     {
         try {
+            // 词法分析器SqlBaseLexer进行词法分析，产生token序列
             SqlBaseLexer lexer = new SqlBaseLexer(new CaseInsensitiveStream(CharStreams.fromString(sql)));
             CommonTokenStream tokenStream = new CommonTokenStream(lexer);
+            // 语法分析器
             SqlBaseParser parser = new SqlBaseParser(tokenStream);
             initializer.accept(lexer, parser);
 
             // Override the default error strategy to not attempt inserting or deleting a token.
             // Otherwise, it messes up error reporting
+            // 注册错误处理器
             parser.setErrorHandler(new DefaultErrorStrategy()
             {
                 @Override
@@ -152,8 +167,10 @@ public class SqlParser
                 }
             });
 
+            // 做一些解析时的处理
             parser.addParseListener(new PostProcessor(Arrays.asList(parser.getRuleNames()), parsingOptions.getWarningConsumer()));
 
+            //词法分析器和语法分析器都添加出错时，抛运行时ParsingException异常的监听器ERROR_LISTENER
             lexer.removeErrorListeners();
             lexer.addErrorListener(LEXER_ERROR_LISTENER);
 
@@ -166,6 +183,7 @@ public class SqlParser
                 parser.addErrorListener(LEXER_ERROR_LISTENER);
             }
 
+            // 生成抽象语法树
             ParserRuleContext tree;
             try {
                 // first, try parsing with potentially faster SLL mode
@@ -181,6 +199,7 @@ public class SqlParser
                 tree = parseFunction.apply(parser);
             }
 
+            // 语法分析
             return new AstBuilder(parsingOptions).visit(tree);
         }
         catch (StackOverflowError e) {
@@ -188,6 +207,9 @@ public class SqlParser
         }
     }
 
+    /**
+     * 后置处理器
+     */
     private class PostProcessor
             extends SqlBaseBaseListener
     {

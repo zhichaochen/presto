@@ -33,6 +33,9 @@ import static com.facebook.presto.sql.analyzer.SemanticErrorCode.MISSING_TABLE;
 import static com.facebook.presto.sql.analyzer.SemanticErrorCode.NOT_SUPPORTED;
 import static com.google.common.util.concurrent.Futures.immediateFuture;
 
+/**
+ * 删除表任务
+ */
 public class DropTableTask
         implements DataDefinitionTask<DropTable>
 {

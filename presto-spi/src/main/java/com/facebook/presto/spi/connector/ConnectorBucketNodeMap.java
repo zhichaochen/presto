@@ -25,6 +25,9 @@ import static com.facebook.presto.spi.schedule.NodeSelectionStrategy.NO_PREFEREN
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 
+/**
+ *
+ */
 public final class ConnectorBucketNodeMap
 {
     private final int bucketCount;

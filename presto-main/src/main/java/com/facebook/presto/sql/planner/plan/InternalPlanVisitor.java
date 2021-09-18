@@ -17,6 +17,11 @@ import com.facebook.presto.spi.plan.PlanVisitor;
 import com.facebook.presto.sql.planner.CanonicalTableScanNode;
 import com.facebook.presto.sql.planner.iterative.GroupReference;
 
+/**
+ * 内部计划访问器，访问各种条件
+ * @param <R>
+ * @param <C>
+ */
 public abstract class InternalPlanVisitor<R, C>
         extends PlanVisitor<R, C>
 {

@@ -22,6 +22,10 @@ import java.util.Optional;
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 通过复制另一个表的表结构去创建表
+ * 比如：create table new_table select * from old_talbe;
+ */
 public class CreateTableAsSelect
         extends Statement
 {

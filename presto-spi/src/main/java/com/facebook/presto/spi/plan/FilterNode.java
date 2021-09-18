@@ -26,6 +26,9 @@ import java.util.Objects;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.unmodifiableList;
 
+/**
+ * 过滤节点
+ */
 @Immutable
 public final class FilterNode
         extends PlanNode

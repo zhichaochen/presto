@@ -18,6 +18,9 @@ import com.facebook.presto.common.type.Type;
 import com.facebook.presto.spi.function.AccumulatorState;
 import com.facebook.presto.spi.function.AccumulatorStateMetadata;
 
+/**
+ * 可能为空的double状态
+ */
 @AccumulatorStateMetadata(stateSerializerClass = NullableDoubleStateSerializer.class)
 public interface NullableDoubleState
         extends AccumulatorState

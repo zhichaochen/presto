@@ -23,9 +23,13 @@ import io.airlift.slice.Slice;
 
 import java.util.List;
 
+/**
+ * 数据类型，比如：int、long等基本类型，也有map等数据类型
+ */
 public interface Type
 {
     /**
+     * 类型签名
      * Gets the name of this type which must be case insensitive globally unique.
      * The name of a user defined type must be a legal identifier in Presto.
      */

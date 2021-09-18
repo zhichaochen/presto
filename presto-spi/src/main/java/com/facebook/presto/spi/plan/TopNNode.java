@@ -29,6 +29,9 @@ import static java.lang.String.format;
 import static java.util.Collections.singletonList;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 排序后取前N条
+ */
 @Immutable
 public final class TopNNode
         extends PlanNode

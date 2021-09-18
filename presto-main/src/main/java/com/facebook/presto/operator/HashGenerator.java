@@ -15,6 +15,9 @@ package com.facebook.presto.operator;
 
 import com.facebook.presto.common.Page;
 
+/**
+ * hash生成器
+ */
 public interface HashGenerator
 {
     long hashPosition(int position, Page page);

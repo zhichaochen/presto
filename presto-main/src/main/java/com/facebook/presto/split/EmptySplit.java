@@ -26,6 +26,9 @@ import java.util.List;
 import static com.facebook.presto.spi.schedule.NodeSelectionStrategy.NO_PREFERENCE;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 空Split
+ */
 public class EmptySplit
         implements ConnectorSplit
 {

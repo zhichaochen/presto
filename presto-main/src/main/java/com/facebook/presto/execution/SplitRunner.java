@@ -18,6 +18,9 @@ import io.airlift.units.Duration;
 
 import java.io.Closeable;
 
+/**
+ * Split运行器
+ */
 public interface SplitRunner
         extends Closeable
 {

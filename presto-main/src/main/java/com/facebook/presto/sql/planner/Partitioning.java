@@ -49,10 +49,15 @@ import static com.google.common.collect.ImmutableSet.toImmutableSet;
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 分区
+ */
 @Immutable
 public final class Partitioning
 {
+    // 分区句柄
     private final PartitioningHandle handle;
+    // 分区参数列表
     private final List<RowExpression> arguments;
 
     private Partitioning(PartitioningHandle handle, List<RowExpression> arguments)

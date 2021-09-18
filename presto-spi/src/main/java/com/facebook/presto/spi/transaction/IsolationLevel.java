@@ -18,6 +18,9 @@ import com.facebook.presto.spi.PrestoException;
 import static com.facebook.presto.spi.StandardErrorCode.UNSUPPORTED_ISOLATION_LEVEL;
 import static java.lang.String.format;
 
+/**
+ * 隔离级别
+ */
 public enum IsolationLevel
 {
     SERIALIZABLE,

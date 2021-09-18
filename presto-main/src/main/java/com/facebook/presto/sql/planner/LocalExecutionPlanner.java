@@ -327,6 +327,13 @@ import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.IntStream.range;
 
+/**
+ * 本地执行计划：
+ * 会生成物理执行计划，物理执行计划是一个个算子组成的列表；
+ * 多个算子组成一条pipeline。
+ *
+ * 有些物理计划会生成字节码。
+ */
 public class LocalExecutionPlanner
 {
     private final Metadata metadata;
@@ -557,23 +564,26 @@ public class LocalExecutionPlanner
             TableWriteInfo tableWriteInfo,
             boolean pageSinkCommitRequired)
     {
+        // 输出的内容
         List<VariableReferenceExpression> outputLayout = partitioningScheme.getOutputLayout();
         Session session = taskContext.getSession();
         LocalExecutionPlanContext context = new LocalExecutionPlanContext(taskContext, tableWriteInfo);
         PhysicalOperation physicalOperation = plan.accept(new Visitor(session, stageExecutionDescriptor, remoteSourceFactory, pageSinkCommitRequired), context);
 
+        //
         Function<Page, Page> pagePreprocessor = enforceLayoutProcessor(outputLayout, physicalOperation.getLayout());
 
+        //
         List<Type> outputTypes = outputLayout.stream()
                 .map(VariableReferenceExpression::getType)
                 .collect(toImmutableList());
 
+        //
         context.addDriverFactory(
                 context.isInputDriver(),
                 true,
                 ImmutableList.<OperatorFactory>builder()
-                        .addAll(physicalOperation.getOperatorFactories())
-                        .add(outputOperatorFactory.createOutputOperator(
+                          .add(outputOperatorFactory.createOutputOperator(
                                 context.getNextOperatorId(),
                                 plan.getId(),
                                 outputTypes,
@@ -585,6 +595,7 @@ public class LocalExecutionPlanner
                 physicalOperation.getPipelineExecutionStrategy(),
                 createFragmentResultCacheContext(fragmentResultCacheManager, plan, partitioningScheme, session, objectMapper));
 
+        //
         addLookupOuterDrivers(context);
 
         // notify operator factories that planning has completed
@@ -812,6 +823,9 @@ public class LocalExecutionPlanner
         }
     }
 
+    /**
+     * 访问器
+     */
     private class Visitor
             extends InternalPlanVisitor<PhysicalOperation, LocalExecutionPlanContext>
     {
@@ -1289,6 +1303,17 @@ public class LocalExecutionPlanner
             return visitScanFilterAndProject(context, node.getId(), sourceNode, filterExpression, node.getAssignments(), node.getOutputVariables(), node.getLocality());
         }
 
+        /**
+         * Filter 和 project 共有的
+         * @param context
+         * @param planNodeId
+         * @param sourceNode
+         * @param filterExpression
+         * @param assignments
+         * @param outputVariables
+         * @param locality
+         * @return
+         */
         // TODO: This should be refactored, so that there's an optimizer that merges scan-filter-project into a single PlanNode
         private PhysicalOperation visitScanFilterAndProject(
                 LocalExecutionPlanContext context,
@@ -1373,6 +1398,7 @@ public class LocalExecutionPlanner
                     .map(expression -> bindChannels(expression, sourceLayout))
                     .collect(toImmutableList());
 
+            //
             try {
                 if (columns != null) {
                     Supplier<CursorProcessor> cursorProcessor = expressionCompiler.compileCursorProcessor(
@@ -1459,22 +1485,33 @@ public class LocalExecutionPlanner
             return expression;
         }
 
+        /**
+         * 访问
+         * @param node
+         * @param context
+         * @return
+         */
         @Override
         public PhysicalOperation visitTableScan(TableScanNode node, LocalExecutionPlanContext context)
         {
+            // 列句柄
             List<ColumnHandle> columns = new ArrayList<>();
             for (VariableReferenceExpression variable : node.getOutputVariables()) {
                 columns.add(node.getAssignments().get(variable));
             }
 
+            // 表句柄，
             TableHandle tableHandle;
             Optional<DeleteScanInfo> deleteScanInfo = context.getTableWriteInfo().getDeleteScanInfo();
+            // 优先使用部分字段的表句柄
             if (deleteScanInfo.isPresent() && deleteScanInfo.get().getId() == node.getId()) {
                 tableHandle = deleteScanInfo.get().getTableHandle();
             }
             else {
+                // 包含所有字段的句柄
                 tableHandle = node.getTable();
             }
+            // 创建算子工厂
             OperatorFactory operatorFactory = new TableScanOperatorFactory(context.getNextOperatorId(), node.getId(), pageSourceProvider, tableHandle, columns);
             return new PhysicalOperation(operatorFactory, makeLayout(node), context, stageExecutionDescriptor.isScanGroupedExecution(node.getId()) ? GROUPED_EXECUTION : UNGROUPED_EXECUTION);
         }
@@ -3207,6 +3244,7 @@ public class LocalExecutionPlanner
     }
 
     /**
+     * 封装物理运算符以及逻辑变量到通道/字段的映射
      * Encapsulates an physical operator plus the mapping of logical variables to channel/field
      */
     private static class PhysicalOperation

@@ -23,6 +23,7 @@ import static org.fusesource.jansi.Ansi.ansi;
 import static org.fusesource.jansi.internal.CLibrary.STDOUT_FILENO;
 import static org.fusesource.jansi.internal.CLibrary.isatty;
 
+
 public class ConsolePrinter
 {
     public static final boolean REAL_TERMINAL = detectRealTerminal();

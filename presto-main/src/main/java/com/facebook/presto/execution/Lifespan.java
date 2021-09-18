@@ -26,13 +26,16 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static java.lang.Integer.parseInt;
 
+/**
+ * 寿命
+ */
 @ThriftStruct
 public class Lifespan
 {
     private static final Lifespan TASK_WIDE = new Lifespan(false, 0);
 
-    private final boolean grouped;
-    private final int groupId;
+    private final boolean grouped; // 是否分组
+    private final int groupId; // 组ID
 
     public static Lifespan taskWide()
     {

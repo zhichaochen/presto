@@ -26,6 +26,13 @@ import static com.facebook.presto.spi.plan.ProjectNode.Locality.UNKNOWN;
 import static java.util.Collections.singletonList;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 用于进行映射的节点
+ * 将下层的节点输出列映射成上层节点 例如：select a + 1 from b将TableScanNode的a列 + 1 映射到OutputNode
+ *
+ * 用于将Project Node下层节点输出的列映射到Project node上层节点输入的列。
+ * 比如：select a + 1 from table，用于将a返回的值 + 1 后返回给上层。
+ */
 @Immutable
 public final class ProjectNode
         extends PlanNode

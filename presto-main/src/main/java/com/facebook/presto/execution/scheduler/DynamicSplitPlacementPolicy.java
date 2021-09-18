@@ -24,6 +24,10 @@ import java.util.function.Supplier;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 切分策略
+ *
+ */
 public class DynamicSplitPlacementPolicy
         implements SplitPlacementPolicy
 {

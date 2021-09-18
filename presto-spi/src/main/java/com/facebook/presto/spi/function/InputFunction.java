@@ -19,6 +19,9 @@ import java.lang.annotation.Target;
 import static java.lang.annotation.ElementType.METHOD;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
+/**
+ * 输入函数：完成原始数据的按组别聚合
+ */
 @Retention(RUNTIME)
 @Target(METHOD)
 public @interface InputFunction

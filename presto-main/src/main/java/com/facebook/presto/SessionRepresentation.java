@@ -41,6 +41,9 @@ import java.util.Set;
 import static java.util.Collections.emptyMap;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 表示一次查询的Session
+ */
 @ThriftStruct
 public final class SessionRepresentation
 {

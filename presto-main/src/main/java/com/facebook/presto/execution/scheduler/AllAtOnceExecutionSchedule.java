@@ -47,6 +47,9 @@ import static com.google.common.collect.ImmutableSet.toImmutableSet;
 import static java.util.Objects.requireNonNull;
 import static java.util.function.Function.identity;
 
+/**
+ * 所有只执行一次调度（只针对stage）
+ */
 public class AllAtOnceExecutionSchedule
         implements ExecutionSchedule
 {
@@ -105,10 +108,15 @@ public class AllAtOnceExecutionSchedule
         return visitor.getSchedulerOrder();
     }
 
+    /**
+     * 内部的visitor
+     */
     private static class Visitor
             extends InternalPlanVisitor<Void, Void>
     {
+        // 片段列表
         private final Map<PlanFragmentId, PlanFragment> fragments;
+        // 调度顺序
         private final ImmutableSet.Builder<PlanFragmentId> schedulerOrder = ImmutableSet.builder();
 
         public Visitor(Collection<PlanFragment> fragments)

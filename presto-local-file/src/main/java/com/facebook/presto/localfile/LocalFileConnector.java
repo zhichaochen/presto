@@ -28,6 +28,9 @@ import static com.facebook.presto.spi.transaction.IsolationLevel.READ_COMMITTED;
 import static com.facebook.presto.spi.transaction.IsolationLevel.checkConnectorSupports;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 本地文件连接器
+ */
 public class LocalFileConnector
         implements Connector
 {

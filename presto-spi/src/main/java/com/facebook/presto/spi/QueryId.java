@@ -28,6 +28,7 @@ import static java.lang.String.format;
 import static java.util.Collections.unmodifiableList;
 import static java.util.Objects.requireNonNull;
 
+/*查询ID*/
 @ThriftStruct
 public final class QueryId
 {

@@ -65,6 +65,10 @@ import static java.lang.Math.min;
 import static java.util.Objects.requireNonNull;
 
 /**
+ * 交换客户端：接受方的客户端，用于有些操作符需要与其他任务交换数据
+ *
+ * 对于从ExchangeClient中接收数据的每个发送方，ExchangeClient中使用{@link PageBufferClient}与发送方通信
+ *
  * {@link ExchangeClient} is the client on receiver side, used in operators requiring data exchange from other tasks,
  * such as {@link ExchangeOperator} and {@link MergeOperator}.
  * For each sender that ExchangeClient receives data from, a {@link PageBufferClient} is used in ExchangeClient to communicate with the sender, i.e.

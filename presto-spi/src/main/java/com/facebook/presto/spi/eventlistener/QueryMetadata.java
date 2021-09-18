@@ -21,6 +21,9 @@ import java.util.Optional;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 查询元数据
+ */
 public class QueryMetadata
 {
     private final String queryId;

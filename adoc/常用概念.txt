@@ -1,0 +1,9 @@
+1、splits 表示对数据的切分，比如一个表的数据可以切分成多个部分，每个部分就是一个split
+     NO_MORE_SPLITS ：已从调度程序收到所有split
+
+2、split 和 partitioning 有啥区别
+    split是【查询数据】的时候如何分布到不同的Worker.
+    partitioning：是【写入数据的时候】？？？不太确定。
+
+
+

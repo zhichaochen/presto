@@ -52,6 +52,9 @@ import static com.facebook.presto.spi.security.AccessDeniedException.denyShowSch
 import static com.facebook.presto.spi.security.AccessDeniedException.denyShowTablesMetadata;
 import static java.util.Collections.emptySet;
 
+/**
+ * 访问控制，权限相关
+ */
 public interface ConnectorAccessControl
 {
     /**

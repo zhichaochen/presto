@@ -28,6 +28,9 @@ import java.util.Optional;
 import static com.facebook.presto.sql.gen.BytecodeUtils.generateInvocation;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 字节码生成器上下文
+ */
 public class BytecodeGeneratorContext
 {
     private final RowExpressionCompiler rowExpressionCompiler;

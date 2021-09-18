@@ -30,11 +30,18 @@ import static com.facebook.presto.spi.SplitContext.NON_CACHEABLE;
 import static com.google.common.util.concurrent.MoreExecutors.directExecutor;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 连接器感知划分数据源（本质上来说通过）
+ * 比如：ES 使用的就是 FixedSplitSource
+ */
 public class ConnectorAwareSplitSource
         implements SplitSource
 {
+    // 连接id
     private final ConnectorId connectorId;
+    // 事务句柄
     private final ConnectorTransactionHandle transactionHandle;
+    // 具体连接器的切分资源
     private final ConnectorSplitSource source;
 
     public ConnectorAwareSplitSource(
@@ -59,11 +66,20 @@ public class ConnectorAwareSplitSource
         return transactionHandle;
     }
 
+    /**
+     *
+     * @param partitionHandle
+     * @param lifespan
+     * @param maxSize
+     * @return
+     */
     @Override
     public ListenableFuture<SplitBatch> getNextBatch(ConnectorPartitionHandle partitionHandle, Lifespan lifespan, int maxSize)
     {
+        // 下一批次
         ListenableFuture<ConnectorSplitBatch> nextBatch = toListenableFuture(source.getNextBatch(partitionHandle, maxSize));
         return Futures.transform(nextBatch, splitBatch -> {
+            //
             ImmutableList.Builder<Split> result = ImmutableList.builder();
             for (ConnectorSplit connectorSplit : splitBatch.getSplits()) {
                 result.add(new Split(connectorId, transactionHandle, connectorSplit, lifespan, NON_CACHEABLE));

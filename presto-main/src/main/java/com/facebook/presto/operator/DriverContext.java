@@ -53,6 +53,8 @@ import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.stream.Collectors.toList;
 
 /**
+ * 驱动上下文，保存了一个驱动的信息
+ *
  * Only calling getDriverStats is ThreadSafe
  */
 public class DriverContext
@@ -81,6 +83,7 @@ public class DriverContext
 
     private final DriverYieldSignal yieldSignal;
 
+    // 算子上下文，里面存储了算子的大量信息
     private final List<OperatorContext> operatorContexts = new CopyOnWriteArrayList<>();
     private final Lifespan lifespan;
     private final Optional<FragmentResultCacheContext> fragmentResultCacheContext;
@@ -107,6 +110,13 @@ public class DriverContext
         return pipelineContext.getTaskId();
     }
 
+    /**
+     * 添加算子到上下文
+     * @param operatorId
+     * @param planNodeId
+     * @param operatorType
+     * @return
+     */
     public OperatorContext addOperatorContext(int operatorId, PlanNodeId planNodeId, String operatorType)
     {
         checkArgument(operatorId >= 0, "operatorId is negative");
@@ -115,6 +125,7 @@ public class DriverContext
             checkArgument(operatorId != operatorContext.getOperatorId(), "A context already exists for operatorId %s", operatorId);
         }
 
+        // 算子上下文
         OperatorContext operatorContext = new OperatorContext(
                 operatorId,
                 planNodeId,

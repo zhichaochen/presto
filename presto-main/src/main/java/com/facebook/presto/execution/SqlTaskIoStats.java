@@ -19,6 +19,9 @@ import org.weakref.jmx.Nested;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * Sql任务IO统计
+ */
 public final class SqlTaskIoStats
 {
     private final CounterStat inputDataSize;

@@ -22,6 +22,9 @@ import java.util.Optional;
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 查询规范，我理解就是一
+ */
 public class QuerySpecification
         extends QueryBody
 {
@@ -86,6 +89,10 @@ public class QuerySpecification
         this.limit = limit;
     }
 
+    /**
+     * 处理select语句
+     * @return
+     */
     public Select getSelect()
     {
         return select;

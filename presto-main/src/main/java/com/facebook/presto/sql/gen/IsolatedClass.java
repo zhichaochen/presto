@@ -25,6 +25,9 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static java.lang.String.format;
 
+/**
+ * 隔离类
+ */
 public final class IsolatedClass
 {
     private IsolatedClass() {}

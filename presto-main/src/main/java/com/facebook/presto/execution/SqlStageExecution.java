@@ -80,6 +80,12 @@ import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
+/**
+ * Sql阶段执行器（在协调器端调度任务）
+ *
+ * 每个阶段会创建一个SqlStageExecution
+ * 任务执行器会调用HttpRemoteTask#start，向远程发送一个remote任务。
+ */
 @ThreadSafe
 public final class SqlStageExecution
 {
@@ -445,6 +451,12 @@ public final class SqlStageExecution
         getOnlyElement(allTasks).removeRemoteSource(remoteSourceTaskId);
     }
 
+    /**
+     * 调度任务
+     * @param node
+     * @param partition
+     * @return
+     */
     public synchronized Optional<RemoteTask> scheduleTask(InternalNode node, int partition)
     {
         requireNonNull(node, "node is null");
@@ -494,6 +506,13 @@ public final class SqlStageExecution
         return newTasks.build();
     }
 
+    /**
+     * 调度任务
+     * @param node
+     * @param taskId
+     * @param sourceSplits
+     * @return
+     */
     private synchronized RemoteTask scheduleTask(InternalNode node, TaskId taskId, Multimap<PlanNodeId, Split> sourceSplits)
     {
         checkArgument(!allTasks.contains(taskId), "A task with id %s already exists", taskId);
@@ -501,6 +520,7 @@ public final class SqlStageExecution
         ImmutableMultimap.Builder<PlanNodeId, Split> initialSplits = ImmutableMultimap.builder();
         initialSplits.putAll(sourceSplits);
 
+        // 遍历计划节点
         sourceTasks.forEach((planNodeId, task) -> {
             TaskStatus status = task.getTaskStatus();
             if (status.getState() != TaskState.FINISHED) {
@@ -511,6 +531,7 @@ public final class SqlStageExecution
         OutputBuffers outputBuffers = this.outputBuffers.get();
         checkState(outputBuffers != null, "Initial output buffers must be set before a task can be scheduled");
 
+        // 创建远程任务
         RemoteTask task = remoteTaskFactory.createRemoteTask(
                 session,
                 taskId,
@@ -518,6 +539,7 @@ public final class SqlStageExecution
                 planFragment,
                 initialSplits.build(),
                 outputBuffers,
+                // 创建一系列追踪器
                 nodeTaskMap.createTaskStatsTracker(node, taskId),
                 summarizeTaskInfo,
                 tableWriteInfo);
@@ -531,11 +553,15 @@ public final class SqlStageExecution
         task.addStateChangeListener(new StageTaskListener(taskId));
         task.addFinalTaskInfoListener(this::updateFinalTaskInfo);
 
+        /**
+         * 启动任务
+         */
         if (!stateMachine.getState().isDone()) {
             task.start();
         }
         else {
             // stage finished while we were scheduling this task
+            // 在我们安排此任务时，阶段已完成
             task.abort();
         }
 
@@ -678,6 +704,9 @@ public final class SqlStageExecution
         return stateMachine.toString();
     }
 
+    /**
+     * Stage任务监听器
+     */
     private class StageTaskListener
             implements StateChangeListener<TaskStatus>
     {

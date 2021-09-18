@@ -30,6 +30,9 @@ import java.util.Set;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptySet;
 
+/**
+ * 会在启动时加载所有Plugin接口
+ */
 public interface Plugin
 {
     default Iterable<ConnectorFactory> getConnectorFactories()

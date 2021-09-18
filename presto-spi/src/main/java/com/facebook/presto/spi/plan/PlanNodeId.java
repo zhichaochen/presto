@@ -20,6 +20,9 @@ import javax.annotation.concurrent.Immutable;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 计划节点ID
+ */
 @Immutable
 public class PlanNodeId
 {

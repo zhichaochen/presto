@@ -22,10 +22,15 @@ import java.util.Optional;
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 表示查询语句中的select部分
+ */
 public class Select
         extends Node
 {
+    // 是否包含distinct关键字
     private final boolean distinct;
+    // select语句中的
     private final List<SelectItem> selectItems;
 
     public Select(boolean distinct, List<SelectItem> selectItems)

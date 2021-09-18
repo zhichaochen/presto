@@ -28,8 +28,12 @@ import static com.google.common.base.MoreObjects.toStringHelper;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 分区方案
+ */
 public class PartitioningScheme
 {
+    // 分区接口
     private final Partitioning partitioning;
     private final List<VariableReferenceExpression> outputLayout;
     private final Optional<VariableReferenceExpression> hashColumn;

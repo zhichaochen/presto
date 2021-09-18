@@ -24,6 +24,12 @@ import java.util.Set;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptySet;
 
+/**
+ * 连接器（不是为了建立连接，而是通过该接口）
+ *
+ * Connectors是Presto queries的’数据源’，即便查询数据源中没有table表，
+ * 只要实现Presto所需的API，也可以查询数据。
+ */
 public interface Connector
 {
     ConnectorTransactionHandle beginTransaction(IsolationLevel isolationLevel, boolean readOnly);

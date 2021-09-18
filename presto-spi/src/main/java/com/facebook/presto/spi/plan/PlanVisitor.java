@@ -13,6 +13,11 @@
  */
 package com.facebook.presto.spi.plan;
 
+/**
+ * 计划访问器
+ * @param <R>
+ * @param <C>
+ */
 public abstract class PlanVisitor<R, C>
 {
     /**

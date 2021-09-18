@@ -17,6 +17,9 @@ import io.airlift.airline.Option;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
 
+/**
+ * 版本信息
+ */
 public class VersionOption
 {
     @Option(name = "--version", description = "Display version information and exit")

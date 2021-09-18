@@ -23,12 +23,15 @@ import java.util.Objects;
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 列句柄
+ */
 public final class ElasticsearchColumnHandle
         implements ColumnHandle
 {
-    private final String name;
-    private final Type type;
-    private final boolean supportsPredicates;
+    private final String name; // 列名称
+    private final Type type; // 列类型
+    private final boolean supportsPredicates; // 是否支持预测
 
     @JsonCreator
     public ElasticsearchColumnHandle(

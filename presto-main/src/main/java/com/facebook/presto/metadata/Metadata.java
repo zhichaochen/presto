@@ -58,23 +58,34 @@ import java.util.Set;
 
 import static com.facebook.presto.spi.TableLayoutFilterCoverage.NOT_APPLICABLE;
 
+/**
+ * 元数据接口（类似于JDBC元数据）
+ */
 public interface Metadata
 {
+    // 验证都支持哪些运算符号
     void verifyComparableOrderableContract();
 
+    // 数据类型
     Type getType(TypeSignature signature);
 
+    // sql中的函数
     List<SqlFunction> listFunctions(Session session);
 
+    // 注册内置函数
     void registerBuiltInFunctions(List<? extends SqlFunction> functions);
 
+    // scheme是否存在
     boolean schemaExists(Session session, CatalogSchemaName schema);
 
+    // catalog是否存在
     boolean catalogExists(Session session, String catalogName);
 
+    // 查询数据库名称
     List<String> listSchemaNames(Session session, String catalogName);
 
     /**
+     * 查询表句柄
      * Returns a table handle for the specified table name.
      */
     Optional<TableHandle> getTableHandle(Session session, QualifiedObjectName tableName);
@@ -84,18 +95,22 @@ public interface Metadata
     Optional<TableHandle> getTableHandleForStatisticsCollection(Session session, QualifiedObjectName tableName, Map<String, Object> analyzeProperties);
 
     /**
+     * 返回满足给定约束和未强制约束的新表布局。
      * Returns a new table layout that satisfies the given constraint together with unenforced constraint.
      */
     @Experimental
     TableLayoutResult getLayout(Session session, TableHandle tableHandle, Constraint<ColumnHandle> constraint, Optional<Set<ColumnHandle>> desiredColumns);
 
     /**
+     * 返回给定表句柄的表布局属性。
      * Returns table's layout properties for a given table handle.
      */
     @Experimental
     TableLayout getLayout(Session session, TableHandle handle);
 
     /**
+     * alternative：可供替代的;
+     * 返回一个表句柄，其分区转换为提供的分区句柄，
      * Return a table handle whose partitioning is converted to the provided partitioning handle,
      * but otherwise identical to the provided table layout handle.
      * The provided table layout handle must be one that the connector can transparently convert to from

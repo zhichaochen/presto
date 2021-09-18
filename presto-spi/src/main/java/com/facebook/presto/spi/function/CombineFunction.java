@@ -22,6 +22,10 @@ import static java.lang.annotation.ElementType.METHOD;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 /**
+ * 合并函数注解，对中间聚合状态进行合并
+ *
+ * 将两个值合并成一个值
+ *
  * A function annotated with &#64;CombineFunction is one that will be used
  * to combine two states into one in aggregation functions.
  * <p>

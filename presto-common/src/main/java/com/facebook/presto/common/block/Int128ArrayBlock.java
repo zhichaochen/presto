@@ -36,6 +36,9 @@ import static io.airlift.slice.SizeOf.sizeOf;
 import static java.lang.Integer.bitCount;
 import static java.lang.String.format;
 
+/**
+ *
+ */
 public class Int128ArrayBlock
         implements Block
 {

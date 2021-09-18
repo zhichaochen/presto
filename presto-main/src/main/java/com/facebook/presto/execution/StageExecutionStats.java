@@ -39,6 +39,9 @@ import static java.lang.Math.min;
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
+/**
+ * 阶段执行统计
+ */
 @Immutable
 public class StageExecutionStats
 {

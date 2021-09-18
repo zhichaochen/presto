@@ -13,6 +13,9 @@
  */
 package com.facebook.presto.common.type;
 
+/**
+ * 各种类型枚举
+ */
 public final class StandardTypes
 {
     public static final String BIGINT = "bigint";
@@ -22,7 +25,7 @@ public final class StandardTypes
     public static final String BOOLEAN = "boolean";
     public static final String DATE = "date";
     public static final String DECIMAL = "decimal";
-    public static final String REAL = "real";
+    public static final String REAL = "real"; // 表示long类型？
     public static final String DOUBLE = "double";
     public static final String HYPER_LOG_LOG = "HyperLogLog";
     public static final String QDIGEST = "qdigest";

@@ -43,6 +43,9 @@ import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
+/**
+ * 集群大小监视器
+ */
 public class ClusterSizeMonitor
 {
     private final InternalNodeManager nodeManager;

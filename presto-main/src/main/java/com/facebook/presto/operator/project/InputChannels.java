@@ -22,8 +22,12 @@ import java.util.List;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
 
+/**
+ * 输入通道
+ */
 public class InputChannels
 {
+    //
     private final int[] inputChannels;
 
     public InputChannels(int... inputChannels)

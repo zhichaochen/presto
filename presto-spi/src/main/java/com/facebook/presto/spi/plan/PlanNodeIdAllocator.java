@@ -13,10 +13,14 @@
  */
 package com.facebook.presto.spi.plan;
 
+/**
+ * 计划节点ID分配器
+ */
 public class PlanNodeIdAllocator
 {
     private int nextId;
 
+    // 从0开始自增
     public PlanNodeId getNextId()
     {
         return new PlanNodeId(Integer.toString(nextId++));
