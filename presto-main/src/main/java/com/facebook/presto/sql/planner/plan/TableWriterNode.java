@@ -40,6 +40,8 @@ import static java.util.Objects.requireNonNull;
 
 /**
  * 向目标表里写数据
+ * TableWriteNode 经常出现在 visitor中需要处理，
+ * 其实，写入数据的时候也要区分写入那个分区，所以也经常需要处理
  */
 @Immutable
 public class TableWriterNode

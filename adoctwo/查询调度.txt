@@ -1,0 +1,9 @@
+1、原理
+    Presto的查询调度本质上就是分配Split到各个节点的过程
+    每个阶段依据本身所承担的职责，调度方式有所区别，从整体上来说，Split分配节点的方式基本为随机选择的策略，
+    在此基础上尽量保证每个节点处理的Split相对平均。
+
+
+2、相关类
+    SourcePartitionedScheduler：数据源分区调度器
+    SectionExecutionFactory ： 创建SectionExecution，在里面做了很多内容的初始化

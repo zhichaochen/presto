@@ -60,29 +60,32 @@ import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.ImmutableList.toImmutableList;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * page交换，有LocalExchangeFactory创建
+ */
 @ThreadSafe
 public class LocalExchange
 {
-    private final Supplier<LocalExchanger> exchangerSupplier;
+    private final Supplier<LocalExchanger> exchangerSupplier; // 不同的分区方式，会创建不同的交换器，比如：BroadcastExchanger
 
-    private final List<LocalExchangeSource> sources;
+    private final List<LocalExchangeSource> sources; // 持有所有的sources，LocalExchangeSource中缓存了很多page
 
     private final LocalExchangeMemoryManager memoryManager;
 
     @GuardedBy("this")
-    private boolean allSourcesFinished;
+    private boolean allSourcesFinished; // 是否所有数据都读取完成
 
     @GuardedBy("this")
     private boolean noMoreSinkFactories;
 
     @GuardedBy("this")
-    private final List<LocalExchangeSinkFactory> allSinkFactories;
+    private final List<LocalExchangeSinkFactory> allSinkFactories; // sink工厂
 
     @GuardedBy("this")
     private final Set<LocalExchangeSinkFactory> openSinkFactories = new HashSet<>();
 
     @GuardedBy("this")
-    private final Set<LocalExchangeSink> sinks = new HashSet<>();
+    private final Set<LocalExchangeSink> sinks = new HashSet<>(); // LocalExchangeSink列表。
 
     @GuardedBy("this")
     private int nextSourceIndex;
@@ -98,32 +101,42 @@ public class LocalExchange
             Optional<Integer> partitionHashChannel,
             DataSize maxBufferedBytes)
     {
+        // 通过 Stream.generate 生成一个多个LocalExchangeSinkFactory，最多sinkFactoryCount个，并添加至集合中
+        // 创建
         this.allSinkFactories = Stream.generate(() -> new LocalExchangeSinkFactory(LocalExchange.this))
                 .limit(sinkFactoryCount)
                 .collect(toImmutableList());
         openSinkFactories.addAll(allSinkFactories);
         noMoreSinkFactories();
 
+        // 创建LocalExchangeSourceOperator列表
         ImmutableList.Builder<LocalExchangeSource> sources = ImmutableList.builder();
         for (int i = 0; i < bufferCount; i++) {
             sources.add(new LocalExchangeSource(source -> checkAllSourcesFinished()));
         }
         this.sources = sources.build();
 
+        // 添加PageReference到LocalExchangeSource中
         List<Consumer<PageReference>> buffers = this.sources.stream()
                 .map(buffer -> (Consumer<PageReference>) buffer::addPage)
                 .collect(toImmutableList());
 
+        // 本地内存管理器
         this.memoryManager = new LocalExchangeMemoryManager(maxBufferedBytes.toBytes());
+        // 分区
+        // 如果分区方式是SINGLE_DISTRIBUTION
         if (partitioning.equals(SINGLE_DISTRIBUTION)) {
             exchangerSupplier = () -> new BroadcastExchanger(buffers, memoryManager);
         }
+        // 如果分区方式是FIXED_BROADCAST_DISTRIBUTION
         else if (partitioning.equals(FIXED_BROADCAST_DISTRIBUTION)) {
             exchangerSupplier = () -> new BroadcastExchanger(buffers, memoryManager);
         }
+        // 如果分区方式是FIXED_ARBITRARY_DISTRIBUTION
         else if (partitioning.equals(FIXED_ARBITRARY_DISTRIBUTION)) {
             exchangerSupplier = () -> new RandomExchanger(buffers, memoryManager);
         }
+        // 如果分区方式是FIXED_PASSTHROUGH_DISTRIBUTION
         else if (partitioning.equals(FIXED_PASSTHROUGH_DISTRIBUTION)) {
             Iterator<LocalExchangeSource> sourceIterator = this.sources.iterator();
             exchangerSupplier = () -> {
@@ -131,11 +144,13 @@ public class LocalExchange
                 return new PassthroughExchanger(sourceIterator.next(), maxBufferedBytes.toBytes() / bufferCount, memoryManager::updateMemoryUsage);
             };
         }
+        // 如果需要重分区
         else if (partitioning.equals(FIXED_HASH_DISTRIBUTION) || partitioning.getConnectorId().isPresent()) {
             // partitioned exchange
             exchangerSupplier = () -> new PartitioningExchanger(
                     buffers,
                     memoryManager,
+                    // 创建分区函数
                     createPartitionFunction(
                             partitioningProviderManager,
                             session,
@@ -151,6 +166,21 @@ public class LocalExchange
         }
     }
 
+    public int getBufferCount()
+    {
+        return sources.size();
+    }
+
+    /**
+     * 创建分区函数
+     * @param partitioningProviderManager
+     * @param session
+     * @param partitioning
+     * @param partitionCount
+     * @param partitioningChannelTypes
+     * @param isHashPrecomputed
+     * @return
+     */
     private static PartitionFunction createPartitionFunction(
             PartitioningProviderManager partitioningProviderManager,
             Session session,
@@ -159,8 +189,10 @@ public class LocalExchange
             List<Type> partitioningChannelTypes,
             boolean isHashPrecomputed)
     {
+        //
         if (partitioning.getConnectorHandle() instanceof SystemPartitioningHandle) {
             HashGenerator hashGenerator;
+            // 是否hash预计算
             if (isHashPrecomputed) {
                 hashGenerator = new PrecomputedHashGenerator(0);
             }
@@ -195,11 +227,6 @@ public class LocalExchange
         return new BucketPartitionFunction(bucketFunction, bucketToPartition);
     }
 
-    public int getBufferCount()
-    {
-        return sources.size();
-    }
-
     public long getBufferedBytes()
     {
         return memoryManager.getBufferedBytes();
@@ -218,6 +245,10 @@ public class LocalExchange
         return allSinkFactories.get(id.id);
     }
 
+    /**
+     * 获取下一个LocalExchangeSource
+     * @return
+     */
     public synchronized LocalExchangeSource getNextSource()
     {
         checkState(nextSourceIndex < sources.size(), "All operators already created");
@@ -254,6 +285,11 @@ public class LocalExchange
         checkAllSinksComplete();
     }
 
+    /**
+     * 创建下沉算子
+     * @param factory
+     * @return
+     */
     private LocalExchangeSink createSink(LocalExchangeSinkFactory factory)
     {
         checkNotHoldsLock(this);
@@ -261,12 +297,14 @@ public class LocalExchange
         synchronized (this) {
             checkState(openSinkFactories.contains(factory), "Factory is already closed");
 
+            // 所有数据源完成
             if (allSourcesFinished) {
                 // all sources have completed so return a sink that is already finished
                 return finishedLocalExchangeSink();
             }
 
             // Note: exchanger can be stateful so create a new one for each sink
+            // 注意：交换机可以是有状态的，因此为每个接收器创建一个新的交换机
             LocalExchanger exchanger = exchangerSupplier.get();
             LocalExchangeSink sink = new LocalExchangeSink(exchanger, this::sinkFinished);
             sinks.add(sink);
@@ -342,6 +380,7 @@ public class LocalExchange
         @GuardedBy("this")
         private int numSinkFactories;
 
+        // LocalExchange Map
         @GuardedBy("this")
         private final Map<Lifespan, LocalExchange> localExchangeMap = new HashMap<>();
         @GuardedBy("this")
@@ -390,6 +429,11 @@ public class LocalExchange
             return bufferCount;
         }
 
+        /**
+         * 获取一个LocalExchange
+         * @param lifespan
+         * @return
+         */
         public synchronized LocalExchange getLocalExchange(Lifespan lifespan)
         {
             if (exchangeSourcePipelineExecutionStrategy == UNGROUPED_EXECUTION) {
@@ -398,6 +442,7 @@ public class LocalExchange
             else {
                 checkArgument(!lifespan.isTaskWide(), "LocalExchangeFactory is declared as GROUPED_EXECUTION. Task-wide exchange cannot be created.");
             }
+            // 如果没有则创建一个
             return localExchangeMap.computeIfAbsent(lifespan, ignored -> {
                 checkState(noMoreSinkFactories);
                 LocalExchange localExchange = new LocalExchange(
@@ -465,6 +510,7 @@ public class LocalExchange
         }
     }
 
+    // Sink工厂完全是LocalExchange的通行证。 此类仅作为一个单独的实体存在，用于处理复杂的生命周期
     // Sink factory is entirely a pass thought to LocalExchange.
     // This class only exists as a separate entity to deal with the complex lifecycle caused
     // by operator factories (e.g., duplicate and noMoreSinkFactories).

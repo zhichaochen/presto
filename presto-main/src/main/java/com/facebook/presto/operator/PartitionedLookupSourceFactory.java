@@ -53,6 +53,10 @@ import static com.google.common.util.concurrent.MoreExecutors.directExecutor;
 import static java.util.Collections.emptyList;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 分区的LookupSource工厂
+ * 有关于look up join都会创建该工厂，参见，LocalExecutionPlanner中createLookupJoin
+ */
 public final class PartitionedLookupSourceFactory
         implements LookupSourceFactory
 {
@@ -68,13 +72,15 @@ public final class PartitionedLookupSourceFactory
     @GuardedBy("lock")
     private final Supplier<LookupSource>[] partitions;
 
+    //
     private final SettableFuture<?> partitionsNoLongerNeeded = SettableFuture.create();
 
+    // 是否已经销毁
     @GuardedBy("lock")
     private final SettableFuture<?> destroyed = SettableFuture.create();
 
     @GuardedBy("lock")
-    private int partitionsSet;
+    private int partitionsSet; // 分区set
 
     @GuardedBy("lock")
     private SpillingInfo spillingInfo = new SpillingInfo(0, ImmutableSet.of());
@@ -82,9 +88,11 @@ public final class PartitionedLookupSourceFactory
     @GuardedBy("lock")
     private final Map<Integer, SpilledLookupSourceHandle> spilledPartitions = new HashMap<>();
 
+    // 此处的supplier是PartitionedLookupSource#createPartitionedLookupSourceSupplier中的内部类
     @GuardedBy("lock")
     private TrackingLookupSourceSupplier lookupSourceSupplier;
 
+    // 数据源提供器
     @GuardedBy("lock")
     private final List<SettableFuture<LookupSourceProvider>> lookupSourceFutures = new ArrayList<>();
 
@@ -146,6 +154,10 @@ public final class PartitionedLookupSourceFactory
         return partitions.length;
     }
 
+    /**
+     * 创建LookupSourceProvider
+     * @return
+     */
     @Override
     public ListenableFuture<LookupSourceProvider> createLookupSourceProvider()
     {
@@ -165,10 +177,16 @@ public final class PartitionedLookupSourceFactory
         }
     }
 
+    /**
+     * 当构建完成
+     * @return
+     */
     @Override
     public ListenableFuture<?> whenBuildFinishes()
     {
+        // 第一个参数完成后，然后利用第一个参数的返回值，作为输出，异步运行第一个参数
         return transform(
+                // 创建完成后，
                 this.createLookupSourceProvider(),
                 lookupSourceProvider -> {
                     // Close the lookupSourceProvider we just created.
@@ -179,6 +197,12 @@ public final class PartitionedLookupSourceFactory
                 directExecutor());
     }
 
+    /**
+     * 租借分区
+     * @param partitionIndex
+     * @param partitionLookupSource
+     * @return
+     */
     public ListenableFuture<?> lendPartitionLookupSource(int partitionIndex, Supplier<LookupSource> partitionLookupSource)
     {
         requireNonNull(partitionLookupSource, "partitionLookupSource is null");
@@ -201,6 +225,7 @@ public final class PartitionedLookupSourceFactory
             lock.writeLock().unlock();
         }
 
+        // 如果完成
         if (completed) {
             supplyLookupSources();
         }
@@ -260,6 +285,9 @@ public final class PartitionedLookupSourceFactory
         }
     }
 
+    /**
+     * 提供LookupSource
+     */
     private void supplyLookupSources()
     {
         checkState(!lock.isWriteLockedByCurrentThread());
@@ -275,13 +303,16 @@ public final class PartitionedLookupSourceFactory
                 return;
             }
 
+            // 分区集合不等于1，则创建TrackingLookupSourceSupplier
             if (partitionsSet != 1) {
                 List<Supplier<LookupSource>> partitions = ImmutableList.copyOf(this.partitions);
                 this.lookupSourceSupplier = createPartitionedLookupSourceSupplier(partitions, hashChannelTypes, outer);
             }
+            // 外关联，则创建
             else if (outer) {
                 this.lookupSourceSupplier = createOuterLookupSourceSupplier(partitions[0]);
             }
+            // 存在单个分区时不支持溢出
             else {
                 checkState(!spillingInfo.hasSpilled(), "Spill not supported when there is single partition");
                 this.lookupSourceSupplier = TrackingLookupSourceSupplier.nonTracking(partitions[0]);
@@ -294,11 +325,17 @@ public final class PartitionedLookupSourceFactory
             lock.writeLock().unlock();
         }
 
+        // 给每个LookupSourceProvider的future，设置SpillAwareLookupSourceProvider返回值
         for (SettableFuture<LookupSourceProvider> lookupSourceFuture : lookupSourceFutures) {
             lookupSourceFuture.set(new SpillAwareLookupSourceProvider());
         }
     }
 
+    /**
+     * 完成探测算子
+     * @param lookupJoinsCount
+     * @return
+     */
     @Override
     public ListenableFuture<PartitionedConsumption<Supplier<LookupSource>>> finishProbeOperator(OptionalInt lookupJoinsCount)
     {
@@ -426,6 +463,10 @@ public final class PartitionedLookupSourceFactory
         }
     }
 
+    /**
+     * 判断是否已经销毁
+     * @return
+     */
     @SuppressWarnings("FieldAccessNotGuarded")
     @Override
     public ListenableFuture<?> isDestroyed()
@@ -433,6 +474,9 @@ public final class PartitionedLookupSourceFactory
         return nonCancellationPropagating(destroyed);
     }
 
+    /**
+     * 当lookupSource处理完成之后，会返回当前对象
+     */
     @NotThreadSafe
     private class SpillAwareLookupSourceProvider
             implements LookupSourceProvider
@@ -440,9 +484,11 @@ public final class PartitionedLookupSourceFactory
         @Override
         public <R> R withLease(Function<LookupSourceLease, R> action)
         {
-            lock.readLock().lock();
             try {
+                lock.readLock().lock();
+                // 这里返回的是：PartitionedLookupSource
                 LookupSource lookupSource = suppliedLookupSources.computeIfAbsent(this, k -> lookupSourceSupplier.getLookupSource());
+                // SpillAwareLookupSourceLease持有了PartitionedLookupSource的引用，通过该引用就可以进行关联了。
                 LookupSourceLease lease = new SpillAwareLookupSourceLease(lookupSource, spillingInfo);
                 return action.apply(lease);
             }
@@ -468,6 +514,9 @@ public final class PartitionedLookupSourceFactory
         }
     }
 
+    /**
+     * 溢出感知LookupSource租约
+     */
     private static class SpillAwareLookupSourceLease
             implements LookupSourceLease
     {

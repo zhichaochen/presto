@@ -22,6 +22,7 @@ import com.facebook.presto.spi.connector.ConnectorTransactionHandle;
  */
 public interface SystemTable
 {
+    // 分布
     enum Distribution
     {
         ALL_NODES, ALL_COORDINATORS, SINGLE_COORDINATOR

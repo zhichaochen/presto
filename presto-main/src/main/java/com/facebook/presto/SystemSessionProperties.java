@@ -114,7 +114,7 @@ public final class SystemSessionProperties
     public static final String OPTIMIZE_METADATA_QUERIES = "optimize_metadata_queries";
     public static final String FAST_INEQUALITY_JOINS = "fast_inequality_joins";
     public static final String QUERY_PRIORITY = "query_priority";
-    public static final String SPILL_ENABLED = "spill_enabled";
+    public static final String SPILL_ENABLED = "spill_enabled"; // 是否能够溢出，当内存不够的时候，写入磁盘
     public static final String JOIN_SPILL_ENABLED = "join_spill_enabled";
     public static final String AGGREGATION_OPERATOR_UNSPILL_MEMORY_LIMIT = "aggregation_operator_unspill_memory_limit";
     public static final String OPTIMIZE_DISTINCT_AGGREGATIONS = "optimize_mixed_distinct_aggregations";
@@ -157,6 +157,7 @@ public final class SystemSessionProperties
     public static final String LIST_BUILT_IN_FUNCTIONS_ONLY = "list_built_in_functions_only";
     public static final String PARTITIONING_PRECISION_STRATEGY = "partitioning_precision_strategy";
     public static final String EXPERIMENTAL_FUNCTIONS_ENABLED = "experimental_functions_enabled";
+    // 是否使用遗留的调度器
     public static final String USE_LEGACY_SCHEDULER = "use_legacy_scheduler";
     public static final String OPTIMIZE_COMMON_SUB_EXPRESSIONS = "optimize_common_sub_expressions";
     public static final String PREFER_DISTRIBUTED_UNION = "prefer_distributed_union";

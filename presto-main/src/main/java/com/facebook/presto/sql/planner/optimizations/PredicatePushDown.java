@@ -108,6 +108,11 @@ import static com.google.common.collect.Iterables.filter;
 import static java.util.Objects.requireNonNull;
 import static java.util.function.Function.identity;
 
+/**
+ * 谓词下推（用于将过滤条件进行下推，减少下游数据处理量）
+ *
+ * Predicate 和 predict 是有区别的
+ */
 public class PredicatePushDown
         implements PlanOptimizer
 {

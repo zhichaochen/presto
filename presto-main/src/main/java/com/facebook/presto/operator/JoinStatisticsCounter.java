@@ -21,6 +21,9 @@ import java.util.function.Supplier;
 import static com.facebook.presto.operator.JoinOperatorInfo.createJoinOperatorInfo;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * join统计计数器
+ */
 public class JoinStatisticsCounter
         implements Supplier<OperatorInfo>
 {

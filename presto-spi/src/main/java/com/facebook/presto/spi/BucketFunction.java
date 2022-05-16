@@ -16,12 +16,18 @@ package com.facebook.presto.spi;
 import com.facebook.presto.common.Page;
 
 /**
- * 桶函数，实现了固定的算法，可以筛选中某个实例节点
+ * 桶函数
+ * 实现了固定的算法，可以筛选中某个实例节点
+ * 这个类只在join操作时会使用
  */
 public interface BucketFunction
 {
     /**
      * 获取位于指定位置的元组的存储桶。注意，元组值可能为null。
+     *
+     * 入参page是上层封装的某个operator要处理的page中的所有分桶字段的值。
+     * 每一列的值以page中一个block的形式存在。入参position是行的index。
+     *
      * Gets the bucket for the tuple at the specified position.
      * Note the tuple values may be null.
      */

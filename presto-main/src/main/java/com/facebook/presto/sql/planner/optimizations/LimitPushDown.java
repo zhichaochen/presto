@@ -41,6 +41,9 @@ import static com.facebook.presto.spi.plan.LimitNode.Step.PARTIAL;
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * limit下推
+ */
 public class LimitPushDown
         implements PlanOptimizer
 {

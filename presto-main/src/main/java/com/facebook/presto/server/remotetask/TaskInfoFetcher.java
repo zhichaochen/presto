@@ -68,6 +68,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 /**
  * 任务信息拉取器
+ * 用于感知任务的状态
  */
 public class TaskInfoFetcher
         implements SimpleHttpResponseCallback<TaskInfo>
@@ -75,7 +76,7 @@ public class TaskInfoFetcher
     private final TaskId taskId;
     private final Consumer<Throwable> onFail;
     private final StateMachine<TaskInfo> taskInfo;
-    private final StateMachine<Optional<TaskInfo>> finalTaskInfo;
+    private final StateMachine<Optional<TaskInfo>> finalTaskInfo; // 任务完成状态
     private final Codec<TaskInfo> taskInfoCodec;
     private final Codec<MetadataUpdates> metadataUpdatesCodec;
 
@@ -188,6 +189,7 @@ public class TaskInfoFetcher
     }
 
     /**
+     * 任务完成监听器
      * Add a listener for the final task info.  This notification is guaranteed to be fired only once.
      * Listener is always notified asynchronously using a dedicated notification thread pool so, care should
      * be taken to avoid leaking {@code this} when adding a listener in a constructor. Additionally, it is
@@ -196,11 +198,14 @@ public class TaskInfoFetcher
     public void addFinalTaskInfoListener(StateChangeListener<TaskInfo> stateChangeListener)
     {
         AtomicBoolean done = new AtomicBoolean();
+        // 创建状态改变监听器
         StateChangeListener<Optional<TaskInfo>> fireOnceStateChangeListener = finalTaskInfo -> {
+            // 如果当前任务是完成状态（done），
             if (finalTaskInfo.isPresent() && done.compareAndSet(false, true)) {
                 stateChangeListener.stateChanged(finalTaskInfo.get());
             }
         };
+        // 添加状态改变监听器
         finalTaskInfo.addStateChangeListener(fireOnceStateChangeListener);
         fireOnceStateChangeListener.stateChanged(finalTaskInfo.get());
     }

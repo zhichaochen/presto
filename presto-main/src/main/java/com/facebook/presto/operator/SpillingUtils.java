@@ -21,11 +21,15 @@ import static com.facebook.airlift.concurrent.MoreFutures.getFutureValue;
 import static com.facebook.presto.spi.StandardErrorCode.GENERIC_INTERNAL_ERROR;
 import static java.lang.String.format;
 
+/**
+ * 溢出工具类
+ */
 public class SpillingUtils
 {
     private SpillingUtils() {}
 
     /**
+     * 我们在空运中使用它而不是checkSuccess，这样我们可以传播错误消息，从而抛出一个PrestoException而不是一个IllegalArgumentException。
      * We use this instead of checkSuccess in airlift so we can propagate the error message
      * and so that we throw a PrestoException rather than an IllegalArgumentException.
      *

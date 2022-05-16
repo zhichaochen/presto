@@ -16,8 +16,8 @@ package com.facebook.presto.sql.tree;
 import java.util.Optional;
 
 /**
- * 关联，比如join，union
- * 这种类型的节点大多包含了多个其他节点，表示多个节点之间的关系
+ * 关系节点
+ * 在Presto中，将数据表抽象成了relation，包括，具体数据表、子查询、JOIN、Unnest
  */
 public abstract class Relation
         extends Node

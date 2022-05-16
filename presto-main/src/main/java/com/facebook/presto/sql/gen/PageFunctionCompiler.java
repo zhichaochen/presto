@@ -119,7 +119,8 @@ import static java.util.Collections.emptyMap;
 import static java.util.Objects.requireNonNull;
 
 /**
- * 提供Page相关的操做
+ * Page相关函数的编译器
+ * 动态生成Page相关函数的字节码
  */
 public class PageFunctionCompiler
 {
@@ -627,6 +628,15 @@ public class PageFunctionCompiler
         return compileFilter(sqlFunctionProperties, emptyMap(), filter, isOptimizeCommonSubExpression, classNameSuffix);
     }
 
+    /**
+     * 编译Filter
+     * @param sqlFunctionProperties
+     * @param sessionFunctions
+     * @param filter
+     * @param isOptimizeCommonSubExpression
+     * @param classNameSuffix
+     * @return
+     */
     public Supplier<PageFilter> compileFilter(
             SqlFunctionProperties sqlFunctionProperties,
             Map<SqlFunctionId, SqlInvokedFunction> sessionFunctions,

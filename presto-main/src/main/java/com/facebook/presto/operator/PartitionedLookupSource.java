@@ -37,6 +37,9 @@ import static com.google.common.collect.ImmutableList.toImmutableList;
 import static java.lang.Integer.numberOfTrailingZeros;
 import static java.lang.Math.toIntExact;
 
+/**
+ * 分区的look up数据源。
+ */
 @NotThreadSafe
 public class PartitionedLookupSource
         implements LookupSource
@@ -169,11 +172,20 @@ public class PartitionedLookupSource
         return lookupSource.isJoinPositionEligible(joinPosition, probePosition, allProbeChannelsPage);
     }
 
+    /**
+     *
+     * @param partitionedJoinPosition
+     * @param pageBuilder
+     * @param outputChannelOffset
+     */
     @Override
     public void appendTo(long partitionedJoinPosition, PageBuilder pageBuilder, int outputChannelOffset)
     {
+        // 解码分区
         int partition = decodePartition(partitionedJoinPosition);
+        // 解码join位置
         int joinPosition = decodeJoinPosition(partitionedJoinPosition);
+        // 这里的lookupSources是OuterPositionTracker
         lookupSources[partition].appendTo(joinPosition, pageBuilder, outputChannelOffset);
         if (outerPositionTracker != null) {
             outerPositionTracker.positionVisited(partition, joinPosition);
@@ -259,6 +271,13 @@ public class PartitionedLookupSource
     }
 
     /**
+     * 每个LookupSource都有自己的OuterPositionTracker实例副本。这些OuterPositionTracker中的每一个都必须在最后一次写入之后提交在第一次阅读之前。
+     *
+     * 所有实例共享visitedPositions数组，但它是安全的，因为每个线程从visitedPositions开始，填充假值，并仅标记一些位置
+     * 这是真的。因为我们不在乎这些信件的顺序 visitedPositions，写操作可以不进行同步。
+     *
+     * commit（）中最后一次写入和第一次读入之间的内存可见性getVisitedPositions（）是通过访问原子长引用计数来保证的这两种方法中的变量。
+     *
      * Each LookupSource has it's own copy of OuterPositionTracker instance.
      * Each of those OuterPositionTracker must be committed after last write
      * and before first read.
@@ -271,6 +290,8 @@ public class PartitionedLookupSource
      * Memory visibility between last writes in commit() and first read in
      * getVisitedPositions() is guaranteed by accessing AtomicLong referenceCount
      * variables in those two methods.
+     *
+     * 外部位置追踪器，我理解啊，有左右表，那么处理左表的时候，右表的情况也需要追踪。
      */
     private static class OuterPositionTracker
     {

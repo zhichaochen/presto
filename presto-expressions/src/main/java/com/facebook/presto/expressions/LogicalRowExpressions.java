@@ -60,6 +60,7 @@ import static java.util.stream.Collectors.toList;
 
 public final class LogicalRowExpressions
 {
+    // 表示True的常量表达式
     public static final ConstantExpression TRUE_CONSTANT = new ConstantExpression(true, BOOLEAN);
     public static final ConstantExpression FALSE_CONSTANT = new ConstantExpression(false, BOOLEAN);
     // 10000 is very conservative estimation

@@ -27,6 +27,10 @@ import static com.google.common.base.Verify.verify;
 import static java.util.Objects.requireNonNull;
 
 /**
+ * LookupJoin的page构建器
+ *
+ * 主要负责构建关联到的输出的Page。
+ *
  * This page builder creates pages with dictionary blocks:
  * normal dictionary blocks for the probe side and the original blocks for the build side.
  * <p>
@@ -66,6 +70,7 @@ public class LookupJoinPageBuilder
     }
 
     /**
+     * 追加探测的索引并复制生成的行
      * append the index for the probe and copy the row for the build
      */
     public void appendRow(JoinProbe probe, LookupSource lookupSource, long joinPosition)
@@ -75,6 +80,7 @@ public class LookupJoinPageBuilder
 
         // build side
         buildPageBuilder.declarePosition();
+        // 此处的lookupSource是PartitionedLookupSource？
         lookupSource.appendTo(joinPosition, buildPageBuilder, 0);
     }
 

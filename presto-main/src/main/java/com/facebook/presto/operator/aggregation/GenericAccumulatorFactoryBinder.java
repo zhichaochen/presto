@@ -27,6 +27,9 @@ import java.util.Optional;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 通用的聚合工厂绑定器
+ */
 public class GenericAccumulatorFactoryBinder
         implements AccumulatorFactoryBinder
 {

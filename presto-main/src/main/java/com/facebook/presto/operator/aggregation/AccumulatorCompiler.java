@@ -79,6 +79,9 @@ import static com.google.common.collect.Iterables.getOnlyElement;
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 完整类字节码生成器
+ */
 public class AccumulatorCompiler
 {
     private AccumulatorCompiler()

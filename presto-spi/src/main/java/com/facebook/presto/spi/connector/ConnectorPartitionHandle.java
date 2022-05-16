@@ -13,6 +13,9 @@
  */
 package com.facebook.presto.spi.connector;
 
+/**
+ * 连接器分区句柄，根据实现看，目前只有hive
+ */
 @SuppressWarnings("ClassMayBeInterface")
 public abstract class ConnectorPartitionHandle
 {

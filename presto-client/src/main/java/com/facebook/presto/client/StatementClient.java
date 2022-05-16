@@ -23,6 +23,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+/**
+ * 查询语句客户端
+ */
 public interface StatementClient
         extends Closeable
 {

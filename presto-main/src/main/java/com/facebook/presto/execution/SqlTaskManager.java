@@ -189,6 +189,7 @@ public class SqlTaskManager
 
         requireNonNull(spoolingOutputBufferFactory, "spoolingOutputBufferFactory is null");
 
+        // 任务缓存，如果没有则创建一个，在下面的CacheLoader.from中指定了创建逻辑。
         tasks = CacheBuilder.newBuilder().build(CacheLoader.from(
                 // 创建Sql任务
                 taskId -> createSqlTask(
@@ -415,6 +416,16 @@ public class SqlTaskManager
         return sqlTask.getTaskStatus(currentState);
     }
 
+    /**
+     * 更新任务
+     * @param session
+     * @param taskId
+     * @param fragment
+     * @param sources
+     * @param outputBuffers
+     * @param tableWriteInfo
+     * @return
+     */
     @Override
     public TaskInfo updateTask(
             Session session,
@@ -430,7 +441,7 @@ public class SqlTaskManager
         requireNonNull(sources, "sources is null");
         requireNonNull(outputBuffers, "outputBuffers is null");
 
-        // 通过任务ID从缓存查询任务
+        // 通过任务ID从缓存查询任务，如果没有则创建一个
         SqlTask sqlTask = tasks.getUnchecked(taskId);
         // 查询上下文
         QueryContext queryContext = sqlTask.getQueryContext();

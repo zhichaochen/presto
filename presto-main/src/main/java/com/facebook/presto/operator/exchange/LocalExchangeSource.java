@@ -34,6 +34,10 @@ import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.util.concurrent.Futures.immediateFuture;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 本地用来进行网络交换的page池
+ * 用来缓存page的，参考buffer，参考addPage
+ */
 @ThreadSafe
 public class LocalExchangeSource
 {
@@ -74,12 +78,14 @@ public class LocalExchangeSource
             if (!finishing) {
                 // buffered bytes must be updated before adding to the buffer to assure
                 // the count does not go negative
+                // 在添加到缓冲区之前，必须更新缓冲字节，以确保计数不会变为负数
                 bufferedBytes.addAndGet(retainedSizeInBytes);
                 buffer.add(pageReference);
                 added = true;
             }
 
             // we just added a page (or we are finishing) so we are not empty
+            // 我们刚刚添加了一页（或者正在完成），所以我们不是空的
             if (this.notEmptyFuture != null) {
                 notEmptyFuture = this.notEmptyFuture;
                 this.notEmptyFuture = null;
@@ -118,6 +124,10 @@ public class LocalExchangeSource
         });
     }
 
+    /**
+     * 提供一个page，并移除。
+     * @return
+     */
     public Page removePage()
     {
         checkNotHoldsLock();

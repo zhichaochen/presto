@@ -34,6 +34,10 @@ public interface ConnectorNodePartitioningProvider
     // Currently, it's mixed. listPartitionHandles used CPartitionHandle whereas the other functions used int.
 
     /**
+     * 列出当前表所有的bucket，入参ConnectorPartitioningHandle就是我们封装的KuduPartitioningHandle，
+     * 可以把接口实现需要用到的参数放到这个类中。返回的bucket只要有一个bucket_number就行了。
+     * 这样在ConnectorSplitSource中会依次处理这些bucket_number。
+     *
      * Returns a list of all partitions associated with the provided {@code partitioningHandle}.
      * <p>
      * This method must be implemented for connectors that support addressable split discovery.
@@ -44,8 +48,20 @@ public interface ConnectorNodePartitioningProvider
         return singletonList(NOT_PARTITIONED);
     }
 
+    /**
+     * 仿照hive的实现即可，他的作用是构建bucket和node的映射关系，供调度使用。
+     * 相关逻辑可以参考FixedSourcePartitionedScheduler的构造函数。
+     * @param transactionHandle
+     * @param session
+     * @param partitioningHandle
+     * @param sortedNodes
+     * @return
+     */
     ConnectorBucketNodeMap getBucketNodeMap(ConnectorTransactionHandle transactionHandle, ConnectorSession session, ConnectorPartitioningHandle partitioningHandle, List<Node> sortedNodes);
 
+    /**
+     * 获取bucket的bucket_number。
+     */
     ToIntFunction<ConnectorSplit> getSplitBucketFunction(ConnectorTransactionHandle transactionHandle, ConnectorSession session, ConnectorPartitioningHandle partitioningHandle);
 
     BucketFunction getBucketFunction(
@@ -55,6 +71,9 @@ public interface ConnectorNodePartitioningProvider
             List<Type> partitionChannelTypes,
             int bucketCount);
 
+    /**
+     * 封装BucketFunction对象
+     */
     int getBucketCount(
             ConnectorTransactionHandle transactionHandle,
             ConnectorSession session,

@@ -45,7 +45,7 @@ import static io.airlift.units.DataSize.Unit.MEGABYTE;
 import static java.util.Objects.requireNonNull;
 
 /**
- * 用于处理聚合操作
+ * Hash聚合算子，group by 操作主要通过该算子完成
  * 相同的group key可以聚合在一起，完成最终聚合操作
  */
 public class HashAggregationOperator
@@ -58,12 +58,18 @@ public class HashAggregationOperator
     {
         private final int operatorId;
         private final PlanNodeId planNodeId;
-        private final List<Type> groupByTypes;
+        private final List<Type> groupByTypes; // 分组字段的类型，因为可能有多个分组字段，所以用集合表示
+        // 分组通道，这里说的通道即分组的字段在传入的字段的位置，用整型表示
+        // 也就是对第几个block进行分组
         private final List<Integer> groupByChannels;
         private final List<Integer> globalAggregationGroupIds;
-        private final Step step;
+        private final Step step; // 聚合的步骤 主要有partial，即部分聚合；final，即最终聚合
         private final boolean produceDefaultOutput;
-        private final List<AccumulatorFactory> accumulatorFactories;
+        private final List<AccumulatorFactory> accumulatorFactories; // 聚合器工厂，根据不同的聚合类型产生不同的聚合器
+        //进行hash的通道，和分组通道类似，一般根据什么分组，就要根据什么字段组合进行hash
+        // hashChannel中的数子就是表示要对输入的Page中的第几个Block（第几个字段）进行hash计算
+        // 比如：[2, 4], 那么就会抽取Block2和Block4, 进行联合hash计算
+        // 当然只要是hash计算就不能避免hash冲突，所以一点冲突，就需要使用这两个字段的具体值进行比较来解冲突，而聚合结果则一般默认是从联合hash值之后顺序存放。
         private final Optional<Integer> hashChannel;
         private final Optional<Integer> groupIdChannel;
 
@@ -264,6 +270,7 @@ public class HashAggregationOperator
     private final Optional<Integer> hashChannel;
     private final Optional<Integer> groupIdChannel;
     private final int expectedGroups;
+    // 最大部分聚合内存，如果超过该阈值，会将其作为半成品传递到下个算子
     private final Optional<DataSize> maxPartialMemory;
     private final boolean spillEnabled;
     private final DataSize memoryLimitForMerge;
@@ -275,7 +282,7 @@ public class HashAggregationOperator
     private final List<Type> types;
     private final HashCollisionsCounter hashCollisionsCounter;
 
-    private HashAggregationBuilder aggregationBuilder;
+    private HashAggregationBuilder aggregationBuilder; // hash聚合构建器
     private WorkProcessor<Page> outputPages;
     private boolean inputProcessed;
     private boolean finishing;
@@ -361,6 +368,11 @@ public class HashAggregationOperator
         }
     }
 
+    /**
+     * 添加输入
+     * 主要完成对一个Page数据的分组和partial聚合
+     * @param page
+     */
     @Override
     public void addInput(Page page)
     {
@@ -369,6 +381,7 @@ public class HashAggregationOperator
         requireNonNull(page, "page is null");
         inputProcessed = true;
 
+        // 创建聚合构建器
         if (aggregationBuilder == null) {
             if (step.isOutputPartial() || !spillEnabled) {
                 aggregationBuilder = new InMemoryHashAggregationBuilder(
@@ -407,10 +420,13 @@ public class HashAggregationOperator
         }
 
         // process the current page; save the unfinished work if we are waiting for memory
+        // 处理当前的page，如果我们正在等待内存，请保存未完成的Work
         unfinishedWork = aggregationBuilder.processPage(page);
+        // 开始处理工作，当处理完成会返回true
         if (unfinishedWork.process()) {
             unfinishedWork = null;
         }
+        // 更新内存的使用情况
         aggregationBuilder.updateMemory();
     }
 
@@ -434,14 +450,19 @@ public class HashAggregationOperator
     @Override
     public Page getOutput()
     {
+        // 如果完成则返回
         if (finished) {
             return null;
         }
 
         // process unfinished work if one exists
+        // 处理未完成的工作
         if (unfinishedWork != null) {
+            // 处理未完成的工作
             boolean workDone = unfinishedWork.process();
+            // 更新内存使用情况
             aggregationBuilder.updateMemory();
+            // 如果没有完成，则返回null
             if (!workDone) {
                 return null;
             }
@@ -508,15 +529,23 @@ public class HashAggregationOperator
         operatorContext.localRevocableMemoryContext().setBytes(0);
     }
 
+    /**
+     *
+     * @return
+     */
     private Page getGlobalAggregationOutput()
     {
+        // 遍历聚合器工厂列表，并创建聚合器
         List<Accumulator> accumulators = accumulatorFactories.stream()
                 // No input will be added to the accumulators, it is ok not to specify the memory callback
+                // 不会向累加器添加任何输入，可以不指定内存回调
                 .map(accumulatorFactory -> accumulatorFactory.createAccumulator(UpdateMemory.NOOP))
                 .collect(Collectors.toList());
 
         // global aggregation output page will only be constructed once,
         // so a new PageBuilder is constructed (instead of using PageBuilder.reset)
+        // 全局聚合输出页将只构造一次，因此，构建了一个新的PageBuilder（而不是使用PageBuilder.reset）
+        // 创建Page构造器
         PageBuilder output = new PageBuilder(globalAggregationGroupIds.size(), types);
 
         for (int groupId : globalAggregationGroupIds) {

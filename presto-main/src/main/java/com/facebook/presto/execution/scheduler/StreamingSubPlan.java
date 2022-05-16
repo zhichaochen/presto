@@ -22,14 +22,21 @@ import java.util.Optional;
 import static java.util.Objects.requireNonNull;
 
 /**
+ * 流式子计划
+ * 为啥叫这个名字呢？各个阶段之间需要通过http请求进行数据传递，多个阶段之间会形成一条数据流
+ *
+ * 我理解：该类是为了形成包含RemoteSourceNode段与段之间的关系，因为当前类只包含一个字段-》fragment
+ *
+ * 相比SubPlan通过withBucketToPartition可以获取到分区方案
+ *
  * StreamingSubPlan与SubPlan类似，但只包含流式子计划
  * StreamingSubPlan is similar to SubPlan but only contains streaming children
  */
 public class StreamingSubPlan
 {
-    private final PlanFragment fragment;
+    private final PlanFragment fragment; // 当前包含的计划段
     // streaming children
-    private final List<StreamingSubPlan> children;
+    private final List<StreamingSubPlan> children; // 当前段的子StreamingSubPlan
 
     public StreamingSubPlan(PlanFragment fragment, List<StreamingSubPlan> children)
     {
@@ -47,6 +54,11 @@ public class StreamingSubPlan
         return children;
     }
 
+    /**
+     * 用桶去分区
+     * @param bucketToPartition
+     * @return
+     */
     public StreamingSubPlan withBucketToPartition(Optional<int[]> bucketToPartition)
     {
         return new StreamingSubPlan(fragment.withBucketToPartition(bucketToPartition), children);

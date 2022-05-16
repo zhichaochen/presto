@@ -16,7 +16,10 @@ package com.facebook.presto.execution.scheduler;
 import java.util.Collection;
 
 /**
- * 所有只执行一次策略
+ * 所有阶段会在调度时一起调度, 所有阶段并发调度
+ * 一旦数据可用，就会被立即进行处理。这种调度策略有利于那些对延迟敏的场景
+ * 为啥呢？
+ * 因为所有阶段已经被发送worker节点了，当上游查询出了数据，直接发送到下游阶段进行处理。
  */
 public class AllAtOnceExecutionPolicy
         implements ExecutionPolicy

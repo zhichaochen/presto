@@ -25,6 +25,13 @@ import java.util.stream.IntStream;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 节点分区Map
+ * 其中：partitionToNode决定了会创建多少个task
+ *
+ * 当连接的探测端是bucket而构建器端不是bucket时，必须将bucket到分区的映射填充到构建器端的远程片段。
+ * 这种情况下需要NodePartitionMap，不能简单地用BucketNodeMap替换。
+ */
 // When the probe side of join is bucketed but builder side is not,
 // bucket to partition mapping has to be populated to builder side remote fragment.
 // NodePartitionMap is required in this case and cannot be simply replaced by BucketNodeMap.
@@ -37,10 +44,12 @@ import static java.util.Objects.requireNonNull;
 //  in the above case, as the co-existence of BucketNodeMap and NodePartitionMap is confusing.
 public class NodePartitionMap
 {
+    // 在调度的过程中，我们只需要知道有多少个桶就可以，至于关系，都是我们自己给对应起来的。
+    // 分区到节点的映射，比如：获取第一个分区所在的节点， partitionToNode.get(0)即可，该关系在创建NodePartitionMap对象的时候进行维护的。
     private final List<InternalNode> partitionToNode;
-    private final int[] bucketToPartition;
-    private final ToIntFunction<Split> splitToBucket;
-    private final boolean cacheable;
+    private final int[] bucketToPartition; // 桶到分区的映射
+    private final ToIntFunction<Split> splitToBucket; // split 到 bucket的映射
+    private final boolean cacheable; // 是否可以缓存
 
     public NodePartitionMap(List<InternalNode> partitionToNode, ToIntFunction<Split> splitToBucket)
     {

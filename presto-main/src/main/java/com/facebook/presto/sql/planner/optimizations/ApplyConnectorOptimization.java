@@ -51,6 +51,14 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 计算下推
+ * 通过这个类把相关的算子下推到数据源层面的
+ * 每个数据源可以定义多个 ConnectorPlanOptimizer 实现类
+ *
+ * ApplyConnectorOptimization 里面可以拿到各个数据源定义好的下推逻辑（实现 ConnectorPlanOptimizer 接口），
+ * 每个数据源可以定义多个 ConnectorPlanOptimizer 实现类。
+ */
 public class ApplyConnectorOptimization
         implements PlanOptimizer
 {

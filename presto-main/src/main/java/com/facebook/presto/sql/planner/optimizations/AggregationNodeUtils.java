@@ -33,6 +33,9 @@ import static com.facebook.presto.sql.relational.OriginalExpressionUtils.castToE
 import static com.facebook.presto.sql.relational.OriginalExpressionUtils.isExpression;
 import static com.google.common.collect.ImmutableList.toImmutableList;
 
+/**
+ * 聚合节点工具类
+ */
 public class AggregationNodeUtils
 {
     private AggregationNodeUtils() {}

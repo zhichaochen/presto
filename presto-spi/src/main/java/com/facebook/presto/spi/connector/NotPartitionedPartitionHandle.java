@@ -13,9 +13,13 @@
  */
 package com.facebook.presto.spi.connector;
 
+/**
+ * 使用了这个表示未分区
+ */
 public final class NotPartitionedPartitionHandle
         extends ConnectorPartitionHandle
 {
+    // 没有分区
     public static final ConnectorPartitionHandle NOT_PARTITIONED = new NotPartitionedPartitionHandle();
 
     private NotPartitionedPartitionHandle() {}

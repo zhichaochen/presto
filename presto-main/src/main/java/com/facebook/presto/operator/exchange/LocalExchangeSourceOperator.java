@@ -25,6 +25,9 @@ import com.google.common.util.concurrent.ListenableFuture;
 import static com.google.common.base.Preconditions.checkState;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 该算子的作用是从LocalExchangeSource中获取Page
+ */
 public class LocalExchangeSourceOperator
         implements Operator
 {
@@ -48,8 +51,10 @@ public class LocalExchangeSourceOperator
         {
             checkState(!closed, "Factory is already closed");
 
+            // 创建一个LocalExchange
             LocalExchange inMemoryExchange = localExchangeFactory.getLocalExchange(driverContext.getLifespan());
 
+            // 创建LocalExchangeSourceOperator
             OperatorContext operatorContext = driverContext.addOperatorContext(operatorId, planNodeId, LocalExchangeSourceOperator.class.getSimpleName());
             return new LocalExchangeSourceOperator(operatorContext, inMemoryExchange.getNextSource());
         }
@@ -119,16 +124,23 @@ public class LocalExchangeSourceOperator
         return false;
     }
 
+    // 既然是source，肯定是直接从数据源读取的，肯定不支持输入，
     @Override
     public void addInput(Page page)
     {
         throw new UnsupportedOperationException();
     }
 
+    /**
+     * 获取输入内容
+     * @return
+     */
     @Override
     public Page getOutput()
     {
+        // 从LocalExchangeSource中获取一个page
         Page page = source.removePage();
+        // 记录处理page的字节数
         if (page != null) {
             operatorContext.recordProcessedInput(page.getSizeInBytes(), page.getPositionCount());
         }

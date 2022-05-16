@@ -20,6 +20,9 @@ import java.util.Objects;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * Sql函数属性
+ */
 public class SqlFunctionProperties
 {
     private final boolean parseDecimalLiteralAsDouble;

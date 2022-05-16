@@ -85,7 +85,7 @@ import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 /**
- * V1版本
+ * 用来处理与Coordinate的交互
  */
 @ThreadSafe
 class StatementClientV1
@@ -120,6 +120,13 @@ class StatementClientV1
 
     private final AtomicReference<State> state = new AtomicReference<>(State.RUNNING);
 
+    /**
+     * 创建StatementClientV1
+     * TODO 在创建的时候会发送查询条件
+     * @param httpClient
+     * @param session
+     * @param query
+     */
     public StatementClientV1(OkHttpClient httpClient, ClientSession session, String query)
     {
         requireNonNull(httpClient, "httpClient is null");
@@ -147,6 +154,12 @@ class StatementClientV1
         processResponse(response.getHeaders(), response.getValue());
     }
 
+    /**
+     * 构建查询条件
+     * @param session
+     * @param query
+     * @return
+     */
     private Request buildQueryRequest(ClientSession session, String query)
     {
         HttpUrl url = HttpUrl.get(session.getServer());
@@ -342,6 +355,11 @@ class StatementClientV1
         return ImmutableSet.copyOf(removedSessionFunctions);
     }
 
+    /**
+     * 准备一个请求
+     * @param url
+     * @return
+     */
     private Request.Builder prepareRequest(HttpUrl url)
     {
         Request.Builder builder = new Request.Builder()
@@ -354,9 +372,14 @@ class StatementClientV1
         return builder;
     }
 
+    /**
+     * 获取下一个结果
+     * @return
+     */
     @Override
     public boolean advance()
     {
+        // 如果不是正在进行中，则返回
         if (!isRunning()) {
             return false;
         }
@@ -367,6 +390,7 @@ class StatementClientV1
             return false;
         }
 
+        // 准备请求
         Request request = prepareRequest(HttpUrl.get(nextUri)).build();
 
         Exception cause = null;
@@ -374,10 +398,12 @@ class StatementClientV1
         long attempts = 0;
 
         while (true) {
+            // 如果已经终止则返回false
             if (isClientAborted()) {
                 return false;
             }
 
+            // 开始时间
             Duration sinceStart = Duration.nanosSince(start);
             if (attempts > 0 && sinceStart.compareTo(requestTimeoutNanos) > 0) {
                 state.compareAndSet(State.RUNNING, State.CLIENT_ERROR);
@@ -402,6 +428,7 @@ class StatementClientV1
             }
             attempts++;
 
+            // 发送http请求
             JsonResponse<QueryResults> response;
             try {
                 response = JsonResponse.execute(QUERY_RESULTS_CODEC, httpClient, request);

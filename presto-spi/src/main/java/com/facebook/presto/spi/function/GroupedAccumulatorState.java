@@ -13,6 +13,9 @@
  */
 package com.facebook.presto.spi.function;
 
+/**
+ * 分组聚合状态
+ */
 public interface GroupedAccumulatorState
         extends AccumulatorState
 {

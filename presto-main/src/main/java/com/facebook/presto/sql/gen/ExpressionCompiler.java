@@ -58,7 +58,7 @@ import static java.util.Collections.emptyMap;
 import static java.util.Objects.requireNonNull;
 
 /**
- *
+ * 表达式编译器
  */
 public class ExpressionCompiler
 {
@@ -110,6 +110,10 @@ public class ExpressionCompiler
         return compileCursorProcessor(sqlFunctionProperties, filter, projections, uniqueKey, isOptimizeCommonSubExpression, emptyMap());
     }
 
+    /**
+     * 创建CursorProcessor
+     * @return
+     */
     public Supplier<CursorProcessor> compileCursorProcessor(
             SqlFunctionProperties sqlFunctionProperties,
             Optional<RowExpression> filter,
@@ -136,6 +140,7 @@ public class ExpressionCompiler
         };
     }
 
+    // 生成PageProcessor
     public Supplier<PageProcessor> compilePageProcessor(
             SqlFunctionProperties sqlFunctionProperties,
             Optional<RowExpression> filter,
@@ -200,6 +205,7 @@ public class ExpressionCompiler
             Class<? extends T> superType)
     {
         // create filter and project page iterator class
+        // 创建filter and project page的迭代类，以对page做filter和project操作
         try {
             return compileProcessor(sqlFunctionProperties, filter.orElse(constant(true, BOOLEAN)), projections, bodyCompiler, superType);
         }
@@ -208,6 +214,9 @@ public class ExpressionCompiler
         }
     }
 
+    /**
+     * 生成
+     */
     private <T> Class<? extends T> compileProcessor(
             SqlFunctionProperties sqlFunctionProperties,
             RowExpression filter,

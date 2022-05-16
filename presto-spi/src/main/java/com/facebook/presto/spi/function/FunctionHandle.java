@@ -16,6 +16,9 @@ package com.facebook.presto.spi.function;
 import com.facebook.presto.common.CatalogSchemaName;
 
 /**
+ * FunctionHandle是从名称空间标识函数实现的唯一句柄。
+ * 但是，目前它仍在更改中，因此请不要假定它是向后兼容的。
+ * 
  * FunctionHandle is a unique handle to identify the function implementation from namespaces.
  * However, currently it is still under changes, so please don't assume it is backward compatible.
  */

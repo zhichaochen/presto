@@ -56,6 +56,15 @@ public final class ElasticsearchQueryBuilder
 {
     private ElasticsearchQueryBuilder() {}
 
+    /**
+     * 构建查询条件
+     * 注意一下，presto会将查询条件构建成一个TupleDomain
+     * 那么es可以利用其信息，过滤掉where条件中的数据，这就是谓词下推啊。
+     * @param session
+     * @param constraint
+     * @param query
+     * @return
+     */
     public static QueryBuilder buildSearchQuery(ConnectorSession session, TupleDomain<ElasticsearchColumnHandle> constraint, Optional<String> query)
     {
         BoolQueryBuilder queryBuilder = new BoolQueryBuilder();

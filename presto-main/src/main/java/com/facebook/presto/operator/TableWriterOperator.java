@@ -68,6 +68,9 @@ import static io.airlift.units.Duration.succinctNanos;
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
+/**
+ * 表写入算子
+ */
 public class TableWriterOperator
         implements Operator
 {

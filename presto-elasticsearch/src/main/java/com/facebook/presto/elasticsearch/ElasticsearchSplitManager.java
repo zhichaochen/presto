@@ -42,6 +42,14 @@ public class ElasticsearchSplitManager
         this.client = requireNonNull(client, "client is null");
     }
 
+    /**
+     * 获取数据分片
+     * @param transactionHandle
+     * @param session
+     * @param layout
+     * @param splitSchedulingContext
+     * @return
+     */
     @Override
     public ConnectorSplitSource getSplits(
             ConnectorTransactionHandle transactionHandle,
@@ -53,6 +61,7 @@ public class ElasticsearchSplitManager
         ElasticsearchTableLayoutHandle layoutHandle = (ElasticsearchTableLayoutHandle) layout;
         ElasticsearchTableHandle tableHandle = layoutHandle.getTable();
 
+        //
         List<ElasticsearchSplit> splits = client.getSearchShards(tableHandle.getIndex()).stream()
                 .map(shard -> new ElasticsearchSplit(shard.getIndex(), shard.getId(), layoutHandle.getTupleDomain(), shard.getAddress()))
                 .collect(toImmutableList());

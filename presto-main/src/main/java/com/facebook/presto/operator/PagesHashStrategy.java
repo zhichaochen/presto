@@ -17,7 +17,7 @@ import com.facebook.presto.common.Page;
 import com.facebook.presto.common.PageBuilder;
 
 /**
- * 数据分页Hash策略
+ * Page的Hash策略
  */
 public interface PagesHashStrategy
 {

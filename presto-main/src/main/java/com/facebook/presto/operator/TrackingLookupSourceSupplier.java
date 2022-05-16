@@ -17,6 +17,9 @@ import java.util.function.Supplier;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ *
+ */
 public interface TrackingLookupSourceSupplier
 {
     LookupSource getLookupSource();

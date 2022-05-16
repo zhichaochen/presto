@@ -58,6 +58,9 @@ import static java.lang.Math.toIntExact;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toMap;
 
+/**
+ * 用于处理row_number()函数中排序取N条的结果，将原有执行计划中的WindowNode替换为TopNNodeRowNumberNode，避免全局排序
+ */
 public class WindowFilterPushDown
         implements PlanOptimizer
 {

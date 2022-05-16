@@ -22,6 +22,12 @@ import java.util.Optional;
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 非嵌套节点
+ *
+ * 在复杂的业务场景下，日志字段的值可能为数组（array）、对象（map）等类型。对这种特殊类型的日志字段进行查询和分析时，您可以先使用UNNEST子句将字段值展开。
+ * 是否类似于flatMap将数据平铺开来，类似
+ */
 public final class Unnest
         extends Relation
 {

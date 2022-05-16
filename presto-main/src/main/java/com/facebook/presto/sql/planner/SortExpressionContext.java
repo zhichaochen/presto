@@ -22,6 +22,9 @@ import java.util.Objects;
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 排序表达式上下文
+ */
 public class SortExpressionContext
 {
     private final RowExpression sortExpression;

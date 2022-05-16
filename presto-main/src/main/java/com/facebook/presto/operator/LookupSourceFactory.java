@@ -26,7 +26,7 @@ import static com.google.common.util.concurrent.Futures.immediateFuture;
 import static java.util.Collections.emptyList;
 
 /**
- * 查询数据源工厂
+ * LookupSource工厂
  */
 public interface LookupSourceFactory
         extends JoinBridge

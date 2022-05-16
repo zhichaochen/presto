@@ -25,6 +25,9 @@ import static com.facebook.presto.execution.buffer.OutputBuffers.BufferType.ARBI
 import static com.facebook.presto.execution.buffer.OutputBuffers.createInitialEmptyOutputBuffers;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * SCALED_WRITER_DISTRIBUTION 类型的分区，会创建该对象
+ */
 public class ScaledOutputBufferManager
         implements OutputBufferManager
 {

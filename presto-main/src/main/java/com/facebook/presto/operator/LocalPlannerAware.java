@@ -14,9 +14,10 @@
 package com.facebook.presto.operator;
 
 /**
- * 本地计划感知器，类似于监听器
+ * 本地计划感知器，类似于监听器，当物理计划完成后，会调用其localPlannerComplete
  */
 public interface LocalPlannerAware
 {
+    // 本地物理计划完成
     void localPlannerComplete();
 }

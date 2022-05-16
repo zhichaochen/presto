@@ -21,17 +21,18 @@ import java.util.Optional;
 import java.util.function.Supplier;
 
 /**
- * 对源数据做的操作（刚从表里查出来的数据）
+ * 源算子，对数据源做的操作
+ * 这里的source不仅仅指数据库的数据源，也表示worker节点上的数据。比如：worker节点之间会有数据 shuffle。
  */
 public interface SourceOperator
         extends Operator
 {
-    //
+    // 获取计划几点ID
     PlanNodeId getSourceId();
 
-    //
+    // 添加split
     Supplier<Optional<UpdatablePageSource>> addSplit(Split split);
 
-    //
+    // 没有更多的splits
     void noMoreSplits();
 }

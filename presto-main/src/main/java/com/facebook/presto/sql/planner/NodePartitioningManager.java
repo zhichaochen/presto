@@ -122,17 +122,26 @@ public class NodePartitioningManager
                 partitioningHandle.getConnectorHandle());
     }
 
+    /**
+     * 获取NodePartitionMap
+     * @param session
+     * @param partitioningHandle
+     * @return
+     */
     public NodePartitionMap getNodePartitioningMap(Session session, PartitioningHandle partitioningHandle)
     {
         requireNonNull(session, "session is null");
         requireNonNull(partitioningHandle, "partitioningHandle is null");
 
+        // 系统分区句柄
         if (partitioningHandle.getConnectorHandle() instanceof SystemPartitioningHandle) {
             return ((SystemPartitioningHandle) partitioningHandle.getConnectorHandle()).getNodePartitionMap(session, nodeScheduler);
         }
 
+        // 连接ID
         ConnectorId connectorId = partitioningHandle.getConnectorId()
                 .orElseThrow(() -> new IllegalArgumentException("No connector ID for partitioning handle: " + partitioningHandle));
+        // 获取bucket和node的映射关系
         ConnectorBucketNodeMap connectorBucketNodeMap = getConnectorBucketNodeMap(session, partitioningHandle);
         // safety check for crazy partitioning
         checkArgument(connectorBucketNodeMap.getBucketCount() < 1_000_000, "Too many buckets in partitioning: %s", connectorBucketNodeMap.getBucketCount());
@@ -159,9 +168,12 @@ public class NodePartitioningManager
                 throw new PrestoException(NODE_SELECTION_NOT_SUPPORTED, format("Unsupported node selection strategy %s", nodeSelectionStrategy));
         }
 
+        // 桶和分区的关系
         int[] bucketToPartition = new int[connectorBucketNodeMap.getBucketCount()];
+        // 节点和分区的关系
         BiMap<InternalNode, Integer> nodeToPartition = HashBiMap.create();
         int nextPartitionId = 0;
+        //
         for (int bucket = 0; bucket < bucketToNode.size(); bucket++) {
             InternalNode node = bucketToNode.get(bucket);
             Integer partitionId = nodeToPartition.get(node);
@@ -172,6 +184,7 @@ public class NodePartitioningManager
             bucketToPartition[bucket] = partitionId;
         }
 
+        //
         List<InternalNode> partitionToNode = IntStream.range(0, nodeToPartition.size())
                 .mapToObj(partitionId -> nodeToPartition.inverse().get(partitionId))
                 .collect(toImmutableList());
@@ -179,6 +192,13 @@ public class NodePartitioningManager
         return new NodePartitionMap(partitionToNode, bucketToPartition, getSplitToBucket(session, partitioningHandle), cacheable);
     }
 
+    /**
+     * 获取桶和节点的映射
+     * @param session
+     * @param partitioningHandle
+     * @param preferDynamic
+     * @return
+     */
     public BucketNodeMap getBucketNodeMap(Session session, PartitioningHandle partitioningHandle, boolean preferDynamic)
     {
         ConnectorBucketNodeMap connectorBucketNodeMap = getConnectorBucketNodeMap(session, partitioningHandle);

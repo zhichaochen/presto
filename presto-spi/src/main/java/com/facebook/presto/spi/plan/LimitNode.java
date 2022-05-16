@@ -44,8 +44,8 @@ public final class LimitNode
         FINAL
     }
 
-    private final PlanNode source;
-    private final long count;
+    private final PlanNode source; // 优化后的节点
+    private final long count; // limit数量
     private final Step step;
 
     @JsonCreator

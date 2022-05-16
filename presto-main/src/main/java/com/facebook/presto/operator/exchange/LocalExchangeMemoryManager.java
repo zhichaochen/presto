@@ -25,13 +25,16 @@ import java.util.concurrent.atomic.AtomicLong;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.util.concurrent.Futures.immediateFuture;
 
+/**
+ * LocalExchange的内存管理器
+ */
 @ThreadSafe
 public class LocalExchangeMemoryManager
 {
     private static final ListenableFuture<?> NOT_BLOCKED = immediateFuture(null);
 
-    private final long maxBufferedBytes;
-    private final AtomicLong bufferedBytes = new AtomicLong();
+    private final long maxBufferedBytes; // 最大缓存字节
+    private final AtomicLong bufferedBytes = new AtomicLong(); // 缓存的字节数
 
     @Nullable
     @GuardedBy("this")

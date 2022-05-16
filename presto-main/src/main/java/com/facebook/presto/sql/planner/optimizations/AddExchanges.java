@@ -142,6 +142,11 @@ import static com.google.common.collect.Iterables.getOnlyElement;
 import static java.lang.String.format;
 import static java.util.stream.Collectors.toList;
 
+/**
+ * 添加ExchangeNode（根据逻辑执行计划生成分布式执行计划）
+ *
+ * 在需要网络传递的数据的stage之间加了不同类型的ExchangeNode
+ */
 public class AddExchanges
         implements PlanOptimizer
 {
@@ -238,12 +243,16 @@ public class AddExchanges
             return rebaseAndDeriveProperties(node, child);
         }
 
+        /**
+         * 访问聚合节点
+         */
         @Override
         public PlanWithProperties visitAggregation(AggregationNode node, PreferredProperties parentPreferredProperties)
         {
             Set<VariableReferenceExpression> partitioningRequirement = ImmutableSet.copyOf(node.getGroupingKeys());
 
             boolean preferSingleNode = hasSingleNodeExecutionPreference(node, metadata.getFunctionAndTypeManager());
+            // 是否有混合分组集
             boolean hasMixedGroupingSets = node.hasEmptyGroupingSet() && node.hasNonEmptyGroupingSet();
             PreferredProperties preferredProperties = preferSingleNode ? PreferredProperties.undistributed() : PreferredProperties.any();
 
@@ -264,21 +273,26 @@ public class AddExchanges
 
             if (child.getProperties().isSingleNode()) {
                 // If already unpartitioned, just drop the single aggregation back on
+                // 如果已经取消分区，只需将单个聚合放回
                 return rebaseAndDeriveProperties(node, child);
             }
 
+            // 优先单节点，创建Gather类型的ExchangeNode
             if (preferSingleNode) {
                 child = withDerivedProperties(
                         gatheringExchange(idAllocator.getNextId(), REMOTE_STREAMING, child.getNode()),
                         child.getProperties());
             }
+            // 创建分区类型的ExchangeNode
             else if (hasMixedGroupingSets
                     || !isStreamPartitionedOn(child.getProperties(), partitioningRequirement) && !isNodePartitionedOn(child.getProperties(), partitioningRequirement)) {
                 child = withDerivedProperties(
+                        // TODO
                         partitionedExchange(
                                 idAllocator.getNextId(),
                                 selectExchangeScopeForPartitionedRemoteExchange(child.getNode(), false),
                                 child.getNode(),
+                                // 创建分区
                                 createPartitioning(partitioningRequirement),
                                 node.getHashVariable()),
                         child.getProperties());
@@ -568,6 +582,12 @@ public class AddExchanges
             return rebaseAndDeriveProperties(node, planChild(node, preferredProperties));
         }
 
+        /**
+         * 访问table scan 、filter等可以谓词下推
+         * @param node
+         * @param preferredProperties
+         * @return
+         */
         @Override
         public PlanWithProperties visitTableScan(TableScanNode node, PreferredProperties preferredProperties)
         {
@@ -711,39 +731,54 @@ public class AddExchanges
             return input -> inputToOutput.get(input).iterator().next();
         }
 
+        /**
+         * 访问join
+         * @param node
+         * @param preferredProperties
+         * @return
+         */
         @Override
         public PlanWithProperties visitJoin(JoinNode node, PreferredProperties preferredProperties)
         {
+            // 左表变量
             List<VariableReferenceExpression> leftVariables = node.getCriteria().stream()
                     .map(JoinNode.EquiJoinClause::getLeft)
                     .collect(toImmutableList());
+            // 右表变量
             List<VariableReferenceExpression> rightVariables = node.getCriteria().stream()
                     .map(JoinNode.EquiJoinClause::getRight)
                     .collect(toImmutableList());
 
+            // 分区类型
             JoinNode.DistributionType distributionType = node.getDistributionType().orElseThrow(() -> new IllegalArgumentException("distributionType not yet set"));
 
+            // 如果是广播类型
             if (distributionType == JoinNode.DistributionType.REPLICATED) {
                 PlanWithProperties left = node.getLeft().accept(this, PreferredProperties.any());
 
                 // use partitioned join if probe side is naturally partitioned on join symbols (e.g: because of aggregation)
+                // 如果探测端在连接符号上自然分区（例如：由于聚合），则使用分区连接
                 if (!node.getCriteria().isEmpty()
                         && isNodePartitionedOn(left.getProperties(), leftVariables) && !left.getProperties().isSingleNode()) {
                     return planPartitionedJoin(node, leftVariables, rightVariables, left);
                 }
 
+
                 return planReplicatedJoin(node, left);
             }
             else {
+                // 分区join
                 return planPartitionedJoin(node, leftVariables, rightVariables);
             }
         }
 
+        // 分区join
         private PlanWithProperties planPartitionedJoin(JoinNode node, List<VariableReferenceExpression> leftVariables, List<VariableReferenceExpression> rightVariables)
         {
             return planPartitionedJoin(node, leftVariables, rightVariables, node.getLeft().accept(this, PreferredProperties.partitioned(ImmutableSet.copyOf(leftVariables))));
         }
 
+        // 分区join
         private PlanWithProperties planPartitionedJoin(JoinNode node, List<VariableReferenceExpression> leftVariables, List<VariableReferenceExpression> rightVariables, PlanWithProperties left)
         {
             SetMultimap<VariableReferenceExpression, VariableReferenceExpression> rightToLeft = createMapping(rightVariables, leftVariables);
@@ -841,6 +876,9 @@ public class AddExchanges
             return buildJoin(node, left, right, JoinNode.DistributionType.REPLICATED);
         }
 
+        /**
+         * 构建join节点
+         */
         private PlanWithProperties buildJoin(JoinNode node, PlanWithProperties newLeft, PlanWithProperties newRight, JoinNode.DistributionType newDistributionType)
         {
             JoinNode result = new JoinNode(node.getId(),
@@ -1108,6 +1146,12 @@ public class AddExchanges
             return createPartitioning(ImmutableList.copyOf(parentPreference.getPartitioningColumns()));
         }
 
+        /**
+         * 访问Union节点
+         * @param node
+         * @param parentPreference
+         * @return
+         */
         @Override
         public PlanWithProperties visitUnion(UnionNode node, PreferredProperties parentPreference)
         {
@@ -1350,18 +1394,27 @@ public class AddExchanges
             return PropertyDerivations.derivePropertiesRecursively(result, metadata, session, types, parser);
         }
 
+        /**
+         * 创建分区
+         * @param partitioningColumns
+         * @return
+         */
         private Partitioning createPartitioning(Collection<VariableReferenceExpression> partitioningColumns)
         {
             // TODO: Use SystemTablesMetadata instead of introducing a special case
+            // TODO:使用SystemTablesMetadata，而不是引入特殊情况
             if (GlobalSystemConnector.NAME.equals(partitioningProviderCatalog)) {
                 return Partitioning.create(FIXED_HASH_DISTRIBUTION, ImmutableList.copyOf(partitioningColumns));
             }
 
+            // 分区字段的类型
             List<Type> partitioningTypes = partitioningColumns.stream()
                     .map(VariableReferenceExpression::getType)
                     .collect(toImmutableList());
             try {
+                // 分区句柄
                 PartitioningHandle partitioningHandle = metadata.getPartitioningHandleForExchange(session, partitioningProviderCatalog, hashPartitionCount, partitioningTypes);
+                // 创建分区
                 return Partitioning.create(partitioningHandle, partitioningColumns);
             }
             catch (PrestoException e) {

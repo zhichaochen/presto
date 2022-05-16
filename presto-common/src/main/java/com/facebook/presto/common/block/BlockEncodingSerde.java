@@ -16,6 +16,9 @@ package com.facebook.presto.common.block;
 import io.airlift.slice.SliceInput;
 import io.airlift.slice.SliceOutput;
 
+/**
+ * Block的编解码器
+ */
 public interface BlockEncodingSerde
 {
     /**

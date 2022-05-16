@@ -51,11 +51,16 @@ public final class Page
     }
 
     private final Block[] blocks; // 多列数据
-    private final int positionCount;//
-    private volatile long sizeInBytes = -1;
-    private volatile long retainedSizeInBytes = -1;
-    private volatile long logicalSizeInBytes = -1;
+    // TODO 位置计数，表示一个page有多少行，或者行的计数，由下面的 public Page(Block... blocks)中determinePositionCount方法可知。
+    private final int positionCount; // 处理到多少行了
+    private volatile long sizeInBytes = -1; // 字节大小
+    private volatile long retainedSizeInBytes = -1; // 持有的字节大小
+    private volatile long logicalSizeInBytes = -1; // 正常的size大小
 
+    /**
+     * 通过block数组创建一个page
+     * @param blocks
+     */
     public Page(Block... blocks)
     {
         this(true, determinePositionCount(blocks), blocks);
@@ -362,6 +367,11 @@ public final class Page
         return wrapBlocksWithoutCopy(positionCount, new Block[]{this.blocks[channel]});
     }
 
+    /**
+     * 通过通道，提取一个page
+     * @param channels
+     * @return
+     */
     public Page extractChannels(int[] channels)
     {
         requireNonNull(channels, "channels is null");

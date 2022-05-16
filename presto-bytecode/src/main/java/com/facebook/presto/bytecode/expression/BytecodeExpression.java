@@ -58,7 +58,7 @@ import static java.util.Objects.requireNonNull;
 public abstract class BytecodeExpression
         implements BytecodeNode
 {
-    private final ParameterizedType type;
+    private final ParameterizedType type;// 参数类型
 
     protected BytecodeExpression(ParameterizedType type)
     {

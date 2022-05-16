@@ -29,7 +29,7 @@ import static com.google.common.base.Preconditions.checkState;
 import static java.util.Objects.requireNonNull;
 
 /**
- * 切分资源提供其（可关闭）
+ * 可关闭的SplitSource提供器
  */
 public class CloseableSplitSourceProvider
         implements SplitSourceProvider, Closeable
@@ -50,7 +50,7 @@ public class CloseableSplitSourceProvider
     }
 
     /**
-     *
+     * 获取split
      * @param session
      * @param tableHandle
      * @param splitSchedulingStrategy

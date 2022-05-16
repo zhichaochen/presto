@@ -14,12 +14,15 @@
 package com.facebook.presto.operator.aggregation;
 
 // Lambda has to be compiled into a dedicated class, as functions might be stateful (e.g. use CachedInstanceBinder)
+// Lambda必须编译成一个专用类，因为函数可能是有状态的（例如，使用CachedInstanceBinder）
 public interface LambdaProvider
 {
     // To support capture, we can enrich the interface into
     // getLambda(Object[] capturedValues)
+    // 为了支持捕获，我们可以将接口扩展为getLambda(Object[]capturedValues)
 
     // The lambda capture is done through invokedynamic, and the CallSite will be cached after
     // the first call. Thus separate classes have to be generated for different captures.
+    // lambda捕获是通过invokedynamic完成的，调用后将缓存调用站点第一个调用。因此，必须为不同的捕获生成单独的类。
     Object getLambda();
 }

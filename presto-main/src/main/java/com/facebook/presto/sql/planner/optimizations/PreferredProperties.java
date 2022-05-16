@@ -34,6 +34,9 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.ImmutableSet.toImmutableSet;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 具有优先级的属性对象
+ */
 class PreferredProperties
 {
     private final Optional<Global> globalProperties;

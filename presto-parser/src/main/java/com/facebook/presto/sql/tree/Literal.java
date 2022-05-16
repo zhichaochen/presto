@@ -18,6 +18,9 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * 字面值
+ */
 public abstract class Literal
         extends Expression
 {

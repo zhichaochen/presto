@@ -31,6 +31,9 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 调度的任务的任务状态
+ */
 @ThriftStruct
 public class TaskStatus
 {
@@ -272,6 +275,11 @@ public class TaskStatus
                 .toString();
     }
 
+    /**
+     * 初始化任务状态
+     * @param location
+     * @return
+     */
     public static TaskStatus initialTaskStatus(URI location)
     {
         return new TaskStatus(

@@ -15,6 +15,9 @@ package com.facebook.presto.operator;
 
 import java.util.function.Supplier;
 
+/**
+ * LookupSource提供者
+ */
 public interface LookupSourceSupplier
         extends Supplier<LookupSource>
 {

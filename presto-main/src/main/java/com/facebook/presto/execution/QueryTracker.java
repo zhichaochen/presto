@@ -238,6 +238,8 @@ public class QueryTracker<T extends TrackedQuery>
     }
 
     /**
+     * 当集群达到最大任务限制时，以及单个查询超过阈值时，终止此查询
+     *
      *  When cluster reaches max tasks limit and also a single query
      *  exceeds a threshold,  kill this query
      */
@@ -333,6 +335,7 @@ public class QueryTracker<T extends TrackedQuery>
                     continue;
                 }
 
+                // 被丢弃，没有收到心跳
                 if (isAbandoned(query)) {
                     log.info("Failing abandoned query %s", query.getQueryId());
                     query.fail(new PrestoException(

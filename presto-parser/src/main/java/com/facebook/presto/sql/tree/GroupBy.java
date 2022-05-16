@@ -22,11 +22,14 @@ import java.util.Optional;
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * group by节点
+ */
 public class GroupBy
         extends Node
 {
-    private final boolean isDistinct;
-    private final List<GroupingElement> groupingElements;
+    private final boolean isDistinct; // 是否去重
+    private final List<GroupingElement> groupingElements; // 分组元素
 
     public GroupBy(boolean isDistinct, List<GroupingElement> groupingElements)
     {

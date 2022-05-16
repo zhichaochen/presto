@@ -81,6 +81,11 @@ public class TableScanOperator
             return sourceId;
         }
 
+        /**
+         * 创建TableScanOperator算子
+         * @param driverContext
+         * @return
+         */
         @Override
         public SourceOperator createOperator(DriverContext driverContext)
         {

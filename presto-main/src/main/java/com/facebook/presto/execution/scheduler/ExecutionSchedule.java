@@ -15,9 +15,20 @@ package com.facebook.presto.execution.scheduler;
 
 import java.util.Set;
 
+/**
+ * 执行调度接口，只要实现了该接口的getStagesToSchedule()就可以实现新的调度算法。
+ */
 public interface ExecutionSchedule
 {
+    /**
+     * 获取可调度的stage
+     * @return
+     */
     Set<StageExecutionAndScheduler> getStagesToSchedule();
 
+    /**
+     * 是否调度完成
+     * @return
+     */
     boolean isFinished();
 }

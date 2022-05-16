@@ -68,7 +68,9 @@ import static com.google.common.util.concurrent.MoreExecutors.directExecutor;
 import static java.util.Objects.requireNonNull;
 
 /**
- * 表示一个Sql任务，真正对某个任务的操作，最终会在这个类中处理
+ * 表示一个Sql任务
+ * 真正对某个任务的操作，最终会在这个类中处理
+ * 获取当前任务信息，都可以调用该类得到
  */
 public class SqlTask
 {
@@ -88,6 +90,7 @@ public class SqlTask
     private final AtomicReference<DateTime> lastHeartbeat = new AtomicReference<>(DateTime.now());
     private final AtomicLong nextTaskInfoVersion = new AtomicLong(TaskStatus.STARTING_VERSION);
 
+    // TaskHolder的引用，用来持有一个TaskHolder对象，TaskHolder持有SqlTaskExecution对象，可以
     private final AtomicReference<TaskHolder> taskHolderReference = new AtomicReference<>(new TaskHolder());
     private final AtomicBoolean needsPlan = new AtomicBoolean(true);
     private final long creationTimeInMillis = System.currentTimeMillis();
@@ -452,14 +455,17 @@ public class SqlTask
             synchronized (this) {
                 // is task already complete?
                 TaskHolder taskHolder = taskHolderReference.get();
+                // 如果任务已经完成，则返回任务的最终信息
                 if (taskHolder.isFinished()) {
                     return taskHolder.getFinalTaskInfo();
                 }
+                // 否则返回SqlTaskExecution
                 taskExecution = taskHolder.getTaskExecution();
+                // 如果不存在则创建
                 if (taskExecution == null) {
                     checkState(fragment.isPresent(), "fragment must be present");
                     checkState(tableWriteInfo.isPresent(), "tableWriteInfo must be present");
-                    // 创建任务执行器
+                    // 创建SQL任务执行对象，在创建该对象的时候，会生成物理执行计划
                     taskExecution = sqlTaskExecutionFactory.create(
                             session,
                             queryContext,
@@ -474,7 +480,10 @@ public class SqlTask
                 }
             }
 
+            // 如果taskExecution不为null，则添加TaskSource到SqlTaskExecution
             if (taskExecution != null) {
+                // 将sources中包含的所有的Split都合并到SqlTaskExecution中
+                // 表示需要处理的Split
                 taskExecution.addSources(sources);
             }
         }
@@ -486,6 +495,7 @@ public class SqlTask
             failed(e);
         }
 
+        // 返回taskInfo
         return getTaskInfo();
     }
 

@@ -19,7 +19,7 @@ import com.facebook.presto.spi.api.Experimental;
 import java.util.List;
 
 /**
- * 列句柄
+ * 列句柄，记录了表中每一列的信息
  */
 public interface ColumnHandle
 {

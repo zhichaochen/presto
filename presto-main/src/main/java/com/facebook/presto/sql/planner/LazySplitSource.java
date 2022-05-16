@@ -27,13 +27,20 @@ import java.util.function.Supplier;
 import static com.google.common.base.Preconditions.checkState;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 懒加载的SplitSource
+ * 根本在于没有在创建时就设置委托类delegate
+ */
 public class LazySplitSource
         implements SplitSource
 {
+    // 这就是提供的委托
+    // supplier.get() 本质来说是调用了splitSourceProvider.getSplits
+    // 参见：
     private final Supplier<SplitSource> supplier;
 
     @GuardedBy("this")
-    private SplitSource delegate;
+    private SplitSource delegate; //
     @GuardedBy("this")
     private boolean closed;
 

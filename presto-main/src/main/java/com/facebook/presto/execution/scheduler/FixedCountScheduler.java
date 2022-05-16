@@ -26,7 +26,7 @@ import static com.google.common.collect.ImmutableList.toImmutableList;
 import static java.util.Objects.requireNonNull;
 
 /**
- * 主要调度 Fixed task
+ * 用于调度remote split，remote split是一种
  */
 public class FixedCountScheduler
         implements StageScheduler
@@ -36,10 +36,8 @@ public class FixedCountScheduler
         Optional<RemoteTask> scheduleTask(InternalNode node, int partition);
     }
 
-    // 任务调度器
-    private final TaskScheduler taskScheduler;
-    // 分区节点
-    private final List<InternalNode> partitionToNode;
+    private final TaskScheduler taskScheduler; // 任务调度器，最终去调用SqlStageExecution#scheduleTask
+    private final List<InternalNode> partitionToNode; // 分区和节点的映射
 
     public FixedCountScheduler(SqlStageExecution stage, List<InternalNode> partitionToNode)
     {
@@ -56,20 +54,24 @@ public class FixedCountScheduler
     }
 
     /**
-     * 调度
+     * 调度, 由这里可知，有多少分区，就会生成多少个任务
      * @return
      */
     @Override
     public ScheduleResult schedule()
     {
+        // 调度任务
         List<RemoteTask> newTasks = IntStream.range(0, partitionToNode.size())
+                // 调度任务
                 .mapToObj(partition -> taskScheduler.scheduleTask(partitionToNode.get(partition), partition))
+                // Optional<RemoteTask>是否存在
                 .filter(Optional::isPresent)
+                // 如果存在则返回RemoteTask
                 .map(Optional::get)
                 .collect(toImmutableList());
 
         // no need to call stage.transitionToSchedulingSplits() since there is no table splits
-
+        // 不需要调用stage.transitionToSchedulingSplits()，因为这里时没有表的splits
         return ScheduleResult.nonBlocked(true, newTasks, 0);
     }
 }

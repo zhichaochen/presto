@@ -769,6 +769,14 @@ public class LocalQueryRunner
         return createDrivers(session, plan, outputFactory, taskContext);
     }
 
+    /**
+     * 创建驱动
+     * @param session
+     * @param plan
+     * @param outputFactory
+     * @param taskContext
+     * @return
+     */
     private List<Driver> createDrivers(Session session, Plan plan, OutputFactory outputFactory, TaskContext taskContext)
     {
         if (printPlan) {

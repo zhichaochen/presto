@@ -53,6 +53,9 @@ import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 import static java.util.function.Function.identity;
 
+/**
+ * page处理器
+ */
 @NotThreadSafe
 public class PageProcessor
 {

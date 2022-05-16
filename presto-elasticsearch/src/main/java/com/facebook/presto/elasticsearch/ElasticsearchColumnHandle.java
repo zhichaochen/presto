@@ -31,7 +31,7 @@ public final class ElasticsearchColumnHandle
 {
     private final String name; // 列名称
     private final Type type; // 列类型
-    private final boolean supportsPredicates; // 是否支持预测
+    private final boolean supportsPredicates; // 是否支持谓词下推
 
     @JsonCreator
     public ElasticsearchColumnHandle(

@@ -1,5 +1,21 @@
+Presto/Trino权威指南及官方设计文档解读：https://www.jianshu.com/p/d3600d2a115d
+
+阿里的员工写了几十篇文章：https://www.zhihu.com/column/presto-cn
+腾讯云的文章，还不错：https://cloud.tencent.com/developer/article/1630727
+Hash聚合的几篇文章：https://www.zhihu.com/column/c_1065644304730542080
+
+该作者写了几篇关于presto的，我觉得还不错：https://blog.csdn.net/qq_27639777/category_11151534.html
+调度源码分析：https://blog.csdn.net/qq_27639777/article/details/119596380
+
+图文介绍presto的运行机制：https://blog.csdn.net/wypblog/article/details/119524371
+Presto 计算下推原理与实践 ： https://blog.csdn.net/wypblog/article/details/119723226?spm=1001.2014.3001.5501
+
+https://blog.csdn.net/qq_22708467/article/details/115438229
+调度Task：https://zhuanlan.zhihu.com/p/58959725
+分组聚合原理： https://zhuanlan.zhihu.com/p/54385845
+
 参考：https://blog.csdn.net/hjw199089/article/details/78955736
-美團：https://tech.meituan.com/2014/06/16/presto.html
+美团：https://tech.meituan.com/2014/06/16/presto.html
 参考：https://blog.csdn.net/szd_8482/article/details/79579471
 
 分組 ：https://zhuanlan.zhihu.com/p/54385845
@@ -7,3 +23,11 @@ byteCode相关:
     https://www.shangmayuan.com/a/c9e4014fe8794a8eae70bd3a.html
     https://blog.csdn.net/junerli/article/details/80508892
 parser 参考：https://zhuanlan.zhihu.com/p/57438825
+
+SectionExecutionFactory ： 这个类在调度Task中很重要
+
+Presto连接器-grouped_execution功能要实现的接口 : https://www.jianshu.com/p/94690362449d
+
+剑指offer书籍 ：https://blog.csdn.net/wypblog/article/details/119708580?spm=1001.2014.3001.5501
+数据湖 | 一文读懂Data Lake的概念、特征、架构与案例 ： https://blog.csdn.net/u011598442/article/details/106610486/
+数据仓库、数据湖、流批一体，终于有大神讲清楚了 ： https://blog.csdn.net/u011598442/article/details/106846405?spm=1001.2014.3001.5501

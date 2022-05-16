@@ -69,6 +69,7 @@ import static com.google.common.collect.Iterables.getOnlyElement;
 import static java.util.Objects.requireNonNull;
 
 /**
+ * 优化只对表分区字段进行的聚合操作，使之变成针对元数据的查询
  * Converts cardinality-insensitive aggregations (max, min, "distinct") over partition keys
  * into simple metadata queries
  */

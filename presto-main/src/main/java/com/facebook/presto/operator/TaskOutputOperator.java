@@ -33,6 +33,11 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.ImmutableList.toImmutableList;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 任务输出算子
+ *
+ * 一般作为task的最后一个算子，用于数据的输出;
+ */
 public class TaskOutputOperator
         implements Operator
 {
@@ -149,6 +154,10 @@ public class TaskOutputOperator
         return !finished && isBlocked().isDone();
     }
 
+    /**
+     * 接受到输入page后，直接输出到outputBuffer中。
+     * @param page
+     */
     @Override
     public void addInput(Page page)
     {
@@ -157,12 +166,14 @@ public class TaskOutputOperator
             return;
         }
 
+        // 获取需要的列组成的page
         page = pagePreprocessor.apply(page);
 
         List<SerializedPage> serializedPages = splitPage(page, DEFAULT_MAX_PAGE_SIZE_IN_BYTES).stream()
                 .map(serde::serialize)
                 .collect(toImmutableList());
 
+        // 添加page到缓存队列中
         outputBuffer.enqueue(operatorContext.getDriverContext().getLifespan(), serializedPages);
         operatorContext.recordOutput(page.getSizeInBytes(), page.getPositionCount());
     }

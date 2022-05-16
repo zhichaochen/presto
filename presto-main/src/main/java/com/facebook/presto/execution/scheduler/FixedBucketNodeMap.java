@@ -24,6 +24,9 @@ import java.util.function.ToIntFunction;
 import static java.util.Objects.requireNonNull;
 
 // the bucket to node mapping is fixed and pre-assigned
+/**
+ * bucket到node的映射是固定的和预先分配的
+ */
 public class FixedBucketNodeMap
         extends BucketNodeMap
 {

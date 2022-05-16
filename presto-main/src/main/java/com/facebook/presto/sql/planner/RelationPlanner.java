@@ -246,6 +246,7 @@ class RelationPlanner
         // 处理join左侧，生成计划树
         RelationPlan leftPlan = process(node.getLeft(), context);
 
+        // 处理Unnest语句
         Optional<Unnest> unnest = getUnnest(node.getRight());
         if (unnest.isPresent()) {
             if (node.getType() != Join.Type.CROSS && node.getType() != Join.Type.IMPLICIT) {
@@ -254,6 +255,7 @@ class RelationPlanner
             return planCrossJoinUnnest(leftPlan, node, unnest.get());
         }
 
+        // 处理Lateral语句
         Optional<Lateral> lateral = getLateral(node.getRight());
         if (lateral.isPresent()) {
             if (node.getType() != Join.Type.CROSS && node.getType() != Join.Type.IMPLICIT) {
@@ -265,6 +267,7 @@ class RelationPlanner
         // 处理join右侧，生成计划树
         RelationPlan rightPlan = process(node.getRight(), context);
 
+        // 处理using语句
         if (node.getCriteria().isPresent() && node.getCriteria().get() instanceof JoinUsing) {
             return planJoinUsing(node, leftPlan, rightPlan);
         }
@@ -273,6 +276,7 @@ class RelationPlanner
         PlanBuilder rightPlanBuilder = initializePlanBuilder(rightPlan);
 
         // NOTE: variables must be in the same order as the outputDescriptor
+        // 变量的顺序必须与outputDescriptor相同
         List<VariableReferenceExpression> outputs = ImmutableList.<VariableReferenceExpression>builder()
                 .addAll(leftPlan.getFieldMappings())
                 .addAll(rightPlan.getFieldMappings())
@@ -280,6 +284,7 @@ class RelationPlanner
 
         ImmutableList.Builder<JoinNode.EquiJoinClause> equiClauses = ImmutableList.builder();
         List<Expression> complexJoinExpressions = new ArrayList<>();
+        // 后置inner join条件列表
         List<Expression> postInnerJoinConditions = new ArrayList<>();
 
         if (node.getType() != Join.Type.CROSS && node.getType() != Join.Type.IMPLICIT) {
@@ -358,6 +363,7 @@ class RelationPlanner
             }
         }
 
+        // 创建JoinNode
         PlanNode root = new JoinNode(idAllocator.getNextId(),
                 JoinNodeUtils.typeConvert(node.getType()),
                 leftPlanBuilder.getRoot(),
@@ -411,9 +417,11 @@ class RelationPlanner
                     ImmutableMap.of());
         }
 
+        // inner join 类型
         if (node.getType() == INNER) {
             // rewrite all the other conditions using output variables from left + right plan node.
             PlanBuilder rootPlanBuilder = new PlanBuilder(translationMap, root);
+            // 处理子查询
             rootPlanBuilder = subqueryPlanner.handleSubqueries(rootPlanBuilder, complexJoinExpressions, node);
 
             for (Expression expression : complexJoinExpressions) {
@@ -932,6 +940,11 @@ class RelationPlanner
         return new PlanBuilder(translations, relationPlan.getRoot());
     }
 
+    /**
+     * 去重也是聚合嘛，所以创建AggregationNode
+     * @param node
+     * @return
+     */
     private PlanNode distinct(PlanNode node)
     {
         return new AggregationNode(idAllocator.getNextId(),

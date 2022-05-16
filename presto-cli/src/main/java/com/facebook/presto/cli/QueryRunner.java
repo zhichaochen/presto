@@ -43,7 +43,8 @@ import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 /**
- * 查询运行器，向协调器提交sql
+ * 查询运行器，
+ * 主要是构建了OkHttpClient，以便后序向Coordinate发送请求
  */
 public class QueryRunner
         implements Closeable
@@ -53,6 +54,9 @@ public class QueryRunner
     private final OkHttpClient httpClient;
     private final Consumer<OkHttpClient.Builder> sslSetup;
 
+    /**
+     * 构建 OkHttpClient
+     */
     public QueryRunner(
             ClientSession session,
             boolean debug,
@@ -75,14 +79,17 @@ public class QueryRunner
         this.session = new AtomicReference<>(requireNonNull(session, "session is null"));
         this.debug = debug;
 
+        // 设置ssl
         this.sslSetup = builder -> setupSsl(builder, keystorePath, keystorePassword, truststorePath, truststorePassword);
 
         OkHttpClient.Builder builder = new OkHttpClient.Builder();
 
+        // 创建SocketChannelSocketFactory
         builder.socketFactory(new SocketChannelSocketFactory());
 
-        setupTimeouts(builder, 30, SECONDS);
-        setupCookieJar(builder);
+        // 构建okhttp相关条件
+        setupTimeouts(builder, 30, SECONDS); // 设置超时时间
+        setupCookieJar(builder); //
         setupSocksProxy(builder, socksProxy);
         setupHttpProxy(builder, httpProxy);
         setupBasicAuth(builder, session, user, password);
@@ -140,10 +147,12 @@ public class QueryRunner
      */
     private StatementClient startInternalQuery(ClientSession session, String query)
     {
+        // 构建客户端
         OkHttpClient.Builder builder = httpClient.newBuilder();
         sslSetup.accept(builder);
         OkHttpClient client = builder.build();
 
+        // 创建StatementClientV1
         return newStatementClient(client, session, query);
     }
 

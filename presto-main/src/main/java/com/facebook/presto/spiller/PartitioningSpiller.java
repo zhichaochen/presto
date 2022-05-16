@@ -23,10 +23,14 @@ import java.util.function.IntPredicate;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 分区溢出器
+ */
 public interface PartitioningSpiller
         extends Closeable
 {
     /**
+     * 分区page，并排队分区到溢出写入器
      * Partition page and enqueue partitioned pages to spill writers.
      * {@link PartitioningSpillResult#getSpillingFuture} is completed when spilling is finished.
      * <p>

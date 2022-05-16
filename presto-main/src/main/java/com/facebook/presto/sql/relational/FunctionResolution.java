@@ -52,6 +52,9 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 函数解析
+ */
 public final class FunctionResolution
         implements StandardFunctionResolution
 {

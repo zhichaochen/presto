@@ -32,7 +32,7 @@ import static io.airlift.slice.SizeOf.sizeOf;
 import static java.lang.String.format;
 
 /**
- * 字节类型的block
+ * 字节数组组成的Block
  */
 public class ByteArrayBlock
         implements Block

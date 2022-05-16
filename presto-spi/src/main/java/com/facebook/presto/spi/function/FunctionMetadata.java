@@ -26,6 +26,9 @@ import java.util.Optional;
 import static java.util.Collections.unmodifiableList;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 函数元数据
+ */
 public class FunctionMetadata
 {
     private final QualifiedObjectName name;

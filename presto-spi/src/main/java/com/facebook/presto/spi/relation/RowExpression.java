@@ -18,7 +18,7 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 /**
- * 行表达式，表示select后面的查询字段
+ * 行表达式，表示select后面的字段表达式
  */
 @JsonTypeInfo(
         use = JsonTypeInfo.Id.NAME,

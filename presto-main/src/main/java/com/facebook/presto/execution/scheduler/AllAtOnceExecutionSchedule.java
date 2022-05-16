@@ -48,11 +48,13 @@ import static java.util.Objects.requireNonNull;
 import static java.util.function.Function.identity;
 
 /**
- * 所有只执行一次调度（只针对stage）
+ * 一次调度所有stage
+ * 各个 stage 之间是有序的, 从整个 sub plan 树的叶子节点开始, 自底向上的去调度其对应 stage, 最先调度源头 stage, 最后调度到 root stage.
  */
 public class AllAtOnceExecutionSchedule
         implements ExecutionSchedule
 {
+    // 调度中的scheduling
     private final Set<StageExecutionAndScheduler> schedulingStages;
 
     public AllAtOnceExecutionSchedule(Collection<StageExecutionAndScheduler> stages)
@@ -72,8 +74,11 @@ public class AllAtOnceExecutionSchedule
     @Override
     public Set<StageExecutionAndScheduler> getStagesToSchedule()
     {
+        // 遍历所有的stage
         for (Iterator<StageExecutionAndScheduler> iterator = schedulingStages.iterator(); iterator.hasNext(); ) {
+            // 当前阶段的状态
             StageExecutionState state = iterator.next().getStageExecution().getState();
+            // 移除已调度的和运行中的阶段
             if (state == SCHEDULED || state == RUNNING || state.isDone()) {
                 iterator.remove();
             }

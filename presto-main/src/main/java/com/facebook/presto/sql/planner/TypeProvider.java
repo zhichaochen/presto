@@ -27,6 +27,9 @@ import static com.google.common.collect.ImmutableMap.toImmutableMap;
 import static com.google.common.collect.ImmutableSet.toImmutableSet;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 类型提供器
+ */
 public class TypeProvider
 {
     private final Map<String, Type> types;

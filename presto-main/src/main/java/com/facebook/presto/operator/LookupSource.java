@@ -20,6 +20,10 @@ import javax.annotation.concurrent.NotThreadSafe;
 
 import java.io.Closeable;
 
+/**
+ * lookup的资源，
+ * 主要记录了探测侧的page数据，以及当前处理的位置信息等。
+ */
 @NotThreadSafe
 public interface LookupSource
         extends Closeable

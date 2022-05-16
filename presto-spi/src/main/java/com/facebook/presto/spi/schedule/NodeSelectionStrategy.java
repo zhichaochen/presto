@@ -13,9 +13,12 @@
  */
 package com.facebook.presto.spi.schedule;
 
+/**
+ * 节点选择策略
+ */
 public enum NodeSelectionStrategy
 {
-    HARD_AFFINITY,
-    SOFT_AFFINITY,
-    NO_PREFERENCE
+    HARD_AFFINITY, // 硬关联
+    SOFT_AFFINITY, // 软关联
+    NO_PREFERENCE // 无偏好
 }

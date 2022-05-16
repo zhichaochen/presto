@@ -95,6 +95,7 @@ public interface OutputBuffer
     ListenableFuture<?> isFull();
 
     /**
+     * 添加page到队列中
      * Adds a split-up page to an unpartitioned buffer. If no-more-pages has been set, the enqueue
      * page call is ignored.  This can happen with limit queries.
      */

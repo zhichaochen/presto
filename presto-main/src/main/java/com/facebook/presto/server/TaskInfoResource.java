@@ -42,6 +42,12 @@ public class TaskInfoResource
         this.queryManager = requireNonNull(queryManager, "queryManager is null");
     }
 
+    /**
+     * 通过taskID查询任务信息
+     * @param taskId
+     * @return
+     * @throws NotFoundException
+     */
     @GET
     @Path("{taskId}")
     public TaskInfo getTaskInfo(@PathParam("taskId") TaskId taskId)

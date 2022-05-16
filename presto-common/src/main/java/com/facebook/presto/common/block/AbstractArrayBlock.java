@@ -27,6 +27,9 @@ import static com.facebook.presto.common.block.BlockUtil.compactArray;
 import static com.facebook.presto.common.block.BlockUtil.compactOffsets;
 import static com.facebook.presto.common.block.BlockUtil.internalPositionInRange;
 
+/**
+ * 数组block，通过数组，存储一个一列数据
+ */
 public abstract class AbstractArrayBlock
         implements Block
 {

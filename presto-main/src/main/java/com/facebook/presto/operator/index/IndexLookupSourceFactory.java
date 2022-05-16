@@ -41,6 +41,9 @@ import static com.google.common.util.concurrent.Futures.transform;
 import static com.google.common.util.concurrent.MoreExecutors.directExecutor;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 通过索引进行管理的LookupSourceFactory
+ */
 public class IndexLookupSourceFactory
         implements LookupSourceFactory
 {

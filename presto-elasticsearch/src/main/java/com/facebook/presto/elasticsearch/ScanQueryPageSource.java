@@ -76,6 +76,7 @@ import static java.util.stream.Collectors.toList;
 
 /**
  * 查询一页数据
+ * 注意：
  */
 public class ScanQueryPageSource
         implements ConnectorPageSource
@@ -149,6 +150,7 @@ public class ScanQueryPageSource
         SearchResponse searchResponse = client.beginSearch(
                 split.getIndex(),
                 split.getShard(),
+                // 利用getTupleDomain的where条件，然后构建查询条件，达到谓词下推的目的。
                 buildSearchQuery(session, split.getTupleDomain().transform(ElasticsearchColumnHandle.class::cast), table.getQuery()),
                 needAllFields ? Optional.empty() : Optional.of(requiredFields),
                 documentFields,

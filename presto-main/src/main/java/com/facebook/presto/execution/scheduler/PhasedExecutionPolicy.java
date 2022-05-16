@@ -15,6 +15,9 @@ package com.facebook.presto.execution.scheduler;
 
 import java.util.Collection;
 
+/**
+ * 分阶段执行政策，会分多次调度stage
+ */
 public class PhasedExecutionPolicy
         implements ExecutionPolicy
 {

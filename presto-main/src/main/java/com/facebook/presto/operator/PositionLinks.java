@@ -18,6 +18,12 @@ import com.facebook.presto.common.Page;
 import java.util.List;
 
 /**
+ * PositionLinks
+ * 对于inner join语句，遍历一个表的数据时，会把另外一张表的所有相等的值都找到，所以在构建hash表时，
+ * 就需要提前把这些相等的值都集中存储起来(类似其他的HashMap中使用链表来存储)，以便开始join时能快速找到这些相等的值来进行行连接。
+ * Presto在处理这个问题时，使用了比较巧妙的方式，那就是使用positionLinks。如下图所示：
+ *
+ * 此类负责迭代生成行，这些行具有哈希列中的值与给定探测行中的值相同（但根据filterFunction可以在其他列上具有不匹配的值）。
  * This class is responsible for iterating over build rows, which have
  * same values in hash columns as given probe row (but according to
  * filterFunction can have non matching values on some other column).

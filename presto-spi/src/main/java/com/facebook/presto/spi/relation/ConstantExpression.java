@@ -26,12 +26,15 @@ import java.util.Objects;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 常量表达式
+ */
 @Immutable
 public final class ConstantExpression
         extends RowExpression
 {
-    private final Object value;
-    private final Type type;
+    private final Object value; // 值
+    private final Type type; // 类型
 
     public ConstantExpression(Object value, Type type)
     {

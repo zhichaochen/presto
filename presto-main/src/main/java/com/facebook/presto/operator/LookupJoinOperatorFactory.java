@@ -33,6 +33,9 @@ import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.ImmutableList.toImmutableList;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * LookupJoinOperator工厂类
+ */
 public class LookupJoinOperatorFactory
         implements JoinOperatorFactory
 {
@@ -43,8 +46,9 @@ public class LookupJoinOperatorFactory
     private final JoinType joinType;
     private final JoinProbeFactory joinProbeFactory;
     private final Optional<OuterOperatorFactoryResult> outerOperatorFactoryResult;
+    //
     private final JoinBridgeManager<? extends LookupSourceFactory> joinBridgeManager;
-    private final OptionalInt totalOperatorsCount;
+    private final OptionalInt totalOperatorsCount; // 算子总数
     private final HashGenerator probeHashGenerator;
     private final PartitioningSpillerFactory partitioningSpillerFactory;
 
@@ -134,13 +138,18 @@ public class LookupJoinOperatorFactory
     public Operator createOperator(DriverContext driverContext)
     {
         checkState(!closed, "Factory is already closed");
+        // 在LocalExecutionPlanner#createLookupSourceFactory中生成JoinBridgeManager的，那么获取到的factory，应该就是PartitionedLookupSourceFactory
         LookupSourceFactory lookupSourceFactory = joinBridgeManager.getJoinBridge(driverContext.getLifespan());
 
+        // 算子上下文
         OperatorContext operatorContext = driverContext.addOperatorContext(operatorId, planNodeId, LookupJoinOperator.class.getSimpleName());
 
+        //
         lookupSourceFactory.setTaskContext(driverContext.getPipelineContext().getTaskContext());
 
+        // 发送探测算子已经创建事件，因为马上就要创建LookupJoinOperator算子了。
         joinBridgeManager.probeOperatorCreated(driverContext.getLifespan());
+        // 创建LookupJoinOperator算子
         return new LookupJoinOperator(
                 operatorContext,
                 probeTypes,

@@ -22,8 +22,14 @@ import java.util.OptionalInt;
 
 import static com.facebook.presto.common.type.BigintType.BIGINT;
 
+/**
+ * join的探测类
+ */
 public class JoinProbe
 {
+    /**
+     * 探测工厂
+     */
     public static class JoinProbeFactory
     {
         private final int[] probeOutputChannels;
@@ -43,12 +49,12 @@ public class JoinProbe
         }
     }
 
-    private final int[] probeOutputChannels;
-    private final int positionCount;
+    private final int[] probeOutputChannels; //
+    private final int positionCount; // 处理位置计数
     private final Block[] probeBlocks;
-    private final Page page;
-    private final Page probePage;
-    private final Optional<Block> probeHashBlock;
+    private final Page page; // page
+    private final Page probePage; // 探测的Page
+    private final Optional<Block> probeHashBlock; //
 
     private int position = -1;
 

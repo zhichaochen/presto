@@ -28,6 +28,9 @@ import static com.facebook.presto.bytecode.Access.a;
 import static com.facebook.presto.sql.gen.BytecodeUtils.invoke;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 某个实例的缓存信息
+ */
 public final class CachedInstanceBinder
 {
     private final ClassDefinition classDefinition;

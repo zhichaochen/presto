@@ -22,6 +22,9 @@ import com.facebook.presto.sql.gen.JoinCompiler;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * 聚合工厂绑定器
+ */
 public interface AccumulatorFactoryBinder
 {
     AccumulatorFactory bind(

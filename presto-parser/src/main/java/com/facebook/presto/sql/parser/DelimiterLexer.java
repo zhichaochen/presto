@@ -22,6 +22,7 @@ import org.antlr.v4.runtime.Token;
 import java.util.Set;
 
 /**
+ * 这是一个特殊用途的lexer，除了SQL语法中的所有其他标记外，还可以标识自定义分隔符。
  * This is a special-purpose lexer that can identify custom delimiters in addition to every other
  * token in the SQL grammar.
  * <p>

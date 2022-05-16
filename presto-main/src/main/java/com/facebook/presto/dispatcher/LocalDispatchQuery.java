@@ -49,6 +49,7 @@ import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 /**
+ * 主要的目的是向worker集群派发任务，但是需要满足派发任务的条件
  * DispatchQuery
  */
 public class LocalDispatchQuery
@@ -57,6 +58,7 @@ public class LocalDispatchQuery
     private static final Logger log = Logger.get(LocalDispatchQuery.class);
     private final QueryStateMachine stateMachine;
     private final QueryMonitor queryMonitor;
+    // 查询执行future
     private final ListenableFuture<QueryExecution> queryExecutionFuture;
     // 集群大小监视器
     private final ClusterSizeMonitor clusterSizeMonitor;
@@ -233,6 +235,13 @@ public class LocalDispatchQuery
                 .orElse(new DataSize(0, BYTE));
     }
 
+    /**
+     * 基础的Query信息
+     * 1、获取QueryExecution对象
+     * 2、获取其BasicQueryInfo
+     * 3、否则调用QueryStateMachine#getBasicQueryInfo
+     * @return
+     */
     @Override
     public BasicQueryInfo getBasicQueryInfo()
     {

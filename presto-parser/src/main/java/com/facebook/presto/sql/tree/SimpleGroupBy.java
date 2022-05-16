@@ -22,10 +22,13 @@ import java.util.Optional;
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 简单分组，就是常见的group by语句
+ */
 public final class SimpleGroupBy
         extends GroupingElement
 {
-    private final List<Expression> columns;
+    private final List<Expression> columns; // 分组列
 
     public SimpleGroupBy(List<Expression> simpleGroupByExpressions)
     {

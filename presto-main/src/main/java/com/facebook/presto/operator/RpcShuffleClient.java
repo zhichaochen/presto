@@ -18,6 +18,8 @@ import com.google.common.util.concurrent.ListenableFuture;
 import io.airlift.units.DataSize;
 
 /**
+ * Page shuffle 的客户端
+ * Shuffle client
  * All methods in this class should be async
  */
 public interface RpcShuffleClient

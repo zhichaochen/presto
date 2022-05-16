@@ -48,11 +48,13 @@ import static java.util.Objects.requireNonNull;
  * to declare a mapping from split groups to nodes.
  * Artificially requiring such a mapping regardless of whether the engine can
  * take advantage of the TablePartitioning negatively affects performance.
+ *
+ * 表示分片的分区
  */
 public class ConnectorTablePartitioning
 {
-    private final ConnectorPartitioningHandle partitioningHandle;
-    private final List<ColumnHandle> partitioningColumns;
+    private final ConnectorPartitioningHandle partitioningHandle; // 连接器分区句柄
+    private final List<ColumnHandle> partitioningColumns; // 通过那系列进行分区
 
     public ConnectorTablePartitioning(ConnectorPartitioningHandle partitioningHandle, List<ColumnHandle> partitioningColumns)
     {

@@ -122,7 +122,7 @@ jobs:
       - name: Product Tests Specific 1.5
         run: presto-product-tests/bin/run_on_docker.sh singlenode-kerberos-hdfs-impersonation-cross-realm -g storage_formats,cli,hdfs_impersonation
       - name: Product Tests Specific 1.6
-        run: presto-product-tests/bin/run_on_docker.sh multinode-tls-kerberos -g cli,group-by,join,tls
+        run: presto-product-tests/bin/run_on_docker.sh multinode-tls-kerberos -g cli,group-by,join.txt,tls
 
   product-tests-specific-environment2:
     runs-on: ubuntu-latest
@@ -160,7 +160,7 @@ jobs:
 #        singlenode-sqlserver -g sqlserver
 #    fi
       - name: Product Tests Specific 2.2
-        run: presto-product-tests/bin/run_on_docker.sh multinode-tls -g smoke,cli,group-by,join,tls
+        run: presto-product-tests/bin/run_on_docker.sh multinode-tls -g smoke,cli,group-by,join.txt,tls
       - name: Product Tests Specific 2.3
         run: presto-product-tests/bin/run_on_docker.sh singlenode-mysql -g mysql_connector,mysql
       - name: Product Tests Specific 2.4

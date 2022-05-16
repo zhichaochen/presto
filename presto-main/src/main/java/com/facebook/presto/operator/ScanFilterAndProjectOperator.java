@@ -56,6 +56,8 @@ import static com.google.common.base.Preconditions.checkState;
 import static java.util.Objects.requireNonNull;
 
 /**
+ * 这个算子用于描述数据源数据，从操作符的名字可以看出，这个操作符其实可以完成三部分工作
+ *
  * 1、Scan操作
  * 2、Filter操作
  * 3、Project操作
@@ -69,8 +71,8 @@ public class ScanFilterAndProjectOperator
     private final TableHandle table;
     private final List<ColumnHandle> columns;
     private final PageBuilder pageBuilder;
-    private final CursorProcessor cursorProcessor;
-    private final PageProcessor pageProcessor;
+    private final CursorProcessor cursorProcessor; // 代码生成，用于快速扫描数据源
+    private final PageProcessor pageProcessor; // 代码生成，用于处理一个page内的数据
     private final LocalMemoryContext pageSourceMemoryContext;
     private final LocalMemoryContext pageProcessorMemoryContext;
     private final LocalMemoryContext outputMemoryContext;
@@ -83,7 +85,7 @@ public class ScanFilterAndProjectOperator
 
     private Split split;
 
-    private boolean finishing;
+    private boolean finishing; // 是否扫描玩split中所有数据
 
     private long completedBytes;
     private long completedPositions;
@@ -219,6 +221,10 @@ public class ScanFilterAndProjectOperator
         return false;
     }
 
+    /**
+     * 只会从数据源中读取，不会接受输入的
+     * @param page
+     */
     @Override
     public final void addInput(Page page)
     {
@@ -228,11 +234,14 @@ public class ScanFilterAndProjectOperator
     @Override
     public Page getOutput()
     {
+        // split为null直接返回null
         if (split == null) {
             return null;
         }
 
+        //
         if (!finishing && pageSource == null && cursor == null) {
+            // 创建Page数据源
             ConnectorPageSource source = pageSourceProvider.createPageSource(operatorContext.getSession(), split, dynamicFilterSupplier.map(table::withDynamicFilter).orElse(table), columns);
             if (source instanceof RecordPageSource) {
                 cursor = ((RecordPageSource) source).getCursor();
@@ -242,9 +251,11 @@ public class ScanFilterAndProjectOperator
             }
         }
 
+        // 如果pageSource不为null，
         if (pageSource != null) {
             return processPageSource();
         }
+        // 如果为空，会生成字节码
         else {
             return processColumnSource();
         }
@@ -254,6 +265,7 @@ public class ScanFilterAndProjectOperator
     {
         DriverYieldSignal yieldSignal = operatorContext.getDriverContext().getYieldSignal();
         if (!finishing && !yieldSignal.isSet()) {
+            // 处理
             CursorProcessorOutput output = cursorProcessor.process(operatorContext.getSession().getSqlFunctionProperties(), yieldSignal, cursor, pageBuilder);
             pageSourceMemoryContext.setBytes(cursor.getSystemMemoryUsage());
 
@@ -274,23 +286,32 @@ public class ScanFilterAndProjectOperator
         return page;
     }
 
+    /**
+     * 处理
+     * @return
+     */
     private Page processPageSource()
     {
         DriverYieldSignal yieldSignal = operatorContext.getDriverContext().getYieldSignal();
         if (!finishing && mergingOutput.needsInput() && !yieldSignal.isSet()) {
+            // 从数据库中查询一个Page
             Page page = pageSource.getNextPage();
 
+            // 是否已经完成
             finishing = pageSource.isFinished();
+            // 设置内存使用
             pageSourceMemoryContext.setBytes(pageSource.getSystemMemoryUsage());
 
             if (page != null) {
                 // update operator stats
+                // 更新算子的统计信息
                 page = recordProcessedInput(page);
 
                 Iterator<Optional<Page>> output = pageProcessor.process(operatorContext.getSession().getSqlFunctionProperties(), yieldSignal, pageProcessorMemoryContext, page);
                 mergingOutput.addInput(output);
             }
 
+            // 已经处理完成
             if (finishing) {
                 mergingOutput.finish();
             }

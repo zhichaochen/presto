@@ -249,7 +249,7 @@ import static java.util.stream.Collectors.counting;
 import static java.util.stream.Collectors.groupingBy;
 
 /**
- * Sql语义    分析器
+ * Sql语义分析器
  */
 class StatementAnalyzer
 {
@@ -1210,10 +1210,17 @@ class StatementAnalyzer
             return createAndAssignScope(node, scope, queryScope.getRelationType());
         }
 
+        /**
+         * 访问查询标准
+         * @param node
+         * @param scope
+         * @return
+         */
         @Override
         protected Scope visitQuerySpecification(QuerySpecification node, Optional<Scope> scope)
         {
             // TODO: extract candidate names from SELECT, WHERE, HAVING, GROUP BY and ORDER BY expressions
+            // 从SELECT、WHERE、HAVING、GROUP BY和ORDER BY表达式中提取候选名称
             // to pass down to analyzeFrom
 
             Scope sourceScope = analyzeFrom(node, scope);
@@ -1832,10 +1839,12 @@ class StatementAnalyzer
         private void checkGroupingSetsCount(GroupBy node)
         {
             // If groupBy is distinct then crossProduct will be overestimated if there are duplicate grouping sets.
+            // 如果groupBy是distinct，那么如果存在重复的分组集，则会高估交叉积。
             int crossProduct = 1;
             for (GroupingElement element : node.getGroupingElements()) {
                 try {
                     int product;
+                    // 简单分组
                     if (element instanceof SimpleGroupBy) {
                         product = 1;
                     }
@@ -1868,6 +1877,13 @@ class StatementAnalyzer
             }
         }
 
+        /**
+         * 分析group by
+         * @param node
+         * @param scope
+         * @param outputExpressions
+         * @return
+         */
         private List<Expression> analyzeGroupBy(QuerySpecification node, Scope scope, List<Expression> outputExpressions)
         {
             if (node.getGroupBy().isPresent()) {
@@ -1879,6 +1895,7 @@ class StatementAnalyzer
 
                 checkGroupingSetsCount(node.getGroupBy().get());
                 for (GroupingElement groupingElement : node.getGroupBy().get().getGroupingElements()) {
+                    // 简单分组
                     if (groupingElement instanceof SimpleGroupBy) {
                         for (Expression column : groupingElement.getExpressions()) {
                             // simple GROUP BY expressions allow ordinals or arbitrary expressions
@@ -2174,12 +2191,21 @@ class StatementAnalyzer
             analysis.setGroupingOperations(node, groupingOperations);
         }
 
+        /**
+         * 分析聚合
+         * @param node
+         * @param outputExpressions
+         * @param orderByExpressions
+         * @return
+         */
         private List<FunctionCall> analyzeAggregations(
                 QuerySpecification node,
                 List<Expression> outputExpressions,
                 List<Expression> orderByExpressions)
         {
+            // 函数列表
             List<FunctionCall> aggregates = extractAggregateFunctions(analysis.getFunctionHandles(), Iterables.concat(outputExpressions, orderByExpressions), metadata.getFunctionAndTypeManager());
+            // 设置聚合列表
             analysis.setAggregates(node, aggregates);
             return aggregates;
         }

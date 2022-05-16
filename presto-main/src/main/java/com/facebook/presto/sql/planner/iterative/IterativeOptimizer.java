@@ -47,6 +47,12 @@ import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
+/**
+ * IterativeOptimizer 和 PlanOptimizer，
+ * 这是优化器的两种不同写法，都可以实现对计划树的优化。
+ *
+ * 这种是通过迭代器的方式进行优化，PlanOptimizer是通过访问者模式进行优化
+ */
 public class IterativeOptimizer
         implements PlanOptimizer
 {

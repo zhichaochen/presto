@@ -19,6 +19,8 @@ import com.facebook.presto.common.type.Type;
 import com.facebook.presto.operator.GroupByIdBlock;
 
 /**
+ * {@link FinalOnlyGroupedAccumulator}是不支持部分聚合的累加器, 这是为了溢出，因此任何底层蓄能器都必须支持溢出
+ *
  * {@link FinalOnlyGroupedAccumulator} is an accumulator that does not support partial aggregation
  * This is for spilling purposes so any underlying accumulator must support spilling
  */

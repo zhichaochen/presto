@@ -23,7 +23,9 @@ import static org.fusesource.jansi.Ansi.ansi;
 import static org.fusesource.jansi.internal.CLibrary.STDOUT_FILENO;
 import static org.fusesource.jansi.internal.CLibrary.isatty;
 
-
+/**
+ * 控制台打印器
+ */
 public class ConsolePrinter
 {
     public static final boolean REAL_TERMINAL = detectRealTerminal();

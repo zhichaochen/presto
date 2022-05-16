@@ -50,14 +50,14 @@ import static java.util.Objects.requireNonNull;
 public final class AggregationNode
         extends PlanNode
 {
-    private final PlanNode source;
-    private final Map<VariableReferenceExpression, Aggregation> aggregations;
-    private final GroupingSetDescriptor groupingSets;
-    private final List<VariableReferenceExpression> preGroupedVariables;
-    private final Step step;
-    private final Optional<VariableReferenceExpression> hashVariable;
-    private final Optional<VariableReferenceExpression> groupIdVariable;
-    private final List<VariableReferenceExpression> outputs;
+    private final PlanNode source; // TODO 这个是source节点，查询数据的节点
+    private final Map<VariableReferenceExpression, Aggregation> aggregations; //
+    private final GroupingSetDescriptor groupingSets; // 分组集合
+    private final List<VariableReferenceExpression> preGroupedVariables; //
+    private final Step step; //
+    private final Optional<VariableReferenceExpression> hashVariable; //
+    private final Optional<VariableReferenceExpression> groupIdVariable; //
+    private final List<VariableReferenceExpression> outputs; // 聚合之后输出的内容
 
     @JsonCreator
     public AggregationNode(
@@ -266,11 +266,14 @@ public final class AggregationNode
         return new GroupingSetDescriptor(groupingKeys, groupingSetCount, globalGroupingSets);
     }
 
+    /**
+     * 分组集合描述器
+     */
     public static class GroupingSetDescriptor
     {
-        private final List<VariableReferenceExpression> groupingKeys;
-        private final int groupingSetCount;
-        private final Set<Integer> globalGroupingSets;
+        private final List<VariableReferenceExpression> groupingKeys; // 分组key，也就是分组字段
+        private final int groupingSetCount; // 有多少分组字段
+        private final Set<Integer> globalGroupingSets; // 
 
         @JsonCreator
         public GroupingSetDescriptor(
@@ -330,12 +333,15 @@ public final class AggregationNode
         }
     }
 
+    /**
+     * 聚合的步骤
+     */
     public enum Step
     {
-        PARTIAL(true, true),
-        FINAL(false, false),
-        INTERMEDIATE(false, true),
-        SINGLE(true, false);
+        PARTIAL(true, true), // 部分聚合
+        FINAL(false, false), // 最终聚合
+        INTERMEDIATE(false, true), // 中间聚合（目前暂时没有用到），intermediate
+        SINGLE(true, false); // 单节点聚合
 
         private final boolean inputRaw;
         private final boolean outputPartial;
@@ -377,6 +383,9 @@ public final class AggregationNode
         }
     }
 
+    /**
+     * 表示一个聚合
+     */
     public static class Aggregation
     {
         private final CallExpression call;

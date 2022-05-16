@@ -29,6 +29,12 @@ import java.util.Optional;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 半连接节点
+ * 半连接通常使用IN  或 EXISTS 作为连接条件
+ * 即在where条件的“IN”中的那个子查询。
+ * SELECT ... FROM outer_tables WHERE expr IN (SELECT ... FROM inner_tables ...) AND ...
+ */
 @Immutable
 public class SemiJoinNode
         extends AbstractJoinNode

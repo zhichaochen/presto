@@ -77,6 +77,9 @@ public class NodeTaskMap
         return nodeTasksMap.computeIfAbsent(node, key -> new NodeTasks(finalizerService));
     }
 
+    /**
+     * worker所有任务
+     */
     private static class NodeTasks
     {
         private final Set<RemoteTask> remoteTasks = Sets.newConcurrentHashSet();

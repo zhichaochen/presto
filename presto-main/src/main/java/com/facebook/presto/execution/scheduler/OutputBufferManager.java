@@ -17,6 +17,9 @@ import com.facebook.presto.execution.buffer.OutputBuffers.OutputBufferId;
 
 import java.util.List;
 
+/**
+ * 输出缓存管理器
+ */
 interface OutputBufferManager
 {
     void addOutputBuffers(List<OutputBufferId> newBuffers, boolean noMoreBuffers);

@@ -17,6 +17,10 @@ import com.facebook.presto.common.Page;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
+/**
+ * join过滤器函数
+ * 进行join时，需要过滤掉不需要的行
+ */
 @NotThreadSafe
 public interface JoinFilterFunction
 {

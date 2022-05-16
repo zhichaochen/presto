@@ -81,10 +81,12 @@ import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
 /**
- * Sql阶段执行器（在协调器端调度任务）
+ * Sql阶段执行，封装了Stage在执行阶段所有的信息。
+ * 用来控制或者跟踪阶段的调度情况
  *
  * 每个阶段会创建一个SqlStageExecution
  * 任务执行器会调用HttpRemoteTask#start，向远程发送一个remote任务。
+ * 其中：scheduleTask方法，会发送一个remote任务
  */
 @ThreadSafe
 public final class SqlStageExecution
@@ -100,20 +102,23 @@ public final class SqlStageExecution
     private final StageExecutionStateMachine stateMachine;
     private final PlanFragment planFragment;
     private final RemoteTaskFactory remoteTaskFactory;
-    private final NodeTaskMap nodeTaskMap;
+    private final NodeTaskMap nodeTaskMap; // Worker节点上的任务映射
     private final boolean summarizeTaskInfo;
     private final Executor executor;
     private final FailureDetector failureDetector;
     private final double maxFailedTaskPercentage;
 
+    // 交换资源节点，key ：段ID，value：RemoteSourceNode
     private final Map<PlanFragmentId, RemoteSourceNode> exchangeSources;
 
     private final TableWriteInfo tableWriteInfo;
 
+    // 某个Worker节点上的任务：key：worker节点，value：任务
     private final Map<InternalNode, Set<RemoteTask>> tasks = new ConcurrentHashMap<>();
 
     @GuardedBy("this")
     private final AtomicInteger nextTaskId = new AtomicInteger();
+    // 当前sql的所有任务
     @GuardedBy("this")
     private final Set<TaskId> allTasks = newConcurrentHashSet();
     @GuardedBy("this")
@@ -126,11 +131,14 @@ public final class SqlStageExecution
     private final Set<Lifespan> finishedLifespans = ConcurrentHashMap.newKeySet();
     private final int totalLifespans;
 
+    // split 是否正在调度中
     @GuardedBy("this")
     private final AtomicBoolean splitsScheduled = new AtomicBoolean();
 
+    // source任务
     @GuardedBy("this")
     private final Multimap<PlanNodeId, RemoteTask> sourceTasks = HashMultimap.create();
+    // 完成source，告诉远程任务，没有split
     @GuardedBy("this")
     private final Set<PlanNodeId> completeSources = newConcurrentHashSet();
     @GuardedBy("this")
@@ -286,12 +294,17 @@ public final class SqlStageExecution
         stateMachine.transitionToSchedulingSplits();
     }
 
+    /**
+     * 调度完成
+     */
     public synchronized void schedulingComplete()
     {
+        // 非事务去调度直接返回
         if (!stateMachine.transitionToScheduled()) {
             return;
         }
 
+        // 下面就是带着事务去调度
         if (getAllTasks().stream().anyMatch(task -> getState() == StageExecutionState.RUNNING)) {
             stateMachine.transitionToRunning();
         }
@@ -304,6 +317,7 @@ public final class SqlStageExecution
         }
     }
 
+    // 如果调度完成，告诉task noMoreSplits
     public synchronized void schedulingComplete(PlanNodeId partitionedSource)
     {
         for (RemoteTask task : getAllTasks()) {
@@ -312,6 +326,10 @@ public final class SqlStageExecution
         completeSources.add(partitionedSource);
     }
 
+    /**
+     * 关闭事务
+     * 关闭远程任务
+     */
     public synchronized void cancel()
     {
         stateMachine.transitionToCanceled();
@@ -370,6 +388,12 @@ public final class SqlStageExecution
                 .collect(toImmutableList());
     }
 
+    /**
+     * 添加交换位置
+     * @param fragmentId
+     * @param sourceTasks
+     * @param noMoreExchangeLocations
+     */
     public synchronized void addExchangeLocations(PlanFragmentId fragmentId, Set<RemoteTask> sourceTasks, boolean noMoreExchangeLocations)
     {
         requireNonNull(fragmentId, "fragmentId is null");
@@ -384,6 +408,7 @@ public final class SqlStageExecution
             ImmutableMultimap.Builder<PlanNodeId, Split> newSplits = ImmutableMultimap.builder();
             for (RemoteTask sourceTask : sourceTasks) {
                 TaskStatus sourceTaskStatus = sourceTask.getTaskStatus();
+                // TODO 使用上游任务的信息，创建下游的Split
                 newSplits.put(remoteSource.getId(), createRemoteSplitFor(task.getTaskId(), sourceTask.getRemoteTaskLocation(), sourceTask.getTaskId()));
             }
             task.addSplits(newSplits.build());
@@ -402,6 +427,10 @@ public final class SqlStageExecution
         }
     }
 
+    /**
+     *
+     * @param outputBuffers
+     */
     public synchronized void setOutputBuffers(OutputBuffers outputBuffers)
     {
         requireNonNull(outputBuffers, "outputBuffers is null");
@@ -459,8 +488,10 @@ public final class SqlStageExecution
      */
     public synchronized Optional<RemoteTask> scheduleTask(InternalNode node, int partition)
     {
+        // 节点不能为null
         requireNonNull(node, "node is null");
 
+        // StageExecution没有完成
         if (stateMachine.getState().isDone()) {
             return Optional.empty();
         }
@@ -468,11 +499,19 @@ public final class SqlStageExecution
         return Optional.of(scheduleTask(node, new TaskId(stateMachine.getStageExecutionId(), partition), ImmutableMultimap.of()));
     }
 
+    /**
+     * 调度Split
+     * @param node ： Worker节点
+     * @param splits ： 计划节点和split的对应关系
+     * @param noMoreSplitsNotification ：
+     * @return
+     */
     public synchronized Set<RemoteTask> scheduleSplits(InternalNode node, Multimap<PlanNodeId, Split> splits, Multimap<PlanNodeId, Lifespan> noMoreSplitsNotification)
     {
         requireNonNull(node, "node is null");
         requireNonNull(splits, "splits is null");
 
+        // 如果已经完成，则返回空集合
         if (stateMachine.getState().isDone()) {
             return ImmutableSet.of();
         }
@@ -483,13 +522,17 @@ public final class SqlStageExecution
         ImmutableSet.Builder<RemoteTask> newTasks = ImmutableSet.builder();
         Collection<RemoteTask> tasks = this.tasks.get(node);
         RemoteTask task;
+        // 如果RemoteTask任务为空，则创建一个任务并调度
         if (tasks == null) {
             // The output buffer depends on the task id starting from 0 and being sequential, since each
             // task is assigned a private buffer based on task id.
+            // 输出缓冲区取决于从0开始的顺序任务id，因为每个任务都根据任务id分配了一个专用缓冲区。
             TaskId taskId = new TaskId(stateMachine.getStageExecutionId(), nextTaskId.getAndIncrement());
+            // TODO
             task = scheduleTask(node, taskId, splits);
             newTasks.add(task);
         }
+        // 如果RemoteTask任务不为空，将splits交给一个任务处理
         else {
             task = tasks.iterator().next();
             task.addSplits(splits);
@@ -500,6 +543,7 @@ public final class SqlStageExecution
             // These kind of methods can be expensive since they are grabbing locks and/or sending HTTP requests on change.
             throw new UnsupportedOperationException("This assumption no longer holds: noMoreSplitsNotification.size() < 1");
         }
+        // 遍历noMoreSplitsNotification，通知远程任务，没有split了
         for (Entry<PlanNodeId, Lifespan> entry : noMoreSplitsNotification.entries()) {
             task.noMoreSplits(entry.getKey(), entry.getValue());
         }
@@ -518,16 +562,19 @@ public final class SqlStageExecution
         checkArgument(!allTasks.contains(taskId), "A task with id %s already exists", taskId);
 
         ImmutableMultimap.Builder<PlanNodeId, Split> initialSplits = ImmutableMultimap.builder();
+        //
         initialSplits.putAll(sourceSplits);
 
-        // 遍历计划节点
+        // 遍历一个任务的所有split
         sourceTasks.forEach((planNodeId, task) -> {
             TaskStatus status = task.getTaskStatus();
+            // 如果任务没有完成
             if (status.getState() != TaskState.FINISHED) {
                 initialSplits.put(planNodeId, createRemoteSplitFor(taskId, task.getRemoteTaskLocation(), task.getTaskId()));
             }
         });
 
+        // 输出缓存
         OutputBuffers outputBuffers = this.outputBuffers.get();
         checkState(outputBuffers != null, "Initial output buffers must be set before a task can be scheduled");
 
@@ -544,18 +591,22 @@ public final class SqlStageExecution
                 summarizeTaskInfo,
                 tableWriteInfo);
 
+        // 遍历
         completeSources.forEach(task::noMoreSplits);
 
+        // 添加当前任务到所有任务
         allTasks.add(taskId);
+        // 添加到某个Worker节点的任务
         tasks.computeIfAbsent(node, key -> newConcurrentHashSet()).add(task);
+        // 添加至节点和任务的映射
         nodeTaskMap.addTask(node, task);
 
+        // 添加任务状态改变监听器
         task.addStateChangeListener(new StageTaskListener(taskId));
+        // 添加remote任务完成监听器
         task.addFinalTaskInfoListener(this::updateFinalTaskInfo);
 
-        /**
-         * 启动任务
-         */
+        // TODO 启动任务
         if (!stateMachine.getState().isDone()) {
             task.start();
         }

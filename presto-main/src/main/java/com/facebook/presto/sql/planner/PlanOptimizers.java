@@ -145,6 +145,9 @@ import java.util.Set;
 import static com.facebook.presto.sql.planner.ConnectorPlanOptimizerManager.PlanPhase.LOGICAL;
 import static com.facebook.presto.sql.planner.ConnectorPlanOptimizerManager.PlanPhase.PHYSICAL;
 
+/**
+ * 优化器的一个工具类
+ */
 public class PlanOptimizers
 {
     private final List<PlanOptimizer> planningTimeOptimizers;
@@ -212,10 +215,12 @@ public class PlanOptimizers
         this.exporter = exporter;
         ImmutableList.Builder<PlanOptimizer> builder = ImmutableList.builder();
 
+        // 谓词下推规则
         Set<Rule<?>> predicatePushDownRules = ImmutableSet.of(
                 new MergeFilters());
 
         // TODO: Once we've migrated handling all the plan node types, replace uses of PruneUnreferencedOutputs with an IterativeOptimizer containing these rules.
+        // 修剪规则集合
         Set<Rule<?>> columnPruningRules = ImmutableSet.of(
                 new PruneAggregationColumns(),
                 new PruneAggregationSourceColumns(),

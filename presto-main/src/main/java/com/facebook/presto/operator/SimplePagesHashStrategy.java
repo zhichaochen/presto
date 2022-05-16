@@ -37,6 +37,9 @@ import static com.facebook.presto.util.Failures.internalError;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 简单的Page hash策略
+ */
 public class SimplePagesHashStrategy
         implements PagesHashStrategy
 {

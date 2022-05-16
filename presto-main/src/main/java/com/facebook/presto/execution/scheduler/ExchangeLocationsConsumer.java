@@ -19,7 +19,11 @@ import com.facebook.presto.sql.planner.plan.PlanFragmentId;
 
 import java.util.Set;
 
+/**
+ * 交换位置消费者
+ */
 public interface ExchangeLocationsConsumer
 {
+    // 添加交换位置
     void addExchangeLocations(PlanFragmentId fragmentId, Set<RemoteTask> tasks, boolean noMoreExchangeLocations);
 }

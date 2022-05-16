@@ -13,8 +13,15 @@
  */
 package com.facebook.presto.operator;
 
+/**
+ * 管道执行策略
+ */
 public enum PipelineExecutionStrategy
 {
+    // 非分组执行
     UNGROUPED_EXECUTION,
+    // 分组执行
     GROUPED_EXECUTION,
+
+    // 这两种策略有什么详细不同呢？
 }

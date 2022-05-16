@@ -18,6 +18,9 @@ import com.facebook.presto.spi.PrestoWarning;
 import java.net.URI;
 import java.util.List;
 
+/**
+ * 查询状态接口
+ */
 public interface QueryStatusInfo
 {
     String getId();

@@ -24,22 +24,28 @@ import java.util.Optional;
 import static java.lang.Math.toIntExact;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * Hash表的承载类
+ */
+// 此实现假定哈希中使用的数组总是2的幂
 // This implementation assumes arrays used in the hash are always a power of 2
 public final class JoinHash
         implements LookupSource
 {
     private static final int INSTANCE_SIZE = ClassLayout.parseClass(JoinHash.class).instanceSize();
-    private final PagesHash pagesHash;
+    private final PagesHash pagesHash; //
 
     // we unwrap Optional<JoinFilterFunction> to actual verifier or null in constructor for performance reasons
     // we do quick check for `filterFunction == null` in `isJoinPositionEligible` to avoid calls to applyFilterFunction
+    // 出于性能原因，我们将可选的<JoinFilterFunction>解包到实际验证器或构造函数中的null，
+    // 并在`IsJoinPositionQualified`中快速检查`filterFunction==null`以避免调用applyFilterFunction
     @Nullable
-    private final JoinFilterFunction filterFunction;
+    private final JoinFilterFunction filterFunction; // 过滤函数
 
     // we unwrap Optional<PositionLinks> to actual position links or null in constructor for performance reasons
     // we do quick check for `positionLinks == null` to avoid calls to positionLinks
     @Nullable
-    private final PositionLinks positionLinks;
+    private final PositionLinks positionLinks; // 关联表的位置链接
 
     public JoinHash(PagesHash pagesHash, Optional<JoinFilterFunction> filterFunction, Optional<PositionLinks> positionLinks)
     {

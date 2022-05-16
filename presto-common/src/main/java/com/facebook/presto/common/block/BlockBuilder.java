@@ -17,7 +17,8 @@ import io.airlift.slice.Slice;
 import io.airlift.slice.SliceInput;
 
 /**
- * 一列数据构建器
+ * Block构建器，用于构建一个Block对象
+ * 有了PageBuilder, 一个page包含多个block，所以也需要有BlockBuilder
  */
 public interface BlockBuilder
         extends Block

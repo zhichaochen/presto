@@ -23,16 +23,24 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * 用于存储presto的节点信息
+ * 节点映射
+ * 用于存储presto集群中的节点信息
  */
 public class NodeMap
 {
+    // 活跃节点map，key：节点ID，value：活跃的节点
     private final Map<String, InternalNode> activeNodesByNodeId;
+    // 活跃工作节点，网路地址和内部映射
     private final SetMultimap<NetworkLocation, InternalNode> activeWorkersByNetworkPath;
+    // 协调器节点ID
     private final Set<String> coordinatorNodeIds;
+    // 活跃的节点列表
     private final List<InternalNode> activeNodes;
+    // 所有节点列表
     private final List<InternalNode> allNodes;
+    // Host和节点的映射
     private final SetMultimap<InetAddress, InternalNode> allNodesByHost;
+    // Host、port和节点的映射
     private final SetMultimap<HostAddress, InternalNode> allNodesByHostAndPort;
 
     public NodeMap(

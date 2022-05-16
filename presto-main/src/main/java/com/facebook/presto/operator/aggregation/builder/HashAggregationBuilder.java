@@ -19,23 +19,34 @@ import com.facebook.presto.operator.Work;
 import com.facebook.presto.operator.WorkProcessor;
 import com.google.common.util.concurrent.ListenableFuture;
 
+/**
+ * Hash聚合构建器
+ */
 public interface HashAggregationBuilder
         extends AutoCloseable
 {
+    // 处理每一页数据
     Work<?> processPage(Page page);
 
+    // 构建结构
     WorkProcessor<Page> buildResult();
 
+    // 是否溢出
     boolean isFull();
 
+    // 更新内存的使用情况
     void updateMemory();
 
+    // 记录哈希冲突
     void recordHashCollisions(HashCollisionsCounter hashCollisionsCounter);
 
+    // 关闭
     @Override
     void close();
 
+    // 开始内存回收
     ListenableFuture<?> startMemoryRevoke();
 
+    // 完成内存回收
     void finishMemoryRevoke();
 }

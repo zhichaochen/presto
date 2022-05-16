@@ -21,16 +21,19 @@ import java.util.Optional;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 函数调用，表示sql中使用到的函数
+ */
 public class FunctionCall
         extends Expression
 {
-    private final QualifiedName name;
-    private final Optional<Window> window;
-    private final Optional<Expression> filter;
-    private final Optional<OrderBy> orderBy;
-    private final boolean distinct;
-    private final boolean ignoreNulls;
-    private final List<Expression> arguments;
+    private final QualifiedName name; // 限定名
+    private final Optional<Window> window; // 窗口函数
+    private final Optional<Expression> filter; // 过滤函数
+    private final Optional<OrderBy> orderBy; // 排序函数
+    private final boolean distinct; // 是否去重
+    private final boolean ignoreNulls; //
+    private final List<Expression> arguments; // 参数列表
 
     public FunctionCall(QualifiedName name, List<Expression> arguments)
     {

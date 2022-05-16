@@ -43,6 +43,9 @@ import static com.google.common.collect.ImmutableList.toImmutableList;
 import static com.google.common.util.concurrent.Futures.immediateFuture;
 import static java.lang.Math.max;
 
+/**
+ * 可溢出Hash聚合构建起（我理解可以将中间结果写入磁盘？？）
+ */
 public class SpillableHashAggregationBuilder
         implements HashAggregationBuilder
 {

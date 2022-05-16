@@ -46,6 +46,9 @@ import java.util.stream.Collectors;
 import static org.antlr.v4.runtime.atn.ATNState.BLOCK_START;
 import static org.antlr.v4.runtime.atn.ATNState.RULE_START;
 
+/**
+ * 错误处理器
+ */
 class ErrorHandler
         extends BaseErrorListener
 {

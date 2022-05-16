@@ -59,6 +59,10 @@ import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * http请求的客户端
+ * 在ExchangeClient中，如果判断是http请求，则会创建当前客户端
+ */
 @ThreadSafe
 public final class HttpRpcShuffleClient
         implements RpcShuffleClient

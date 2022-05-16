@@ -20,6 +20,9 @@ import java.util.stream.IntStream;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 桶分区函数
+ */
 public class BucketPartitionFunction
         implements PartitionFunction
 {

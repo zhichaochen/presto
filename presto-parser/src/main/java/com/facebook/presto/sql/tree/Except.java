@@ -22,6 +22,9 @@ import java.util.Optional;
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * EXCEPT是指在第一个集合中存在，但是不存在于第二个集合中的数据。
+ */
 public class Except
         extends SetOperation
 {

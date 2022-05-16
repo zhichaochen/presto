@@ -31,7 +31,7 @@ import static com.google.common.util.concurrent.MoreExecutors.directExecutor;
 import static java.util.Objects.requireNonNull;
 
 /**
- * 连接器感知划分数据源（本质上来说通过）
+ * 连接器感知分片数据（本质上来说通过）
  * 比如：ES 使用的就是 FixedSplitSource
  */
 public class ConnectorAwareSplitSource
@@ -76,10 +76,10 @@ public class ConnectorAwareSplitSource
     @Override
     public ListenableFuture<SplitBatch> getNextBatch(ConnectorPartitionHandle partitionHandle, Lifespan lifespan, int maxSize)
     {
-        // 下一批次
+        // 获取下一批次
         ListenableFuture<ConnectorSplitBatch> nextBatch = toListenableFuture(source.getNextBatch(partitionHandle, maxSize));
         return Futures.transform(nextBatch, splitBatch -> {
-            //
+            // 遍历split，封装SplitBatch对象。
             ImmutableList.Builder<Split> result = ImmutableList.builder();
             for (ConnectorSplit connectorSplit : splitBatch.getSplits()) {
                 result.add(new Split(connectorId, transactionHandle, connectorSplit, lifespan, NON_CACHEABLE));

@@ -202,7 +202,7 @@ public class LogicalPlanner
 
         // 如果不是创建阶段
         if (stage.ordinal() >= Stage.OPTIMIZED.ordinal()) {
-            // 遍历所有优化器，优化执行计划
+            // 遍历所有优化器，优化逻辑计划
             for (PlanOptimizer optimizer : planOptimizers) {
                 root = optimizer.optimize(root, session, variableAllocator.getTypes(), variableAllocator, idAllocator, warningCollector);
                 requireNonNull(root, format("%s returned a null plan", optimizer.getClass().getName()));
@@ -220,6 +220,12 @@ public class LogicalPlanner
         return new Plan(root, types, computeStats(root, types));
     }
 
+    /**
+     * 计算统计信息
+     * @param root
+     * @param types
+     * @return
+     */
     private StatsAndCosts computeStats(PlanNode root, TypeProvider types)
     {
         if (explain || isPrintStatsForNonJoinQuery(session) ||
@@ -569,7 +575,12 @@ public class LogicalPlanner
         return new RelationPlan(commitNode, analysis.getScope(node), commitNode.getOutputVariables());
     }
 
-
+    /**
+     * 创建 OutputNode
+     * @param plan
+     * @param analysis
+     * @return
+     */
     private PlanNode createOutputPlan(RelationPlan plan, Analysis analysis)
     {
         ImmutableList.Builder<VariableReferenceExpression> outputs = ImmutableList.builder();

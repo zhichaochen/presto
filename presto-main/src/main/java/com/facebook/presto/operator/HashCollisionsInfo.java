@@ -17,6 +17,9 @@ import com.facebook.presto.util.Mergeable;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+/**
+ * hash冲突信息
+ */
 public class HashCollisionsInfo
         implements Mergeable<HashCollisionsInfo>, OperatorInfo
 {
@@ -24,9 +27,9 @@ public class HashCollisionsInfo
     public static final String WEIGHTED_SUM_SQUARED_HASH_COLLISIONS = "weightedSumSquaredHashCollisions";
     public static final String WEIGHTED_EXPECTED_HASH_COLLISIONS = "weightedExpectedHashCollisions";
 
-    private final double weightedHashCollisions;
-    private final double weightedSumSquaredHashCollisions;
-    private final double weightedExpectedHashCollisions;
+    private final double weightedHashCollisions; // 加权hash冲突
+    private final double weightedSumSquaredHashCollisions; // 加权平方求和hash冲突
+    private final double weightedExpectedHashCollisions; // 加权预期hash冲突
 
     public static HashCollisionsInfo createHashCollisionsInfo(
             long inputPositionsCount, double hashCollisionsCount, double expectedHashCollisions)

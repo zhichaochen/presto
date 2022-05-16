@@ -27,17 +27,21 @@ import static java.util.Objects.requireNonNull;
 public interface ConnectorSplitSource
         extends Closeable
 {
+    // 获取下一批次split
     CompletableFuture<ConnectorSplitBatch> getNextBatch(ConnectorPartitionHandle partitionHandle, int maxSize);
 
+    // 倒带
     default void rewind(ConnectorPartitionHandle partitionHandle)
     {
         throw new UnsupportedOperationException("rewind is not supported in this ConnectorSplitSource");
     }
 
+    // 关闭
     @Override
     void close();
 
     /**
+     * 所有批次是否已经获取完毕
      * Returns whether any more {@link ConnectorSplit} may be produced.
      * <p>
      * This method should only be called when there has been no invocation of getNextBatch,
@@ -47,6 +51,9 @@ public interface ConnectorSplitSource
      */
     boolean isFinished();
 
+    /**
+     * 连接器的split批次
+     */
     class ConnectorSplitBatch
     {
         private final List<ConnectorSplit> splits;

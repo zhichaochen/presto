@@ -22,7 +22,7 @@ import com.facebook.presto.spi.TableHandle;
 import java.util.List;
 
 /**
- * 也就是获取数据源
+ * 也就是创建不同的数据源
  */
 public interface PageSourceProvider
 {

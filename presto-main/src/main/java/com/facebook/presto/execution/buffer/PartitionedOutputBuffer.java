@@ -42,6 +42,10 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 分区输出缓冲区
+ * 每一个Page进来，只会分到指定的一个ClientBuffer中，移除的时候直接减去就行了。
+ */
 public class PartitionedOutputBuffer
         implements OutputBuffer
 {

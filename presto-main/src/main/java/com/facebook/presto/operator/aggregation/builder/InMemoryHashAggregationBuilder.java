@@ -53,14 +53,17 @@ import static com.facebook.presto.operator.GroupByHash.createGroupByHash;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 在内存hash聚合构建器
+ */
 public class InMemoryHashAggregationBuilder
         implements HashAggregationBuilder
 {
     private final GroupByHash groupByHash;
-    private final List<Aggregator> aggregators;
+    private final List<Aggregator> aggregators; // 聚合列表
     private final OperatorContext operatorContext;
     private final boolean partial;
-    private final OptionalLong maxPartialMemory;
+    private final OptionalLong maxPartialMemory; //
     private final LocalMemoryContext systemMemoryContext;
     private final LocalMemoryContext localUserMemoryContext;
     private final boolean useSystemMemory;
@@ -121,6 +124,7 @@ public class InMemoryHashAggregationBuilder
                 return true;
             };
         }
+        // 创建GroupByHash
         this.groupByHash = createGroupByHash(
                 groupByTypes,
                 Ints.toArray(groupByChannels),
@@ -137,6 +141,7 @@ public class InMemoryHashAggregationBuilder
         this.useSystemMemory = useSystemMemory;
 
         // wrapper each function with an aggregator
+        // TODO 用聚合器包装每个函数
         ImmutableList.Builder<Aggregator> builder = ImmutableList.builder();
         requireNonNull(accumulatorFactories, "accumulatorFactories is null");
         for (int i = 0; i < accumulatorFactories.size(); i++) {
@@ -156,16 +161,25 @@ public class InMemoryHashAggregationBuilder
         updateMemory(0);
     }
 
+    /**
+     * 返回处理Page的Work
+     * @param page
+     * @return
+     */
     @Override
     public Work<?> processPage(Page page)
     {
+        // 如果聚合器列表为空，直接加入
         if (aggregators.isEmpty()) {
             return groupByHash.addPage(page);
         }
         else {
+            //
             return new TransformWork<>(
                     groupByHash.getGroupIds(page),
+                    // 转换函数
                     groupByIdBlock -> {
+                        // 遍历所有聚合器，处理page
                         for (Aggregator aggregator : aggregators) {
                             aggregator.processPage(groupByIdBlock, page);
                         }
@@ -317,6 +331,7 @@ public class InMemoryHashAggregationBuilder
     }
 
     /**
+     * 使用所需的额外内存更新内存使用情况。
      * Update memory usage with extra memory needed.
      *
      * @return true to if the reservation is within the limit
@@ -326,9 +341,12 @@ public class InMemoryHashAggregationBuilder
     // The following implementation is a hybrid model, where the push model is going to call the pull model causing reentrancy
     private boolean updateMemoryWithYieldInfo()
     {
+        //
         long memorySize = getSizeInMemory();
         if (partial && maxPartialMemory.isPresent()) {
             updateMemory(memorySize);
+            // 如果超出最大内存，会将其置为full置为true。
+            // 进而控制getOutput方法把积攒的内存数据进行输出，腾出内存空间。
             full = (memorySize > maxPartialMemory.getAsLong());
             return true;
         }
@@ -384,11 +402,14 @@ public class InMemoryHashAggregationBuilder
         };
     }
 
+    /**
+     * 聚合对象
+     */
     private static class Aggregator
     {
-        private final GroupedAccumulator aggregation;
-        private AggregationNode.Step step;
-        private final int intermediateChannel;
+        private final GroupedAccumulator aggregation; // 分组累加器
+        private AggregationNode.Step step; // 聚合步骤
+        private final int intermediateChannel; // 中间通道
 
         private Aggregator(
                 AccumulatorFactory accumulatorFactory,
@@ -427,9 +448,15 @@ public class InMemoryHashAggregationBuilder
             }
         }
 
+        /**
+         * transform work 处理 page
+         * @param groupIds
+         * @param page
+         */
         public void processPage(GroupByIdBlock groupIds, Page page)
         {
             if (step.isInputRaw()) {
+                //
                 aggregation.addInput(groupIds, page);
             }
             else {

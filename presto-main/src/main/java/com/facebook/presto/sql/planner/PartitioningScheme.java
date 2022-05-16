@@ -30,15 +30,15 @@ import static java.util.Objects.requireNonNull;
 
 /**
  * 分区方案
+ * 这表示了一个分区的最终方案
  */
 public class PartitioningScheme
 {
-    // 分区接口
-    private final Partitioning partitioning;
-    private final List<VariableReferenceExpression> outputLayout;
-    private final Optional<VariableReferenceExpression> hashColumn;
-    private final boolean replicateNullsAndAny;
-    private final Optional<int[]> bucketToPartition;
+    private final Partitioning partitioning;  // 分区对象
+    private final List<VariableReferenceExpression> outputLayout; // 输出布局
+    private final Optional<VariableReferenceExpression> hashColumn; //
+    private final boolean replicateNullsAndAny; //
+    private final Optional<int[]> bucketToPartition; //
 
     public PartitioningScheme(Partitioning partitioning, List<VariableReferenceExpression> outputLayout)
     {

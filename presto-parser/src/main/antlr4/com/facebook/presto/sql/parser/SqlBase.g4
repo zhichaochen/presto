@@ -22,6 +22,8 @@ singleStatement
     : statement EOF
     ;
 
+
+
 standaloneExpression
     : expression EOF
     ;
@@ -517,6 +519,7 @@ privilege
     : SELECT | DELETE | INSERT | identifier
     ;
 
+// 限定名
 qualifiedName
     : identifier ('.' identifier)*
     ;

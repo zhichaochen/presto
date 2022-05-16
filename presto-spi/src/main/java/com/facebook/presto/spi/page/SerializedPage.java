@@ -23,6 +23,9 @@ import static com.facebook.presto.spi.page.PageCodecMarker.ENCRYPTED;
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 序列化的Page
+ */
 public class SerializedPage
 {
     private static final int INSTANCE_SIZE = ClassLayout.parseClass(SerializedPage.class).instanceSize();

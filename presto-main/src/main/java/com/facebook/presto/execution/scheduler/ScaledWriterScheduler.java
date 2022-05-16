@@ -37,6 +37,13 @@ import static com.facebook.presto.util.Failures.checkCondition;
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
+/**
+ * 调度 SCALED_WRITER_DISTRIBUTION 阶段的任务
+ * 需要把数据写出到外部存储时，选择创建ScaledWriterScheduler调度器
+ * 其使用的节点选择策略同样为TopologyAwareNodeSelector，其主要是通过nodeSelector.selectRandomNodes随机选择节点进行分配。
+ *
+ * 参考：https://blog.csdn.net/qq_27639777/article/details/119596380
+ */
 public class ScaledWriterScheduler
         implements StageScheduler
 {

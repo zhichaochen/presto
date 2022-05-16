@@ -31,11 +31,17 @@ import static com.facebook.presto.SystemSessionProperties.isExchangeChecksumEnab
 import static com.facebook.presto.SystemSessionProperties.isExchangeCompressionEnabled;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * Http类型的远程资源工厂
+ */
 public class HttpRemoteSourceFactory
         implements RemoteSourceFactory
 {
+    // Block编解码器
     private final BlockEncodingSerde blockEncodingSerde;
+    // 任务客户端管理器
     private final TaskExchangeClientManager taskExchangeClientManager;
+    // 排序编译器
     private final OrderingCompiler orderingCompiler;
 
     public HttpRemoteSourceFactory(BlockEncodingSerde blockEncodingSerde, TaskExchangeClientManager taskExchangeClientManager, OrderingCompiler orderingCompiler)

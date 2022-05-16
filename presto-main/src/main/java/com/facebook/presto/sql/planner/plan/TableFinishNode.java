@@ -31,6 +31,10 @@ import static com.facebook.presto.sql.planner.plan.TableWriterNode.WriterTarget;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 完成节点
+ * 可能表示查询完成、写入表数据完成等
+ */
 @Immutable
 public class TableFinishNode
         extends InternalPlanNode

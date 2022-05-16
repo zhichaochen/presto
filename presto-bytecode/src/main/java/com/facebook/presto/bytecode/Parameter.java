@@ -17,6 +17,7 @@ import javax.annotation.concurrent.Immutable;
 
 /**
  * 参数
+ * 表示某个参数的信息
  */
 @Immutable
 public class Parameter

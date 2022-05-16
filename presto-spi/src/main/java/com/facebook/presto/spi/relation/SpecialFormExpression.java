@@ -27,6 +27,9 @@ import static java.util.Collections.unmodifiableList;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 
+/**
+ * 特殊形式表达
+ */
 @Immutable
 public class SpecialFormExpression
         extends RowExpression

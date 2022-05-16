@@ -13,6 +13,9 @@
  */
 package com.facebook.presto.sql.parser;
 
+/**
+ * 任务符号，用于识别用户名密码
+ */
 public enum IdentifierSymbol
 {
     COLON(':'),

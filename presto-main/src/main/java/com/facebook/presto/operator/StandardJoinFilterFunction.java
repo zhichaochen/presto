@@ -23,6 +23,9 @@ import static com.facebook.presto.operator.SyntheticAddress.decodePosition;
 import static com.facebook.presto.operator.SyntheticAddress.decodeSliceIndex;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 标准的JOIN过滤器函数
+ */
 public class StandardJoinFilterFunction
         implements JoinFilterFunction
 {

@@ -30,12 +30,14 @@ import static java.util.Objects.requireNonNull;
 
 /**
  * 远程切分
+ * 区分与SourceSplit，RemoteSplit是从上游stage的split所在节点拉取的split，所以需要知道拉取的位置
+ *
  */
 public class RemoteSplit
         implements ConnectorSplit
 {
-    private final Location location;
-    private final TaskId remoteSourceTaskId;
+    private final Location location; // 远程的Split所在的Worker url
+    private final TaskId remoteSourceTaskId; // 远程任务ID。
 
     @JsonCreator
     public RemoteSplit(@JsonProperty("location") Location location, @JsonProperty("remoteSourceTaskId") TaskId remoteSourceTaskId)

@@ -30,7 +30,7 @@ import static java.util.Objects.requireNonNull;
 public class Variable
         extends BytecodeExpression
 {
-    private final String name;
+    private final String name; // 变量名
 
     public Variable(String name, ParameterizedType type)
     {

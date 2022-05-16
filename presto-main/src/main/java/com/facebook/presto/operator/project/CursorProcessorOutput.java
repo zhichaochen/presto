@@ -18,8 +18,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 public class CursorProcessorOutput
 {
-    private final int processedRows;
-    private final boolean finished;
+    private final int processedRows; // 处理的行数
+    private final boolean finished; // 是否处理完成
 
     public CursorProcessorOutput(int processedRows, boolean finished)
     {

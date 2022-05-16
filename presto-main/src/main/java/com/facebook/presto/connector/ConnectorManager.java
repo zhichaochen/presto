@@ -90,7 +90,7 @@ import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 
 /**
- * 连接管理器
+ * 连接器管理器
  */
 @ThreadSafe
 public class ConnectorManager
@@ -228,6 +228,13 @@ public class ConnectorManager
         return connectorId;
     }
 
+    /**
+     * 添加不同种类的连接器
+     * @param catalogName
+     * @param connectorId
+     * @param factory
+     * @param properties
+     */
     private synchronized void addCatalogConnector(String catalogName, ConnectorId connectorId, ConnectorFactory factory, Map<String, String> properties)
     {
         // create all connectors before adding, so a broken connector does not leave the system half updated

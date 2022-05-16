@@ -53,6 +53,9 @@ import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.ImmutableList.toImmutableList;
 import static java.util.Objects.requireNonNull;
 
+/**
+ *
+ */
 public class BroadcastOutputBuffer
         implements OutputBuffer
 {

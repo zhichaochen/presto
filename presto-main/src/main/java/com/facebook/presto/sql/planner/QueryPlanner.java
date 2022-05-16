@@ -113,7 +113,7 @@ class QueryPlanner
     private final Map<NodeRef<LambdaArgumentDeclaration>, VariableReferenceExpression> lambdaDeclarationToVariableMap;
     private final Metadata metadata;
     private final Session session;
-    private final SubqueryPlanner subqueryPlanner;
+    private final SubqueryPlanner subqueryPlanner; // 子查询计划器
 
 
     QueryPlanner(
@@ -183,7 +183,7 @@ class QueryPlanner
 
         // where
         builder = filter(builder, analysis.getWhere(node), node);
-        // group by
+        // group by 聚合操作
         builder = aggregate(builder, node);
         // having
         builder = filter(builder, analysis.getHaving(node), node);
@@ -331,6 +331,11 @@ class QueryPlanner
         return planBuilderFor(new RelationPlan(builder.getRoot(), scope, builder.getRoot().getOutputVariables()));
     }
 
+    /**
+     *
+     * @param relationPlan
+     * @return
+     */
     private PlanBuilder planBuilderFor(RelationPlan relationPlan)
     {
         TranslationMap translations = new TranslationMap(relationPlan, analysis, lambdaDeclarationToVariableMap);
@@ -469,16 +474,26 @@ class QueryPlanner
                 LOCAL));
     }
 
+    /**
+     * 聚合，在这里会生成聚合算子
+     * @param subPlan
+     * @param node
+     * @return
+     */
     private PlanBuilder aggregate(PlanBuilder subPlan, QuerySpecification node)
     {
+        // 判断是否是聚合节点
         if (!analysis.isAggregation(node)) {
             return subPlan;
         }
 
         // 1. Pre-project all scalar inputs (arguments and non-trivial group by expressions)
+        // 预投影所有标量输入（参数和非平凡分组表达式）
         Set<Expression> groupByExpressions = ImmutableSet.copyOf(analysis.getGroupByExpressions(node));
 
+        // 参数列表
         ImmutableList.Builder<Expression> arguments = ImmutableList.builder();
+        //
         analysis.getAggregates(node).stream()
                 .map(FunctionCall::getArguments)
                 .flatMap(List::stream)
@@ -495,6 +510,7 @@ class QueryPlanner
                 .forEach(arguments::add);
 
         // filter expressions need to be projected first
+        // 首先需要投影过滤表达式
         analysis.getAggregates(node).stream()
                 .map(FunctionCall::getFilter)
                 .filter(Optional::isPresent)
@@ -502,15 +518,17 @@ class QueryPlanner
                 .forEach(arguments::add);
 
         Iterable<Expression> inputs = Iterables.concat(groupByExpressions, arguments.build());
+        // 处理子查询
         subPlan = handleSubqueries(subPlan, node, inputs);
 
+        // 如果唯一的聚合是COUNT（没有参数），请避免空投影
         if (!Iterables.isEmpty(inputs)) { // avoid an empty projection if the only aggregation is COUNT (which has no arguments)
             subPlan = project(subPlan, inputs);
         }
 
         // 2. Aggregate
-
         // 2.a. Rewrite aggregate arguments
+        // 2.a 重写聚合参数
         TranslationMap argumentTranslations = new TranslationMap(subPlan.getRelationPlan(), analysis, lambdaDeclarationToVariableMap);
 
         ImmutableList.Builder<VariableReferenceExpression> aggregationArgumentsBuilder = ImmutableList.builder();
@@ -522,6 +540,7 @@ class QueryPlanner
         List<VariableReferenceExpression> aggregationArguments = aggregationArgumentsBuilder.build();
 
         // 2.b. Rewrite grouping columns
+        // 2.b. 重写分组列
         TranslationMap groupingTranslations = new TranslationMap(subPlan.getRelationPlan(), analysis, lambdaDeclarationToVariableMap);
         Map<VariableReferenceExpression, VariableReferenceExpression> groupingSetMappings = new LinkedHashMap<>();
 
@@ -537,6 +556,7 @@ class QueryPlanner
         List<Set<FieldId>> columnOnlyGroupingSets = ImmutableList.of(ImmutableSet.of());
         List<List<VariableReferenceExpression>> groupingSets = ImmutableList.of(ImmutableList.of());
 
+        // 如果存在group by语句
         if (node.getGroupBy().isPresent()) {
             // For the purpose of "distinct", we need to canonicalize column references that may have varying
             // syntactic forms (e.g., "t.a" vs "a"). Thus we need to enumerate grouping sets based on the underlying
@@ -545,6 +565,14 @@ class QueryPlanner
             // The catch is that simple group-by expressions can be arbitrary expressions (this is a departure from the SQL specification).
             // But, they don't affect the number of grouping sets or the behavior of "distinct" . We can compute all the candidate
             // grouping sets in terms of fieldId, dedup as appropriate and then cross-join them with the complex expressions.
+
+            /**
+             * 为了“distinct”，我们需要规范化可能具有不同语法形式的列引用（例如，“t.a”vs“a”）。
+             * 因此，我们需要根据与每个列引用表达式关联的基础fieldId枚举分组集。
+             *
+             * 问题在于，简单的group by表达式可以是任意表达式（这与SQL规范不同）。但是，它们不会影响分组集的数量或“不同”的行为。
+             * 我们可以根据fieldId计算所有候选分组集，根据需要进行重复数据消除，然后用复杂表达式交叉连接它们。
+             */
             Analysis.GroupingSetAnalysis groupingSetAnalysis = analysis.getGroupingSets(node);
             columnOnlyGroupingSets = enumerateGroupingSets(groupingSetAnalysis);
 
@@ -573,6 +601,7 @@ class QueryPlanner
         }
 
         // 2.c. Generate GroupIdNode (multiple grouping sets) or ProjectNode (single grouping set)
+        // 生成GroupIdNode（多个分组集）或ProjectNode（单个分组集）
         Optional<VariableReferenceExpression> groupIdVariable = Optional.empty();
         if (groupingSets.size() > 1) {
             groupIdVariable = Optional.of(variableAllocator.newVariable("groupId", BIGINT));
@@ -628,6 +657,7 @@ class QueryPlanner
             }
         }
 
+        // 分组key
         ImmutableList.Builder<VariableReferenceExpression> groupingKeys = ImmutableList.builder();
         groupingSets.stream()
                 .flatMap(List::stream)
@@ -635,10 +665,12 @@ class QueryPlanner
                 .forEach(groupingKeys::add);
         groupIdVariable.ifPresent(groupingKeys::add);
 
+        // 创建AggregationNode
         AggregationNode aggregationNode = new AggregationNode(
                 idAllocator.getNextId(),
                 subPlan.getRoot(),
                 aggregations,
+                // 构建分组集合
                 groupingSets(
                         groupingKeys.build(),
                         groupingSets.size(),
@@ -650,7 +682,7 @@ class QueryPlanner
 
         subPlan = new PlanBuilder(aggregationTranslations, aggregationNode);
 
-        // 3. Post-projection
+        // 3. Post-projection 后置projection
         // Add back the implicit casts that we removed in 2.a
         // TODO: this is a hack, we should change type coercions to coerce the inputs to functions/operators instead of coercing the output
         if (needPostProjectionCoercion) {

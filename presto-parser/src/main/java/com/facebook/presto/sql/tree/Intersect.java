@@ -23,7 +23,7 @@ import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
 /**
- * 交集
+ * 交集节点
  */
 public class Intersect
         extends SetOperation

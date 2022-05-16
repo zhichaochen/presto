@@ -29,13 +29,16 @@ import static java.util.Objects.requireNonNull;
  */
 public class ScheduleResult
 {
+    /**
+     * 阻塞原因
+     */
     public enum BlockedReason
     {
-        WRITER_SCALING,
-        NO_ACTIVE_DRIVER_GROUP,
-        SPLIT_QUEUES_FULL,
-        WAITING_FOR_SOURCE,
-        MIXED_SPLIT_QUEUES_FULL_AND_WAITING_FOR_SOURCE,
+        WRITER_SCALING, // 写入器缩放中，
+        NO_ACTIVE_DRIVER_GROUP, // 没有活跃的驱动组
+        SPLIT_QUEUES_FULL, // split队列满了
+        WAITING_FOR_SOURCE, // 正在等待数据源
+        MIXED_SPLIT_QUEUES_FULL_AND_WAITING_FOR_SOURCE, //
         /**/;
 
         public BlockedReason combineWith(BlockedReason other)
@@ -57,17 +60,19 @@ public class ScheduleResult
         }
     }
 
-    private final Set<RemoteTask> newTasks;
-    private final ListenableFuture<?> blocked;
-    private final Optional<BlockedReason> blockedReason;
-    private final boolean finished;
-    private final int splitsScheduled;
+    private final Set<RemoteTask> newTasks; // 产生了那些远程任务
+    private final ListenableFuture<?> blocked; // 被阻塞了
+    private final Optional<BlockedReason> blockedReason; // 阻塞原因
+    private final boolean finished; // 是否完成
+    private final int splitsScheduled; // 已经被调度的split
 
+    // 表示没有阻塞
     public static ScheduleResult nonBlocked(boolean finished, Iterable<? extends RemoteTask> newTasks, int splitsScheduled)
     {
         return new ScheduleResult(finished, newTasks, immediateFuture(null), Optional.empty(), splitsScheduled);
     }
 
+    // 表示被阻塞
     public static ScheduleResult blocked(boolean finished, Iterable<? extends RemoteTask> newTasks, ListenableFuture<?> blocked, BlockedReason blockedReason, int splitsScheduled)
     {
         return new ScheduleResult(finished, newTasks, blocked, Optional.of(requireNonNull(blockedReason, "blockedReason is null")), splitsScheduled);

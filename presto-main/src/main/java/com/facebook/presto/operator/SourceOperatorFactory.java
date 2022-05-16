@@ -15,6 +15,9 @@ package com.facebook.presto.operator;
 
 import com.facebook.presto.spi.plan.PlanNodeId;
 
+/**
+ * 源头算子工厂，查询数据库相关算子的工厂类
+ */
 public interface SourceOperatorFactory
         extends OperatorFactory
 {

@@ -55,7 +55,8 @@ import static java.lang.Math.min;
 import static java.util.Objects.requireNonNull;
 
 /**
- * 输出分区算子
+ * 分区输出算子
+ * 主要是把上一步聚合分组和聚合的结果根据分组的key(比如本例中的nationkey)进行分区，写到不同的分区文件中(类似spark的shuffle操作中shuffle write)。
  */
 public class PartitionedOutputOperator
         implements Operator

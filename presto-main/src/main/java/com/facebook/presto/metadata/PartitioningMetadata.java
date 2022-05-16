@@ -20,10 +20,13 @@ import java.util.List;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 分区元数据
+ */
 public class PartitioningMetadata
 {
-    private final PartitioningHandle partitioningHandle;
-    private final List<String> partitionColumns;
+    private final PartitioningHandle partitioningHandle; // 分区句柄
+    private final List<String> partitionColumns; // 分区的列名
 
     public PartitioningMetadata(PartitioningHandle partitioningHandle, List<String> partitionColumns)
     {

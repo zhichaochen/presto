@@ -40,10 +40,16 @@ import static com.google.common.base.Preconditions.checkState;
 import static java.lang.Integer.parseInt;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 输出缓存
+ * 通过一个Map结构记录了多个buffer
+ */
 public final class OutputBuffers
 {
     public static final int BROADCAST_PARTITION_ID = 0;
+    // 丢弃输出缓冲区
     private static final OutputBuffers DISCARDING_OUTPUT_BUFFERS = createInitialEmptyOutputBuffers(DISCARDING).withNoMoreBufferIds();
+    // 假脱机输出缓存
     private static final OutputBuffers SPOOLING_OUTPUT_BUFFERS = createInitialEmptyOutputBuffers(SPOOLING).withBuffer(new OutputBufferId(0), 0).withNoMoreBufferIds();
 
     public static OutputBuffers createInitialEmptyOutputBuffers(BufferType type)
@@ -51,6 +57,11 @@ public final class OutputBuffers
         return new OutputBuffers(type, 0, false, ImmutableMap.of());
     }
 
+    /**
+     * 创建空的OutputBuffers对象
+     * @param partitioningHandle
+     * @return
+     */
     public static OutputBuffers createInitialEmptyOutputBuffers(PartitioningHandle partitioningHandle)
     {
         BufferType type;
@@ -76,19 +87,20 @@ public final class OutputBuffers
         return SPOOLING_OUTPUT_BUFFERS;
     }
 
+    // 缓存类型
     public enum BufferType
     {
-        PARTITIONED,
-        BROADCAST,
-        ARBITRARY,
-        DISCARDING,
-        SPOOLING,
+        PARTITIONED, // 分区
+        BROADCAST, // 广播
+        ARBITRARY, // 随意
+        DISCARDING, // 丢弃
+        SPOOLING, // 联机并行
     }
 
-    private final BufferType type;
-    private final long version;
-    private final boolean noMoreBufferIds;
-    private final Map<OutputBufferId, Integer> buffers;
+    private final BufferType type; // 缓存类型
+    private final long version; // 版本
+    private final boolean noMoreBufferIds; // 是否还有更多的
+    private final Map<OutputBufferId, Integer> buffers; // 缓存集合，其中，key：缓存id，value
 
     // Visible only for Jackson... Use the "with" methods instead
     @JsonCreator
@@ -259,6 +271,7 @@ public final class OutputBuffers
                 partition);
     }
 
+    // 输出缓存ID
     @ThriftStruct
     public static class OutputBufferId
     {

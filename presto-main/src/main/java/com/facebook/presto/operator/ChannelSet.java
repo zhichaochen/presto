@@ -28,6 +28,9 @@ import static com.facebook.presto.common.type.UnknownType.UNKNOWN;
 import static com.facebook.presto.operator.GroupByHash.createGroupByHash;
 import static java.util.Objects.requireNonNull;
 
+/**
+ *
+ */
 public class ChannelSet
 {
     private final GroupByHash hash;

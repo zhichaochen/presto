@@ -17,6 +17,7 @@ import java.util.Collection;
 
 /**
  * 执行策略
+ * query.execution-policy，它有两个选项，一个是all-at-once，另一个是phased
  */
 public interface ExecutionPolicy
 {

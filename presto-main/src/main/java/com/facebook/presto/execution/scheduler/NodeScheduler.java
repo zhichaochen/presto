@@ -84,7 +84,7 @@ public class NodeScheduler
     private final int maxSplitsPerNode;
     private final int maxPendingSplitsPerTask;
     private final NodeTaskMap nodeTaskMap;
-    private final boolean useNetworkTopology;
+    private final boolean useNetworkTopology; // 是否使用网络拓扑
     private final Duration nodeMapRefreshInterval;
 
     @Inject
@@ -147,14 +147,24 @@ public class NodeScheduler
         return createNodeSelector(session, connectorId, Integer.MAX_VALUE);
     }
 
+    /**
+     * 创建节点选择器
+     * @param session
+     * @param connectorId
+     * @param maxTasksPerStage
+     * @return
+     */
     public NodeSelector createNodeSelector(Session session, ConnectorId connectorId, int maxTasksPerStage)
     {
         // this supplier is thread-safe. TODO: this logic should probably move to the scheduler since the choice of which node to run in should be
         // done as close to when the the split is about to be scheduled
+        // 这个供应商是线程安全的。TODO:该逻辑可能会转移到调度器，因为应该选择运行哪个节点，会在split将被调度的时候完成
+        // TODO nodeMap：提供了节点相关信息，在split将被调度的时候完成
         Supplier<NodeMap> nodeMap = nodeMapRefreshInterval.toMillis() > 0 ?
                 memoizeWithExpiration(createNodeMapSupplier(connectorId), nodeMapRefreshInterval.toMillis(), MILLISECONDS) : createNodeMapSupplier(connectorId);
 
         int maxUnacknowledgedSplitsPerTask = getMaxUnacknowledgedSplitsPerTask(requireNonNull(session, "session is null"));
+        // 如果使用网络拓扑，则创建TopologyAwareNodeSelector
         if (useNetworkTopology) {
             return new TopologyAwareNodeSelector(
                     nodeManager,
@@ -170,11 +180,17 @@ public class NodeScheduler
                     networkLocationSegmentNames,
                     networkLocationCache);
         }
+        // 默认使用SimpleNodeSelector
         else {
             return new SimpleNodeSelector(nodeManager, nodeSelectionStats, nodeTaskMap, includeCoordinator, nodeMap, minCandidates, maxSplitsPerNode, maxPendingSplitsPerTask, maxUnacknowledgedSplitsPerTask, maxTasksPerStage);
         }
     }
 
+    /**
+     * 创建节点映射提供器
+     * @param connectorId
+     * @return
+     */
     private Supplier<NodeMap> createNodeMapSupplier(ConnectorId connectorId)
     {
         return () -> {
@@ -222,10 +238,17 @@ public class NodeScheduler
         };
     }
 
+    /**
+     * 选择节点
+     * @param limit
+     * @param candidates
+     * @return
+     */
     public static List<InternalNode> selectNodes(int limit, ResettableRandomizedIterator<InternalNode> candidates)
     {
         checkArgument(limit > 0, "limit must be at least 1");
 
+        //
         ImmutableList.Builder<InternalNode> selectedNodes = ImmutableList.builderWithExpectedSize(min(limit, candidates.size()));
         int selectedCount = 0;
         while (selectedCount < limit && candidates.hasNext()) {
@@ -255,6 +278,7 @@ public class NodeScheduler
                     .filter(node -> includeCoordinator || !coordinatorIds.contains(node.getNodeIdentifier()))
                     .forEach(chosen::add);
 
+            // HostAddress转化为InetAddress，并跳过不能解析的地址
             InetAddress address;
             try {
                 address = host.toInetAddress();
@@ -265,6 +289,7 @@ public class NodeScheduler
             }
 
             // consider a split with a host without a port as being accessible by all nodes in that host
+            // 考虑到一个split的HostAddress没有端口号，可以被所有节点用这个host访问
             if (!host.hasPort()) {
                 nodeMap.getAllNodesByHost().get(address).stream()
                         .filter(node -> includeCoordinator || !coordinatorIds.contains(node.getNodeIdentifier()))

@@ -16,8 +16,17 @@ package com.facebook.presto.cli;
 import java.io.IOException;
 import java.util.List;
 
+/**
+ * 输出打印器
+ */
 public interface OutputPrinter
 {
+    /**
+     * 打印多行
+     * @param rows
+     * @param complete
+     * @throws IOException
+     */
     void printRows(List<List<?>> rows, boolean complete)
             throws IOException;
 

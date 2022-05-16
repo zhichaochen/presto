@@ -144,6 +144,8 @@ public class TaskResource
 
     /**
      * 创建或者更新任务
+     * 因为一个任务已经创建
+     *
      * @param taskId
      * @param taskUpdateRequest
      * @param uriInfo
@@ -155,10 +157,12 @@ public class TaskResource
     @Produces({APPLICATION_JSON, APPLICATION_JACKSON_SMILE})
     public Response createOrUpdateTask(@PathParam("taskId") TaskId taskId, TaskUpdateRequest taskUpdateRequest, @Context UriInfo uriInfo)
     {
+        // 请求不能为空
         requireNonNull(taskUpdateRequest, "taskUpdateRequest is null");
 
         // 任务执行时的Session
         Session session = taskUpdateRequest.getSession().toSession(sessionPropertyManager, taskUpdateRequest.getExtraCredentials());
+        // 更新任务
         TaskInfo taskInfo = taskManager.updateTask(session,
                 taskId,
                 taskUpdateRequest.getFragment().map(planFragmentCodec::fromBytes),
@@ -220,6 +224,14 @@ public class TaskResource
                 .withTimeout(timeout);
     }
 
+    /**
+     * 查询某个任务的任务状态
+     * @param taskId
+     * @param currentState
+     * @param maxWait
+     * @param uriInfo
+     * @param asyncResponse
+     */
     @GET
     @Path("{taskId}/status")
     @Consumes({APPLICATION_JSON, APPLICATION_JACKSON_SMILE, APPLICATION_THRIFT_BINARY, APPLICATION_THRIFT_COMPACT, APPLICATION_THRIFT_FB_COMPACT})
@@ -265,6 +277,7 @@ public class TaskResource
         return Response.ok().build();
     }
 
+    // 删除某个任务
     @DELETE
     @Path("{taskId}")
     @Consumes({APPLICATION_JSON, APPLICATION_JACKSON_SMILE})

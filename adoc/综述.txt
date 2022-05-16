@@ -1,3 +1,31 @@
+提交sql
+
+sql ->
+词法分析 ->
+语法分析 ->
+生成逻辑计划（将词法分析的节点转换成逻辑节点，生成的逻辑节点包含了生成物理节点所需要的信息）
+优化逻辑计划（1、优化，2、会插入ExchangeNode）
+    在优化的过程中会插入ExchangeNode，在分段阶段，又会将其重写成 RemoteSourceNode 和 TableScanNode
+    什么地方需要插入节点，是非常明确的，比如，group by, 肯定是需要在ScanTable后确定要怎么进行聚合的。
+逻辑计划分段
+    分段的核心策略便是在 ExchangeNode，存在ExchangeNode 变进行分段。
+    PlanFragmenter : 段生成器核心逻辑类
+
+    如果有数据需要通过网络传输就进行分段
+生成分布式计划
+    通过调度器去生成分布式计划，所以在这里主要是生成调度器。
+
+    上面产生了执行计划，任务和核心是处理split。
+    那计划准备好了，也需要准备split，以及split如何进行切分，所以这里着重1、获取分片，2、分片的分配策略。
+
+调度任务
+    调度的核心操作是，将split分配给worker节点
+
+Worker执行任务
+
+
+
+
 cli 提交sql
 词法、语法分析
 生成逻辑执行计划（生成一个个的节点，该节点保存了某操作语句的所有信息）
@@ -12,4 +40,23 @@ cli 提交sql
 每个节点对应着一个或者多个操作：
 操作：指的是具体要做的操作：比如：TableScanOperator就是负责从数据库中查找数据
 
+
+三种：
+Single：用户汇总所有阶段的处理节点，
+    采用随机选择策略
+Source：表示这个SubPlan是数据源，Source类型的任务会按照数据源大小确定分配多少个节点进行执行
+    会优先选择与Split数据在同一个节点上的Worker节点
+    如果节点不够，优先选择与split同一节点的Rack的worker
+Fixed：局部聚合，局部Join，局部数据写入等，注意点在局部
+    将source阶段读取的数据分散到各节点进行局部聚合，局部join，局部数据写入等处理
+    采取随机选择策略
+    表示这个SubPlan会分配固定的节点数进行执行（Config配置中的query.initial-hash-partitions参数配置，默认是8）
+Coordinator Only
+    仅仅在协调节点上执行的曹邹，比如 TableCommitNode，RollbackNode等
+    对Insert和Create table进行Commit（TableCommitNode）
+
+总体原理
+1、任务的运行
+    将任务生成多个算子，然后交给driver驱动，多个算子形成一个pipeline，数据在pipeline中流转。
+    驱动的作用本质是驱动page在多个算子间流转
 

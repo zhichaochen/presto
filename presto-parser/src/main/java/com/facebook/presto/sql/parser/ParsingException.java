@@ -18,6 +18,9 @@ import org.antlr.v4.runtime.RecognitionException;
 
 import static java.lang.String.format;
 
+/**
+ * 解析异常
+ */
 public class ParsingException
         extends RuntimeException
 {

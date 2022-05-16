@@ -15,6 +15,9 @@ package com.facebook.presto.memory.context;
 
 import com.google.common.util.concurrent.ListenableFuture;
 
+/**
+ * 本地内存上下文
+ */
 public interface LocalMemoryContext
 {
     long getBytes();

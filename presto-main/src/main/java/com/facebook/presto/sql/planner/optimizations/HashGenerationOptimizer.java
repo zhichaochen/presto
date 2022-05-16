@@ -89,6 +89,9 @@ import static com.google.common.collect.ImmutableSet.toImmutableSet;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Stream.concat;
 
+/**
+ * 在执行计划阶段提前计算Hash值
+ */
 public class HashGenerationOptimizer
         implements PlanOptimizer
 {

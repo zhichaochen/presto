@@ -17,8 +17,12 @@ import com.facebook.presto.operator.UpdateMemory;
 
 import java.util.List;
 
+/**
+ * 累加器工厂
+ */
 public interface AccumulatorFactory
 {
+    // 获取输入的通道
     List<Integer> getInputChannels();
 
     Accumulator createAccumulator(UpdateMemory updateMemory);

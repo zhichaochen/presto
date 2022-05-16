@@ -148,8 +148,9 @@ public final class HttpRemoteTask
     private final String nodeId;
     private final PlanFragment planFragment;
 
-    private final Set<PlanNodeId> tableScanPlanNodeIds;
-    private final Set<PlanNodeId> remoteSourcePlanNodeIds;
+    //
+    private final Set<PlanNodeId> tableScanPlanNodeIds; // 扫描表的逻辑计划节点
+    private final Set<PlanNodeId> remoteSourcePlanNodeIds; // 远程source计划节点
 
     private final AtomicLong nextSplitId = new AtomicLong();
 
@@ -159,10 +160,12 @@ public final class HttpRemoteTask
     private final ContinuousTaskStatusFetcher taskStatusFetcher;
 
     @GuardedBy("this")
-    private Future<?> currentRequest;
+    private Future<?> currentRequest; // 表示当前任务的请求
     @GuardedBy("this")
     private long currentRequestStartNanos;
 
+    // 表示待处理的splits，其中key=计划节点ID，value表示可以调度的分片，
+    // 可以理解为，计划节点可以使用那些分片数据，也就是说，一个计划可以需要处理那些数据
     @GuardedBy("this")
     private final SetMultimap<PlanNodeId, ScheduledSplit> pendingSplits = HashMultimap.create();
     @GuardedBy("this")
@@ -210,6 +213,9 @@ public final class HttpRemoteTask
 
     private final TableWriteInfo tableWriteInfo;
 
+    /**
+     * 创建HTTP类型的remote task
+     */
     public HttpRemoteTask(
             Session session,
             TaskId taskId,
@@ -297,22 +303,28 @@ public final class HttpRemoteTask
                     .map(PlanNode::getId)
                     .collect(toImmutableSet());
 
+            // 遍历所有splits
             for (Entry<PlanNodeId, Split> entry : requireNonNull(initialSplits, "initialSplits is null").entries()) {
+                // 创建ScheduledSplit
                 ScheduledSplit scheduledSplit = new ScheduledSplit(nextSplitId.getAndIncrement(), entry.getKey(), entry.getValue());
                 pendingSplits.put(entry.getKey(), scheduledSplit);
             }
+            // 挂起的SourceSplit数量
             pendingSourceSplitCount = planFragment.getTableScanSchedulingOrder().stream()
                     .filter(initialSplits::containsKey)
                     .mapToInt(partitionedSource -> initialSplits.get(partitionedSource).size())
                     .sum();
 
+            // 缓存统计：缓存信息列表
             List<BufferInfo> bufferStates = outputBuffers.getBuffers()
                     .keySet().stream()
                     .map(outputId -> new BufferInfo(outputId, false, 0, 0, PageBufferInfo.empty()))
                     .collect(toImmutableList());
 
+            // 创建初始化的任务信息
             TaskInfo initialTask = createInitialTask(taskId, location, bufferStates, new TaskStats(DateTime.now(), null), nodeId);
 
+            // 创建持续的【任务状态】拉取器
             this.taskStatusFetcher = new ContinuousTaskStatusFetcher(
                     this::failTask,
                     taskId,
@@ -328,6 +340,7 @@ public final class HttpRemoteTask
                     thriftTransportEnabled,
                     thriftProtocol);
 
+            // 创建【任务信息】拉取器
             this.taskInfoFetcher = new TaskInfoFetcher(
                     this::failTask,
                     initialTask,
@@ -347,18 +360,26 @@ public final class HttpRemoteTask
                     metadataManager,
                     queryManager);
 
+            // 添加状态改变监听器
             taskStatusFetcher.addStateChangeListener(newStatus -> {
+                // 任务状态
                 TaskState state = newStatus.getState();
+                // 如果任务完成则清理任务
                 if (state.isDone()) {
                     cleanUpTask();
                 }
+                // 否则更新任务
                 else {
+                    // 更新任务统计信息
                     updateTaskStats();
+                    // 更新split队列空间
                     updateSplitQueueSpace();
                 }
             });
 
+            // 更新任务统计信息
             updateTaskStats();
+            // 更新split队列空间
             updateSplitQueueSpace();
         }
     }
@@ -394,7 +415,7 @@ public final class HttpRemoteTask
     }
 
     /**
-     * 开始发送
+     * 启动HttpRemoteTask
      */
     @Override
     public void start()
@@ -449,7 +470,7 @@ public final class HttpRemoteTask
     }
 
     /**
-     * 不再分割的
+     * 没有更多的splits
      * @param sourceId
      */
     @Override
@@ -700,21 +721,25 @@ public final class HttpRemoteTask
         }
 
         // if there is a request already running, wait for it to complete
+        // 如果请求已经在运行中，则等待它完成
         if (this.currentRequest != null && !this.currentRequest.isDone()) {
             return;
         }
 
         // if throttled due to error, asynchronously wait for timeout and try again
+        // 如果由于错误而限制，请异步等待超时，然后重试
         ListenableFuture<?> errorRateLimit = updateErrorTracker.acquireRequestPermit();
         if (!errorRateLimit.isDone()) {
             errorRateLimit.addListener(this::sendUpdate, executor);
             return;
         }
 
+        // 创建TaskSource列表
         List<TaskSource> sources = getSources();
 
         Optional<byte[]> fragment = sendPlan.get() ? Optional.of(planFragment.toBytes(planFragmentCodec)) : Optional.empty();
         Optional<TableWriteInfo> writeInfo = sendPlan.get() ? Optional.of(tableWriteInfo) : Optional.empty();
+        // 创建任务更新请求TaskUpdateRequest
         TaskUpdateRequest updateRequest = new TaskUpdateRequest(
                 session.toSessionRepresentation(),
                 session.getIdentity().getExtraCredentials(),
@@ -722,12 +747,15 @@ public final class HttpRemoteTask
                 sources,
                 outputBuffers.get(),
                 writeInfo);
+        // 将updateRequest进行序列化
         byte[] taskUpdateRequestJson = taskUpdateRequestCodec.toBytes(updateRequest);
 
+        // 限制最大字节数
         if (taskUpdateRequestJson.length > maxTaskUpdateSizeInBytes) {
             failTask(new PrestoException(EXCEEDED_TASK_UPDATE_SIZE_LIMIT, format("TaskUpdate size of %d Bytes has exceeded the limit of %d Bytes", taskUpdateRequestJson.length, maxTaskUpdateSizeInBytes)));
         }
 
+        // 设置更新的字节数
         if (fragment.isPresent()) {
             stats.updateWithPlanSize(taskUpdateRequestJson.length);
         }
@@ -738,12 +766,14 @@ public final class HttpRemoteTask
             }
         }
 
+        // 构建http请求
         HttpUriBuilder uriBuilder = getHttpUriBuilder(taskStatus);
         Request request = setContentTypeHeaders(binaryTransportEnabled, preparePost())
                 .setUri(uriBuilder.build())
                 .setBodyGenerator(createStaticBodyGenerator(taskUpdateRequestJson))
                 .build();
 
+        // 创建响应处理器
         ResponseHandler responseHandler;
         if (binaryTransportEnabled) {
             responseHandler = createFullSmileResponseHandler((SmileCodec<TaskInfo>) taskInfoCodec);
@@ -754,6 +784,7 @@ public final class HttpRemoteTask
 
         updateErrorTracker.startRequest();
 
+        // 发送请求
         ListenableFuture<BaseResponse<TaskInfo>> future = httpClient.executeAsync(request, responseHandler);
         currentRequest = future;
         currentRequestStartNanos = System.nanoTime();
@@ -762,6 +793,7 @@ public final class HttpRemoteTask
         // and does so without grabbing the instance lock.
         needsUpdate.set(false);
 
+        // 添加请求回调
         Futures.addCallback(
                 future,
                 new SimpleHttpResponseHandler<>(new UpdateResponseHandler(sources), request.getUri(), stats.getHttpResponseStats(), REMOTE_TASK_ERROR),
@@ -770,12 +802,18 @@ public final class HttpRemoteTask
 
     private synchronized List<TaskSource> getSources()
     {
+        // 通过tableScanPlanNodeIds 和 remoteSourcePlanNodeIds，创建TaskSource列表
         return Stream.concat(tableScanPlanNodeIds.stream(), remoteSourcePlanNodeIds.stream())
                 .map(this::getSource)
                 .filter(Objects::nonNull)
                 .collect(toImmutableList());
     }
 
+    /**
+     * 通过计划节点获取source
+     * @param planNodeId
+     * @return
+     */
     private synchronized TaskSource getSource(PlanNodeId planNodeId)
     {
         Set<ScheduledSplit> splits = pendingSplits.get(planNodeId);
@@ -783,6 +821,7 @@ public final class HttpRemoteTask
         boolean noMoreSplits = this.noMoreSplits.containsKey(planNodeId);
         Set<Lifespan> noMoreSplitsForLifespan = pendingNoMoreSplitsForLifespan.get(planNodeId);
 
+        // 创建TaskSource对象
         TaskSource element = null;
         if (!splits.isEmpty() || !noMoreSplitsForLifespan.isEmpty() || pendingNoMoreSplits) {
             element = new TaskSource(planNodeId, splits, noMoreSplitsForLifespan, noMoreSplits);
@@ -808,6 +847,9 @@ public final class HttpRemoteTask
         }
     }
 
+    /**
+     * 清理任务
+     */
     private synchronized void cleanUpTask()
     {
         checkState(getTaskStatus().getState().isDone(), "attempt to clean up a task that is not done yet");
@@ -998,6 +1040,9 @@ public final class HttpRemoteTask
                 .toString();
     }
 
+    /**
+     * 更新任务的响应处理器
+     */
     private class UpdateResponseHandler
             implements SimpleHttpResponseCallback<TaskInfo>
     {

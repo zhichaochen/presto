@@ -28,15 +28,18 @@ import java.util.Optional;
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 输入：表示一个数据库中表的信息
+ */
 @Immutable
 public final class Input
 {
-    private final ConnectorId connectorId;
-    private final String schema;
-    private final String table;
-    private final List<Column> columns;
-    private final Optional<Object> connectorInfo;
-    private final Optional<TableStatistics> statistics;
+    private final ConnectorId connectorId; // 连接器ID
+    private final String schema; // 数据库
+    private final String table; // 数据表
+    private final List<Column> columns; // 数据表中的多列
+    private final Optional<Object> connectorInfo; // 连接器信息
+    private final Optional<TableStatistics> statistics; // 表统计信息
 
     @JsonCreator
     public Input(

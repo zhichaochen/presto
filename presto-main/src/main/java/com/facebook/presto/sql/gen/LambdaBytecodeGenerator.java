@@ -75,6 +75,9 @@ import static java.util.Objects.requireNonNull;
 import static org.objectweb.asm.Type.getMethodType;
 import static org.objectweb.asm.Type.getType;
 
+/**
+ * Lambda字节码生成器
+ */
 public class LambdaBytecodeGenerator
 {
     private LambdaBytecodeGenerator()
@@ -157,6 +160,19 @@ public class LambdaBytecodeGenerator
                 ImmutableSet.of());
     }
 
+    /**
+     * 生成lambda表达式
+     * @param containerClassDefinition
+     * @param callSiteBinder
+     * @param cachedInstanceBinder
+     * @param expressions
+     * @param metadata
+     * @param sqlFunctionProperties
+     * @param sessionFunctions
+     * @param methodNamePrefix
+     * @param existingCompiledLambdas
+     * @return
+     */
     private static Map<LambdaDefinitionExpression, CompiledLambda> generateMethodsForLambda(
             ClassDefinition containerClassDefinition,
             CallSiteBinder callSiteBinder,

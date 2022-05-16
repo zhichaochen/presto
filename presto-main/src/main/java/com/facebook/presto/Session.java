@@ -63,7 +63,7 @@ import static com.google.common.base.Preconditions.checkState;
 import static java.util.Objects.requireNonNull;
 
 /**
- * 一条sql一个Session
+ * 一个用户对应一个session
  * 在创建一个查询的时候会创建Session对象（DispatchManager）
  */
 public final class Session

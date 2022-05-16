@@ -113,6 +113,10 @@ public interface QueryExecution
     }
 
     /**
+     * 用于查询的输出架构和缓冲区URI。信息将始终包含列名和类型。缓冲区位置将始终保持不变
+     * 包含完整的位置集，但可能为空。此数据的用户应保留所见缓冲区的私有副本，以便处理来自侦听器的无序事件。
+     * 一旦设置了noMoreBufferLocations，位置将永远不会更改，并且保证所有先前发送的位置都包含在缓冲区位置中。
+     *
      * Output schema and buffer URIs for query.  The info will always contain column names and types.  Buffer locations will always
      * contain the full location set, but may be empty.  Users of this data should keep a private copy of the seen buffers to
      * handle out of order events from the listener.  Once noMoreBufferLocations is set the locations will never change, and

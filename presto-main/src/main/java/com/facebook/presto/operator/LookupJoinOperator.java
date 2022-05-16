@@ -50,6 +50,10 @@ import static java.lang.String.format;
 import static java.util.Collections.emptyIterator;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * Hash Join的probe探测端
+ * 通过lookup这个单词我们知道是查找，去哪里查找啊，去构建表中查找，所以LookupJoinOperator完成的是探测端的操作
+ */
 public class LookupJoinOperator
         implements Operator
 {
@@ -76,10 +80,10 @@ public class LookupJoinOperator
 
     private Optional<PartitioningSpiller> spiller = Optional.empty();
     private Optional<LocalPartitionGenerator> partitionGenerator = Optional.empty();
-    private ListenableFuture<?> spillInProgress = NOT_BLOCKED;
+    private ListenableFuture<?> spillInProgress = NOT_BLOCKED; // 溢出过程
     private long inputPageSpillEpoch;
     private boolean closed;
-    private boolean finishing;
+    private boolean finishing; // 是否处理完成
     private boolean unspilling;
     private boolean finished;
     private long joinPosition = -1;
@@ -121,6 +125,9 @@ public class LookupJoinOperator
         this.hashGenerator = requireNonNull(hashGenerator, "hashGenerator is null");
         this.lookupSourceFactory = requireNonNull(lookupSourceFactory, "lookupSourceFactory is null");
         this.partitioningSpillerFactory = requireNonNull(partitioningSpillerFactory, "partitioningSpillerFactory is null");
+        // 在创建LookupJoinOperator算子的
+        // PartitionedLookupSourceFactory#createLookupSourceProvider
+        // 所以在本类中获取到的lookupSourceProvider是SpillAwareLookupSourceProvider
         this.lookupSourceProviderFuture = lookupSourceFactory.createLookupSourceProvider();
 
         this.statisticsCounter = new JoinStatisticsCounter(joinType);
@@ -162,6 +169,10 @@ public class LookupJoinOperator
         return finished;
     }
 
+    /**
+     * 是否阻塞
+     * @return
+     */
     @Override
     public ListenableFuture<?> isBlocked()
     {
@@ -178,12 +189,14 @@ public class LookupJoinOperator
             return NOT_BLOCKED;
         }
 
+        // 被阻塞的原因就是source端，即hash表没有构建号，如果没有构建则返回空，如果构造好了，则返回一个lookupSourceProviderFuture对象
         return lookupSourceProviderFuture;
     }
 
     @Override
     public boolean needsInput()
     {
+        // 这里会尝试判断lookupSourceProviderFuture是否已经完成
         return !finishing
                 && lookupSourceProviderFuture.isDone()
                 && spillInProgress.isDone()
@@ -191,15 +204,22 @@ public class LookupJoinOperator
                 && outputPage == null;
     }
 
+    /**
+     * 添加输入
+     * @param page
+     */
     @Override
     public void addInput(Page page)
     {
         requireNonNull(page, "page is null");
         checkState(probe == null, "Current page has not been completely processed yet");
 
+        // 当添加的时候，一定是构建测已经构建好了，尝试拉取lookupSourceProvider
         checkState(tryFetchLookupSourceProvider(), "Not ready to handle input yet");
 
+        // 获取一个租约，该租约和一个分区有关联
         SpillInfoSnapshot spillInfoSnapshot = lookupSourceProvider.withLease(SpillInfoSnapshot::from);
+        // 添加page
         addInput(page, spillInfoSnapshot);
     }
 
@@ -207,7 +227,9 @@ public class LookupJoinOperator
     {
         requireNonNull(spillInfoSnapshot, "spillInfoSnapshot is null");
 
+        // 判断是否已经溢出spill
         if (spillInfoSnapshot.hasSpilled()) {
+            // 记录溢出的位置，并将溢出的部分写入磁盘
             page = spillAndMaskSpilledPositions(page, spillInfoSnapshot.getSpillMask());
             if (page.getPositionCount() == 0) {
                 return;
@@ -216,19 +238,27 @@ public class LookupJoinOperator
 
         // create probe
         inputPageSpillEpoch = spillInfoSnapshot.getSpillEpoch();
+        // 创建探测测
         probe = joinProbeFactory.createJoinProbe(page);
 
         // initialize to invalid join position to force output code to advance the cursors
+        // 初始化为无效的联接位置，以强制输出代码前进光标
         joinPosition = -1;
     }
 
+    /**
+     * 尝试获取LookupSourceProvider
+     * @return
+     */
     private boolean tryFetchLookupSourceProvider()
     {
         if (lookupSourceProvider == null) {
             if (!lookupSourceProviderFuture.isDone()) {
                 return false;
             }
+            // 如果构建测已经完成
             lookupSourceProvider = requireNonNull(getDone(lookupSourceProviderFuture));
+            // 更新
             statisticsCounter.updateLookupSourcePositions(lookupSourceProvider.withLease(lookupSourceLease -> lookupSourceLease.getLookupSource().getJoinPositionCount()));
         }
         return true;
@@ -260,6 +290,10 @@ public class LookupJoinOperator
         return partitionGenerator.get();
     }
 
+    /**
+     * 获取输出信息
+     * @return
+     */
     @Override
     public Page getOutput()
     {
@@ -279,6 +313,8 @@ public class LookupJoinOperator
             return null;
         }
 
+        // 尝试判断是否已经构建完成
+        // 如果没有完成，则返回null
         if (!tryFetchLookupSourceProvider()) {
             if (!finishing) {
                 return null;
@@ -290,6 +326,7 @@ public class LookupJoinOperator
             lookupSourceProvider = new StaticLookupSourceProvider(new EmptyLookupSource());
         }
 
+        // 完成探测侧算子
         if (probe == null && finishing && !unspilling) {
             /*
              * We do not have input probe and we won't have any, as we're finishing.
@@ -308,10 +345,13 @@ public class LookupJoinOperator
             tryUnspillNext();
         }
 
+        //
         if (probe != null) {
+            // 处理探测侧
             processProbe();
         }
 
+        // 如果输出page不为空，则返回当前的输出page，并置空
         if (outputPage != null) {
             verify(pageBuilder.isEmpty());
             Page output = outputPage;
@@ -390,11 +430,16 @@ public class LookupJoinOperator
         finished = true;
     }
 
+    /**
+     * 处理探测侧
+     */
     private void processProbe()
     {
         verify(probe != null);
 
+        //
         Optional<SpillInfoSnapshot> spillInfoSnapshotIfSpillChanged = lookupSourceProvider.withLease(lookupSourceLease -> {
+            //
             if (lookupSourceLease.spillEpoch() == inputPageSpillEpoch) {
                 // Spill state didn't change, so process as usual.
                 processProbe(lookupSourceLease.getLookupSource());
@@ -458,27 +503,39 @@ public class LookupJoinOperator
         }
     }
 
+    /**
+     * 处理探测
+     * @param lookupSource
+     */
     private void processProbe(LookupSource lookupSource)
     {
         verify(probe != null);
 
+        // 驱动让行信号
         DriverYieldSignal yieldSignal = operatorContext.getDriverContext().getYieldSignal();
+        // 如果没有让行，则处理当前业务
+        // 轮询，直到让行，或者，构建完成了一个page。
         while (!yieldSignal.isSet()) {
             if (probe.getPosition() >= 0) {
+                // 如果让行 或者 成功构建了一个page算子
+                // getOutput方法会将构建好的page，交给下一个算子
                 if (!joinCurrentPosition(lookupSource, yieldSignal)) {
                     break;
                 }
                 if (!currentProbePositionProducedRow) {
                     currentProbePositionProducedRow = true;
+                    // outer join 的情况
                     if (!outerJoinCurrentPosition()) {
                         break;
                     }
                 }
             }
             currentProbePositionProducedRow = false;
+            // 前进到下一个位置
             if (!advanceProbePosition(lookupSource)) {
                 break;
             }
+            // 记录recordProbe的信息
             statisticsCounter.recordProbe(joinSourcePositions);
             joinSourcePositions = 0;
         }
@@ -525,6 +582,8 @@ public class LookupJoinOperator
     }
 
     /**
+     * 生成与当前探测位置的联接条件匹配的行。如果以前调用过此方法对于当前探测位置，再次调用此命令将生成上一次中未生成的行调用。
+     *
      * Produce rows matching join condition for the current probe position. If this method was called previously
      * for the current probe position, calling this again will produce rows that wasn't been produced in previous
      * invocations.
@@ -535,16 +594,21 @@ public class LookupJoinOperator
     {
         // while we have a position on lookup side to join against...
         while (joinPosition >= 0) {
+            // 如果probe的位置
             if (lookupSource.isJoinPositionEligible(joinPosition, probe.getPosition(), probe.getPage())) {
                 currentProbePositionProducedRow = true;
 
+                // 拼接一行
                 pageBuilder.appendRow(probe, lookupSource, joinPosition);
+                //
                 joinSourcePositions++;
             }
 
             // get next position on lookup side for this probe row
+            // 获取此探测行在查找侧的下一个位置
             joinPosition = lookupSource.getNextJoinPosition(joinPosition, probe.getPosition(), probe.getPage());
 
+            // 如果让行，或者数据量可以构建一个page了，则返回false
             if (yieldSignal.isSet() || tryBuildPage()) {
                 return false;
             }
@@ -583,11 +647,14 @@ public class LookupJoinOperator
         return true;
     }
 
+    /**
+     * 溢出信息快照
+     */
     // This class must be public because LookupJoinOperator is isolated.
     public static class SpillInfoSnapshot
     {
         private final boolean hasSpilled;
-        private final long spillEpoch;
+        private final long spillEpoch; // 溢出时期
         private final IntPredicate spillMask;
 
         public SpillInfoSnapshot(boolean hasSpilled, long spillEpoch, IntPredicate spillMask)
@@ -660,15 +727,24 @@ public class LookupJoinOperator
         }
     }
 
+    /**
+     * 尝试构建一个page
+     * @return
+     */
     private boolean tryBuildPage()
     {
+        // 如果数据已经达到一个page的规模，则满了，表示可以构建一个page了。否则返回false
         if (pageBuilder.isFull()) {
+            // 构建page
             buildPage();
             return true;
         }
         return false;
     }
 
+    /**
+     * 构建一个page，将其设置给outputPage
+     */
     private void buildPage()
     {
         verify(outputPage == null);

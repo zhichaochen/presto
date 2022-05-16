@@ -50,7 +50,11 @@ import static it.unimi.dsi.fastutil.HashCommon.murmurHash3;
 import static java.lang.Math.toIntExact;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 默认使用该类
+ */
 // This implementation assumes arrays used in the hash are always a power of 2
+// 此实现假定哈希中使用的数组总是2的幂
 public class MultiChannelGroupByHash
         implements GroupByHash
 {
@@ -70,8 +74,8 @@ public class MultiChannelGroupByHash
 
     private long completedPagesMemorySize;
 
-    private int hashCapacity;
-    private int maxFill;
+    private int hashCapacity; // 重新Hash之前的hash容量
+    private int maxFill; // 最大的量
     private int mask;
     private long[] groupAddressByHash;
     private int[] groupIdsByHash;
@@ -79,10 +83,10 @@ public class MultiChannelGroupByHash
 
     private final LongBigArray groupAddressByGroupId;
 
-    private int nextGroupId;
+    private int nextGroupId; //
     private DictionaryLookBack dictionaryLookBack;
     private long hashCollisions;
-    private double expectedHashCollisions;
+    private double expectedHashCollisions; // 预期hash冲突数
 
     // reserve enough memory before rehash
     private final UpdateMemory updateMemory;
@@ -210,9 +214,15 @@ public class MultiChannelGroupByHash
         hashStrategy.appendTo(blockIndex, position, pageBuilder, outputChannelOffset);
     }
 
+    /**
+     * 创建Work，不同类型的page，创建不同的Work
+     * @param page
+     * @return
+     */
     @Override
     public Work<?> addPage(Page page)
     {
+        //
         currentPageSizeInBytes = page.getRetainedSizeInBytes();
         if (isRunLengthEncoded(page)) {
             return new AddRunLengthEncodedPageWork(page);
@@ -224,9 +234,15 @@ public class MultiChannelGroupByHash
         return new AddNonDictionaryPageWork(page);
     }
 
+    /**
+     *
+     * @param page
+     * @return
+     */
     @Override
     public Work<GroupByIdBlock> getGroupIds(Page page)
     {
+        // 当前Page总共使用的字节数
         currentPageSizeInBytes = page.getRetainedSizeInBytes();
         if (isRunLengthEncoded(page)) {
             return new GetRunLengthEncodedGroupIdsWork(page);
@@ -351,36 +367,52 @@ public class MultiChannelGroupByHash
         }
     }
 
+    /**
+     * 尝试重试Hash
+     * @return
+     */
     private boolean tryRehash()
     {
+        // 新的容量长度
         long newCapacityLong = hashCapacity * 2L;
         if (newCapacityLong > Integer.MAX_VALUE) {
             throw new PrestoException(GENERIC_INSUFFICIENT_RESOURCES, "Size of hash table cannot exceed 1 billion entries");
         }
+        // 转换成int，如果两者不相等会报错
         int newCapacity = toIntExact(newCapacityLong);
 
         // An estimate of how much extra memory is needed before we can go ahead and expand the hash table.
         // This includes the new capacity for groupAddressByHash, rawHashByHashPosition, groupIdsByHash, and groupAddressByGroupId as well as the size of the current page
+        // 估计需要多少额外内存才能继续扩展哈希表。
+        // 这包括groupAddressByHash、rawHashByHashPosition、groupIdsByHash和groupAddressByGroupId的新容量以及当前页面的大小
         preallocatedMemoryInBytes = (newCapacity - hashCapacity) * (long) (Long.BYTES + Integer.BYTES + Byte.BYTES) +
                 (calculateMaxFill(newCapacity) - maxFill) * Long.BYTES +
                 currentPageSizeInBytes;
+        // 更新内存
         if (!updateMemory.update()) {
+            // 剩余内存，单已经超过了限制
             // reserved memory but has exceeded the limit
             return false;
         }
         preallocatedMemoryInBytes = 0;
 
+        // 估计hash冲突数
         expectedHashCollisions += estimateNumberOfHashCollisions(getGroupCount(), hashCapacity);
 
         int newMask = newCapacity - 1;
+        // 新key
         long[] newKey = new long[newCapacity];
+        // 原hash
         byte[] rawHashes = new byte[newCapacity];
+        // 将newKey数组全部填充为1
         Arrays.fill(newKey, -1);
+        // 新值数组
         int[] newValue = new int[newCapacity];
 
         int oldIndex = 0;
         for (int groupId = 0; groupId < nextGroupId; groupId++) {
             // seek to the next used slot
+            // 寻找下一个使用的插槽
             while (groupAddressByHash[oldIndex] == -1) {
                 oldIndex++;
             }
@@ -555,6 +587,9 @@ public class MultiChannelGroupByHash
         }
     }
 
+    /**
+     * 没有字典page的work
+     */
     private class AddNonDictionaryPageWork
             implements Work<Void>
     {
@@ -596,6 +631,9 @@ public class MultiChannelGroupByHash
         }
     }
 
+    /**
+     * 添加字典
+     */
     private class AddDictionaryPageWork
             implements Work<Void>
     {
@@ -622,12 +660,15 @@ public class MultiChannelGroupByHash
 
             // needRehash() == false indicates we have reached capacity boundary and a rehash is needed.
             // We can only proceed if tryRehash() successfully did a rehash.
+            // 如果需要重hash，则重新hash
             if (needRehash() && !tryRehash()) {
                 return false;
             }
 
             // putIfAbsent will rehash automatically if rehash is needed, unless there isn't enough memory to do so.
             // Therefore needRehash will not generally return true even if we have just crossed the capacity boundary.
+            // 如果需要重新刷新，putIfAbsent将自动重新刷新，除非内存不足。
+            //因此，即使我们刚刚越过容量边界，needRehash通常也不会返回真值。
             while (lastPosition < positionCount && !needRehash()) {
                 int positionInDictionary = dictionaryBlock.getId(lastPosition);
                 getGroupId(hashGenerator, dictionaryPage, positionInDictionary);
@@ -687,27 +728,30 @@ public class MultiChannelGroupByHash
     private class GetNonDictionaryGroupIdsWork
             implements Work<GroupByIdBlock>
     {
-        private final BlockBuilder blockBuilder;
-        private final Page page;
+        private final BlockBuilder blockBuilder; // block构建器
+        private final Page page; // page
 
-        private boolean finished;
-        private int lastPosition;
+        private boolean finished; // 是否完成
+        private int lastPosition; // 并没有初始化值，所有是从零开始
 
         public GetNonDictionaryGroupIdsWork(Page page)
         {
             this.page = requireNonNull(page, "page is null");
             // we know the exact size required for the block
+            // 我们知道这个block需要的确切size，所以直接创建
             this.blockBuilder = BIGINT.createFixedSizeBlockBuilder(page.getPositionCount());
         }
 
         @Override
         public boolean process()
         {
+            //
             int positionCount = page.getPositionCount();
             checkState(lastPosition <= positionCount, "position count out of bound");
             checkState(!finished);
 
             // needRehash() == false indicates we have reached capacity boundary and a rehash is needed.
+            // needRehash（）== false表示我们已达到容量边界，需要重Hash。
             // We can only proceed if tryRehash() successfully did a rehash.
             if (needRehash() && !tryRehash()) {
                 return false;
@@ -715,8 +759,11 @@ public class MultiChannelGroupByHash
 
             // putIfAbsent will rehash automatically if rehash is needed, unless there isn't enough memory to do so.
             // Therefore needRehash will not generally return true even if we have just crossed the capacity boundary.
+            //如果需要重新hash，putIfAbsent将自动重新hash，除非内存不足。
+            //因此，即使我们刚刚越过容量边界，needRehash通常也不会返回真值。
             while (lastPosition < positionCount && !needRehash()) {
                 // output the group id for this row
+                // 输出这一行的group id
                 BIGINT.writeLong(blockBuilder, putIfAbsent(lastPosition, page));
                 lastPosition++;
             }

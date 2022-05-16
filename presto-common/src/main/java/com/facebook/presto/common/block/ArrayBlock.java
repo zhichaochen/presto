@@ -26,7 +26,6 @@ import static java.util.Objects.requireNonNull;
 
 /**
  * 用于固定宽度的类型，例如int，long，double
- *
  */
 public class ArrayBlock
         extends AbstractArrayBlock
@@ -35,10 +34,8 @@ public class ArrayBlock
 
     private final int arrayOffset;
     private final int positionCount;
-    // 每一行是否有值
-    private final boolean[] valueIsNull;
-    // 每一行具体的值
-    private final Block values;
+    private final boolean[] valueIsNull;// 每一行是否有值
+    private final Block values; // 每一行具体的值
     private final int[] offsets;
 
     private volatile long sizeInBytes;

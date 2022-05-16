@@ -17,6 +17,9 @@ import com.facebook.presto.spi.connector.ConnectorTransactionHandle;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+/**
+ * Remote Split 的事务句柄
+ */
 public class RemoteTransactionHandle
         implements ConnectorTransactionHandle
 {

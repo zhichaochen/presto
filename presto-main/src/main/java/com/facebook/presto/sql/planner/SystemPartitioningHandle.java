@@ -53,23 +53,31 @@ public final class SystemPartitioningHandle
     private enum SystemPartitioning
     {
         SINGLE, // 单一
-        FIXED, // 固定
-        SOURCE, // source
-        SCALED, //
+        FIXED, // 固定节点：
+        SOURCE, // 从数据源读取数据，对应分布式读取数据源阶段。
+        SCALED, // 缩放，可以理解未可扩展的
         COORDINATOR_ONLY , // 仅仅协调器
         ARBITRARY // 随意
     }
 
-    // 单一分布
+    // 单一分布、存在单个节点上
     public static final PartitioningHandle SINGLE_DISTRIBUTION = createSystemPartitioning(SystemPartitioning.SINGLE, SystemPartitionFunction.SINGLE);
-    // 协调器分布
+    // 协调器分区、只存在协调器上
     public static final PartitioningHandle COORDINATOR_DISTRIBUTION = createSystemPartitioning(SystemPartitioning.COORDINATOR_ONLY, SystemPartitionFunction.SINGLE);
+    // 固定的的hash分布，包含fixed一般是固定存在几个节点上。
     public static final PartitioningHandle FIXED_HASH_DISTRIBUTION = createSystemPartitioning(SystemPartitioning.FIXED, SystemPartitionFunction.HASH);
+    // 固定的任意分布, 随机分到固定几个节点上
     public static final PartitioningHandle FIXED_ARBITRARY_DISTRIBUTION = createSystemPartitioning(SystemPartitioning.FIXED, SystemPartitionFunction.ROUND_ROBIN);
+    // 固定的广播分布，广播到固定几个节点
     public static final PartitioningHandle FIXED_BROADCAST_DISTRIBUTION = createSystemPartitioning(SystemPartitioning.FIXED, SystemPartitionFunction.BROADCAST);
+    // 可缩放的写入分布，节点是动态变化的，发生在写入时候
+    // SCALED：可扩展的，需要写入外部存储设备。
     public static final PartitioningHandle SCALED_WRITER_DISTRIBUTION = createSystemPartitioning(SystemPartitioning.SCALED, SystemPartitionFunction.ROUND_ROBIN);
+    // 分布式数据源，使用该分区句柄，比如ES
     public static final PartitioningHandle SOURCE_DISTRIBUTION = createSystemPartitioning(SystemPartitioning.SOURCE, SystemPartitionFunction.UNKNOWN);
+    // 任意分区, 但是节点个数不固定
     public static final PartitioningHandle ARBITRARY_DISTRIBUTION = createSystemPartitioning(SystemPartitioning.ARBITRARY, SystemPartitionFunction.UNKNOWN);
+    // FIXED透传分布，好像只有spark会用到
     public static final PartitioningHandle FIXED_PASSTHROUGH_DISTRIBUTION = createSystemPartitioning(SystemPartitioning.FIXED, SystemPartitionFunction.UNKNOWN);
 
     private static PartitioningHandle createSystemPartitioning(SystemPartitioning partitioning, SystemPartitionFunction function)
@@ -146,16 +154,27 @@ public final class SystemPartitioningHandle
         return partitioning.toString();
     }
 
+    /**
+     * 获取系统分区的NodePartitionMap
+     * @param session
+     * @param nodeScheduler
+     * @return
+     */
     public NodePartitionMap getNodePartitionMap(Session session, NodeScheduler nodeScheduler)
     {
+        // 创建节点SimpleNodeSelector or TopologyAwareNodeSelector
         NodeSelector nodeSelector = nodeScheduler.createNodeSelector(session, null);
+        // 节点列表
         List<InternalNode> nodes;
+        // 如果是协调器，选择当前节点
         if (partitioning == SystemPartitioning.COORDINATOR_ONLY) {
             nodes = ImmutableList.of(nodeSelector.selectCurrentNode());
         }
+        // 如果是单个节点，则随机一个节点
         else if (partitioning == SystemPartitioning.SINGLE) {
             nodes = nodeSelector.selectRandomNodes(1);
         }
+        // 如果分区是固定节点，则随机选择多个节点
         else if (partitioning == SystemPartitioning.FIXED) {
             nodes = nodeSelector.selectRandomNodes(min(getHashPartitionCount(session), getMaxTasksPerStage(session)));
         }
@@ -249,6 +268,7 @@ public final class SystemPartitioningHandle
         private static class SingleBucketFunction
                 implements BucketFunction
         {
+            // 返回的总是第一个
             @Override
             public int getBucket(Page page, int position)
             {

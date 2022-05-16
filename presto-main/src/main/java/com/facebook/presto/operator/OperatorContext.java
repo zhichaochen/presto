@@ -51,15 +51,16 @@ import static java.util.Objects.requireNonNull;
 
 /**
  * 算子上下文
+ * 记录每个算子的上下文信息，包含算子的信息，以及算子的统计信息
  * Only {@link #getOperatorStats()} and revocable-memory-related operations are ThreadSafe
  */
 public class OperatorContext
 {
-    private final int operatorId;
-    private final PlanNodeId planNodeId;
-    private final String operatorType;
-    private final DriverContext driverContext;
-    private final Executor executor;
+    private final int operatorId; // 算子ID
+    private final PlanNodeId planNodeId; // 算子的逻辑计划节点
+    private final String operatorType; // 算子类型
+    private final DriverContext driverContext; // 驱动上下文
+    private final Executor executor; // 线程池，可以开启线程监视算子的阻塞情况。
 
     private final CounterStat rawInputDataSize = new CounterStat();
     private final CounterStat rawInputPositions = new CounterStat();
@@ -157,6 +158,7 @@ public class OperatorContext
     }
 
     /**
+     * 记录算子读取的行数和物理字节数。
      * Record the number of rows and amount of physical bytes that were read by an operator.
      * This metric is valid only for source operators.
      */
@@ -521,6 +523,9 @@ public class OperatorContext
         return max(0, end - start);
     }
 
+    /**
+     * 阻塞监视器
+     */
     private class BlockedMonitor
             implements Runnable
     {

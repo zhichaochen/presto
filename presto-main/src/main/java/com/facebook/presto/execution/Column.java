@@ -21,10 +21,13 @@ import java.util.Objects;
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 表示数据表中的一列
+ */
 public final class Column
 {
-    private final String name;
-    private final String type;
+    private final String name; // 列名
+    private final String type; // 列的数据类型
 
     @JsonCreator
     public Column(

@@ -18,11 +18,16 @@ import java.util.function.Function;
 import static com.google.common.base.Preconditions.checkState;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 转化工作
+ * @param <I>
+ * @param <O>
+ */
 public final class TransformWork<I, O>
         implements Work<O>
 {
-    private final Work<I> work;
-    private final Function<I, O> transformation;
+    private final Work<I> work; // 转换的Work
+    private final Function<I, O> transformation; // 转换函数
 
     private boolean finished;
     private O result;
@@ -37,10 +42,12 @@ public final class TransformWork<I, O>
     public boolean process()
     {
         checkState(!finished);
+        // 处理，比如：MultiChannelGroupByHash#process
         finished = work.process();
         if (!finished) {
             return false;
         }
+        // 对处理结果做函数处理，遍历所有的聚合器，然后处理page
         result = transformation.apply(work.getResult());
         return true;
     }

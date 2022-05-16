@@ -35,6 +35,9 @@ import static java.lang.String.format;
 import static java.util.Collections.unmodifiableList;
 import static java.util.Objects.requireNonNull;
 
+/**
+ *  Lambda表达式定义
+ */
 @Immutable
 public final class LambdaDefinitionExpression
         extends RowExpression

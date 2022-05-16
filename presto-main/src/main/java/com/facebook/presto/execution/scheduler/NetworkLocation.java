@@ -23,6 +23,8 @@ import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
 /**
+ * 表示网络拓扑中的位置。假设位置是分层的，并且所有工作节点和拆分位置都应处于同一层次。
+ *
  * Represents a location in the network topology. Locations are assumed to be hierarchical
  * and all worker nodes and split locations should be at the same level of the hierarchy.
  */

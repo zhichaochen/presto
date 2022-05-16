@@ -33,7 +33,7 @@ import java.util.concurrent.TimeUnit;
 import static io.airlift.units.DataSize.Unit.PETABYTE;
 
 /**
- * 查询的配置信息
+ * 查询管理的配置信息
  */
 @DefunctConfig({
         "query.max-pending-splits-per-node",
@@ -69,6 +69,9 @@ public class QueryManagerConfig
     private Duration remoteTaskMaxErrorDuration = new Duration(5, TimeUnit.MINUTES);
     private int remoteTaskMaxCallbackThreads = 1000;
 
+    // 执行策略：它有两个选项，一个是all-at-once，另一个是phased，
+    // all-at-once : 一次性调度多有阶段，phased：则相反
+    //
     private String queryExecutionPolicy = "all-at-once";
     private Duration queryMaxRunTime = new Duration(100, TimeUnit.DAYS);
     private Duration queryMaxExecutionTime = new Duration(100, TimeUnit.DAYS);

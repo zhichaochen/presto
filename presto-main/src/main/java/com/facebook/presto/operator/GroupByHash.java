@@ -28,10 +28,11 @@ import static com.facebook.presto.common.type.BigintType.BIGINT;
 import static com.facebook.presto.operator.UpdateMemory.NOOP;
 
 /**
- * 通过hash进行分组
+ * 通过hash对page数据进行分组，由GroupByHash的getGroupIds方法完成
  */
 public interface GroupByHash
 {
+    // 创建GroupByHash
     static GroupByHash createGroupByHash(
             Session session,
             List<? extends Type> hashTypes,
@@ -52,9 +53,11 @@ public interface GroupByHash
             JoinCompiler joinCompiler,
             UpdateMemory updateMemory)
     {
+        // 只有一个分组字段，且类型是Bigint，使用BigintGroupByHash，否则就是使用MultiChannelGroupByHash
         if (hashTypes.size() == 1 && hashTypes.get(0).equals(BIGINT) && hashChannels.length == 1) {
             return new BigintGroupByHash(hashChannels[0], inputHashChannel.isPresent(), expectedSize, updateMemory);
         }
+        // 默认创建MultiChannelGroupByHash
         return new MultiChannelGroupByHash(hashTypes, hashChannels, inputHashChannel, expectedSize, processDictionary, joinCompiler, updateMemory);
     }
 

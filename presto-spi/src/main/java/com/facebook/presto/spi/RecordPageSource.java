@@ -25,6 +25,9 @@ import java.util.List;
 import static java.util.Collections.unmodifiableList;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 通过迭代器的方式遍历数据。
+ */
 public class RecordPageSource
         implements ConnectorPageSource
 {

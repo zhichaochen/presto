@@ -41,8 +41,9 @@ import static com.google.common.collect.ImmutableList.toImmutableList;
 import static java.util.Objects.requireNonNull;
 
 /**
- * 计划段
- * 每个stage便是一个PlanFragment，并行运行在多个机器上
+ * 每个ExchangeNode对应一个SubPlan对应一个PlanFragment
+ * PlanFragment 与 Stage有什么关系呢？
+ * 我认为：Stage表示一系列的PlanFragment，Stage表示多个阶段、Fragment表示一个阶段的多个计划片段。
  */
 public class PlanFragment
 {
@@ -52,7 +53,7 @@ public class PlanFragment
     private final PartitioningHandle partitioning; // 端分割句柄
     private final List<PlanNodeId> tableScanSchedulingOrder; // 表扫描顺序
     private final List<Type> types; // 字段类型
-    private final List<RemoteSourceNode> remoteSourceNodes; // remote节点
+    private final List<RemoteSourceNode> remoteSourceNodes; // Remote数据源节点列表（不同阶段数据交互的节点）
     private final PartitioningScheme partitioningScheme; // 表分割句柄
     private final StageExecutionDescriptor stageExecutionDescriptor; // 阶段执行描述
     private final boolean outputTableWriterFragment; // 是否是输出
@@ -91,6 +92,7 @@ public class PlanFragment
         checkArgument(root.getOutputVariables().containsAll(partitioningScheme.getOutputLayout()),
                 "Root node outputs (%s) does not include all fragment outputs (%s)", root.getOutputVariables(), partitioningScheme.getOutputLayout());
 
+        // 字段类型列表
         types = partitioningScheme.getOutputLayout().stream()
                 .map(VariableReferenceExpression::getType)
                 .collect(toImmutableList());

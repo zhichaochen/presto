@@ -23,6 +23,9 @@ import static java.lang.Math.min;
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * double范围
+ */
 public class DoubleRange
 {
     private final double min;

@@ -24,6 +24,7 @@ import java.net.URI;
 
 /**
  * 表示一个远程任务，可以与远程worker node进行交互
+ * 通过RemoteSourceNode有什么关系呢？
  */
 public interface RemoteTask
 {
@@ -33,9 +34,11 @@ public interface RemoteTask
 
     TaskInfo getTaskInfo();
 
+    // 任务状态
     TaskStatus getTaskStatus();
 
     /**
+     * 远程任务位置
      * TODO: this should be merged into getTaskStatus once full thrift support is in-place for v1/task
      */
     URI getRemoteTaskLocation();
@@ -46,8 +49,10 @@ public interface RemoteTask
     // 更新task，主要给task更新输入（splits）
     void addSplits(Multimap<PlanNodeId, Split> splits);
 
+    // 设置当前任务没有split了
     void noMoreSplits(PlanNodeId sourceId);
 
+    // TODO 告知远程的任务没有split了
     void noMoreSplits(PlanNodeId sourceId, Lifespan lifespan);
 
     void setOutputBuffers(OutputBuffers outputBuffers);
@@ -55,6 +60,7 @@ public interface RemoteTask
     ListenableFuture<?> removeRemoteSource(TaskId remoteSourceTaskId);
 
     /**
+     * 添加任务状态改变监听器
      * Listener is always notified asynchronously using a dedicated notification thread pool so, care should
      * be taken to avoid leaking {@code this} when adding a listener in a constructor. Additionally, it is
      * possible notifications are observed out of order due to the asynchronous execution.
@@ -62,6 +68,7 @@ public interface RemoteTask
     void addStateChangeListener(StateChangeListener<TaskStatus> stateChangeListener);
 
     /**
+     *
      * Add a listener for the final task info.  This notification is guaranteed to be fired only once.
      * Listener is always notified asynchronously using a dedicated notification thread pool so, care should
      * be taken to avoid leaking {@code this} when adding a listener in a constructor. Additionally, it is
@@ -71,8 +78,10 @@ public interface RemoteTask
 
     ListenableFuture<?> whenSplitQueueHasSpace(int threshold);
 
+    // 取消任务
     void cancel();
 
+    // 终止任务
     void abort();
 
     int getPartitionedSplitCount();

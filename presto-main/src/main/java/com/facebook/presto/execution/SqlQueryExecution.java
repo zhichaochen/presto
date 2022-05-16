@@ -172,6 +172,7 @@ public class SqlQueryExecution
             this.planChecker = requireNonNull(planChecker, "planChecker is null");
 
             // analyze query
+            // 分析查询
             requireNonNull(preparedQuery, "preparedQuery is null");
             Analyzer analyzer = new Analyzer(
                     stateMachine.getSession(),
@@ -187,19 +188,23 @@ public class SqlQueryExecution
             stateMachine.setUpdateType(analysis.getUpdateType());
 
             // when the query finishes cache the final query info, and clear the reference to the output stage
+            // 当查询完成时，缓存最终查询信息，并清除对输出阶段的引用
             AtomicReference<SqlQuerySchedulerInterface> queryScheduler = this.queryScheduler;
+            // 添加状态改变监听器
             stateMachine.addStateChangeListener(state -> {
                 if (!state.isDone()) {
                     return;
                 }
 
                 // query is now done, so abort any work that is still running
+                // 查询现在已完成，因此中止仍在运行的任何工作
                 SqlQuerySchedulerInterface scheduler = queryScheduler.get();
                 if (scheduler != null) {
                     scheduler.abort();
                 }
             });
 
+            //
             this.remoteTaskFactory = new TrackingRemoteTaskFactory(requireNonNull(remoteTaskFactory, "remoteTaskFactory is null"), stateMachine);
         }
     }
@@ -337,7 +342,7 @@ public class SqlQueryExecution
     }
 
     /**
-     * 开始查询
+     * 开始处理sql并提交Sql到Worker。
      */
     @Override
     public void start()
@@ -359,7 +364,7 @@ public class SqlQueryExecution
                 metadata.beginQuery(getSession(), plan.getConnectors());
 
                 // plan distribution of query
-                // 生成分布式查询计划
+                // 生成调度器，准备开始分布式查询
                 planDistribution(plan);
 
                 // transition to starting
@@ -369,9 +374,11 @@ public class SqlQueryExecution
                 }
 
                 // if query is not finished, start the scheduler, otherwise cancel it
+                // 如果查询未完成，请启动调度器，否则取消它
                 SqlQuerySchedulerInterface scheduler = queryScheduler.get();
 
-                // 开始分布式调度SQL
+                // 如果没有结束，开始分布式调度SQL，本质来说是将不同的split分配到不同的节点执行。
+                // TODO 开始分布式调度
                 if (!stateMachine.isDone()) {
                     scheduler.start();
                 }
@@ -432,16 +439,19 @@ public class SqlQueryExecution
         Plan plan = logicalPlanner.plan(analysis);
         queryPlan.set(plan);
 
-        // extract inputs 提取inputs
+        // extract inputs
+        // 提取查询字段
         List<Input> inputs = new InputExtractor(metadata, stateMachine.getSession()).extractInputs(plan.getRoot());
         stateMachine.setInputs(inputs);
 
         // extract output
+        // 提取输出
         Optional<Output> output = new OutputExtractor().extractOutput(plan.getRoot());
         stateMachine.setOutput(output);
 
-        // fragment the planplanDistribution
+        // fragment the planDistribution
         // the variableAllocator is finally passed to SqlQueryScheduler for runtime cost-based optimizations
+        // 这个变量分配器最终被传递到SqlQueryScheduler，用于运行时CBO优化
         variableAllocator.set(new PlanVariableAllocator(plan.getTypes().allVariables()));
         // 逻辑执行计划分段
         SubPlan fragmentedPlan = planFragmenter.createSubPlans(stateMachine.getSession(), plan, false, idAllocator, variableAllocator.get(), stateMachine.getWarningCollector());
@@ -473,16 +483,22 @@ public class SqlQueryExecution
 
     /**
      * 生成分布式执行计划（生成了stage执行计划）
+     *
      * 最终会交给调度器，调度器会将任务发送到远程节点执行。
+     * 1、准备好了资源切分规则（在分段的时候已经处理好了分区策略）
+     * 2、准备好了输出缓存
+     * 3、准备好了调度器
+     * 接下来就可以开始split了。
      * @param plan
      */
     private void planDistribution(PlanRoot plan)
     {
-        // 资源切分器（对数据怎么切分，比如ES就是一个节点一个分区）
+        // 资源切分器（对数据怎么切分，比如ES就是一个shard一个split）
+        // 获取SplitSource，并创建可关闭的SplitSource，CloseableSplitSourceProvider中的操作会委托给
         CloseableSplitSourceProvider splitSourceProvider = new CloseableSplitSourceProvider(splitManager::getSplits);
 
         // ensure split sources are closed
-        // 添加状态改变监听器
+        // 添加状态改变监听器，如果查询完成，则关闭splitSourceProvider
         stateMachine.addStateChangeListener(state -> {
             if (state.isDone()) {
                 splitSourceProvider.close();
@@ -495,25 +511,30 @@ public class SqlQueryExecution
             return;
         }
 
-        // 执行计划根节点
+        // 执行计划根节点，根节点是OutputPlan
         SubPlan outputStagePlan = plan.getRoot();
 
         // record output field
         // 记录输出字段
         stateMachine.setColumns(((OutputNode) outputStagePlan.getFragment().getRoot()).getColumnNames(), outputStagePlan.getFragment().getTypes());
 
-        // 分割句柄
+        // output阶段的分区句柄
         PartitioningHandle partitioningHandle = outputStagePlan.getFragment().getPartitioningScheme().getPartitioning().getHandle();
         OutputBuffers rootOutputBuffers;
+        // Spooling ： Simultaneous Peripheral Operations On-Line， 外部设备联机并行操作
+        // 如果可以联机并行操作，则创建SpoolingOutputBuffer
         if (isSpoolingOutputBufferEnabled(getSession())) {
             rootOutputBuffers = createSpoolingOutputBuffers();
         }
+        // 创建一个空的OutputBuffer
         else {
+            // 初始化一个空的OutputBuffers
             rootOutputBuffers = createInitialEmptyOutputBuffers(partitioningHandle)
                     .withBuffer(OUTPUT_BUFFER_ID, BROADCAST_PARTITION_ID)
                     .withNoMoreBufferIds();
         }
 
+        // 切分资源工厂
         SplitSourceFactory splitSourceFactory = new SplitSourceFactory(splitSourceProvider, stateMachine.getWarningCollector());
         // build the stage execution objects (this doesn't schedule execution)
         // 构建阶段执行对象，还没有调度执行
@@ -565,6 +586,7 @@ public class SqlQueryExecution
 
         // if query was canceled during scheduler creation, abort the scheduler
         // directly since the callback may have already fired
+        // 查询完成，终止调度器
         if (stateMachine.isDone()) {
             scheduler.abort();
             queryScheduler.set(null);
@@ -590,6 +612,10 @@ public class SqlQueryExecution
         }
     }
 
+    /**
+     * 使query失败
+     * @param cause
+     */
     @Override
     public void fail(Throwable cause)
     {

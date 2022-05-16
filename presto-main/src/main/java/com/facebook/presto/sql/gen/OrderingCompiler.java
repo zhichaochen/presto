@@ -59,6 +59,9 @@ import static com.facebook.presto.util.CompilerUtils.defineClass;
 import static com.facebook.presto.util.CompilerUtils.makeClassName;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 排序编译器
+ */
 public class OrderingCompiler
 {
     private static final Logger log = Logger.get(OrderingCompiler.class);

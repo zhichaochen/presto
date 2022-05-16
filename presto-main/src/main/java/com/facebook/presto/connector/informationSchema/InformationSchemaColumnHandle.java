@@ -27,7 +27,7 @@ import static java.util.Objects.requireNonNull;
 public class InformationSchemaColumnHandle
         implements ColumnHandle
 {
-    private final String columnName;
+    private final String columnName; // 列名
 
     @JsonCreator
     public InformationSchemaColumnHandle(@JsonProperty("columnName") String columnName)

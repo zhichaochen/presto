@@ -25,12 +25,15 @@ import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.CompletableFuture.completedFuture;
 
 /**
- * 固定的切分资源
+ * 固定的Split资源, 固定数量的split
+ * 比如ES就是使用了这个，每个shard对应一个split
  */
 public class FixedSplitSource
         implements ConnectorSplitSource
 {
+    // split 列表
     private final List<ConnectorSplit> splits;
+    // split 偏移量
     private int offset;
 
     public FixedSplitSource(Iterable<? extends ConnectorSplit> splits)
@@ -43,6 +46,12 @@ public class FixedSplitSource
         this.splits = Collections.unmodifiableList(splitsList);
     }
 
+    /**
+     * 获取下一批次，分批次获取Split，通过maxSize来决定
+     * @param partitionHandle
+     * @param maxSize
+     * @return
+     */
     @SuppressWarnings("ObjectEquality")
     @Override
     public CompletableFuture<ConnectorSplitBatch> getNextBatch(ConnectorPartitionHandle partitionHandle, int maxSize)
@@ -62,6 +71,7 @@ public class FixedSplitSource
     @Override
     public boolean isFinished()
     {
+        // 如果offset大于了总的，表示分配完成了。
         return offset >= splits.size();
     }
 

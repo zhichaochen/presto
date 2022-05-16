@@ -17,6 +17,10 @@ import static java.lang.String.format;
 import static java.lang.System.identityHashCode;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 很直观，就是Node的引用
+ * @param <T>
+ */
 public final class NodeRef<T extends Node>
 {
     public static <T extends Node> NodeRef<T> of(T node)

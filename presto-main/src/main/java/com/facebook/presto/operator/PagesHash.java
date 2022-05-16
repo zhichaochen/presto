@@ -30,31 +30,58 @@ import static io.airlift.units.DataSize.Unit.KILOBYTE;
 import static java.lang.Math.toIntExact;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 计算pages的hash值 和 pagesIndex很类似
+ *
+ * ===========================
+ * 1、key
+ * 无论那种join都需要知道一个表中的值在另一个表中是否存在
+ * key的大小就是hash表的大小
+ * 每个位置存储的是一个字段的值的hash值对hashSize取模后的值
+ *
+ * 2、address：存储了每个值对应的位置
+ *  当key值相等时，我们还需要做两类处理，
+ *  第一是是否真的原始值就相等，如果原始值不等，那么说明hash冲突了，而要判断原始值是否相等，就是需要借助addresses来从积攒的一大堆数据中读取出原始值来判断；
+ *  另外一个处理是原始值真的就相等了，那么就需要一个地方来存储这些相等的原始值在那一大推数据中的位置(就是address)，
+ *  以便在inner join时把这些相等的值快速的找到并读出来，这就需要使用到positionLinks这个数组了。
+ * 3、positionLinks
+ */
 // This implementation assumes arrays used in the hash are always a power of 2
 public final class PagesHash
 {
     private static final int INSTANCE_SIZE = ClassLayout.parseClass(PagesHash.class).instanceSize();
     private static final DataSize CACHE_SIZE = new DataSize(128, KILOBYTE);
-    private final AdaptiveLongBigArray addresses;
-    private final int positionCount;
-    private final PagesHashStrategy pagesHashStrategy;
 
-    private final int channelCount;
-    private final int mask;
-    private final int[] key;
-    private final long size;
+    private final AdaptiveLongBigArray addresses; // 记录那个page的那一行
+    private final int positionCount; // 总行数
+    private final PagesHashStrategy pagesHashStrategy; // hash策略
+
+    private final int channelCount; // 行数
+    private final int mask; // 掩码
+    // key的大小就是hash表的大小，是一个int数组，每个位置存储的是一个字段的值的hash值对hashSize取模后的值。
+    private final int[] key; // 要关联的字段值
+    private final long size; //
 
     // Native array of hashes for faster collisions resolution compared
     // to accessing values in blocks. We use bytes to reduce memory foot print
     // and there is no performance gain from storing full hashes
-    private final byte[] positionToHashes;
-    private final long hashCollisions;
-    private final double expectedHashCollisions;
+    // 与访问Block中的值相比，原生的哈希数组可以更快地解决冲突。
+    // 我们使用字节来减少内存足迹，并且存储完整的散列不会带来性能提升
+    private final byte[] positionToHashes; //
+    private final long hashCollisions; // hash冲突的个数
+    private final double expectedHashCollisions; // 预期hash冲突的个数
 
+    /**
+     * 构建PagesHash
+     * @param addresses
+     * @param positionCount
+     * @param pagesHashStrategy
+     * @param positionLinks
+     */
     public PagesHash(
-            AdaptiveLongBigArray addresses,
-            int positionCount,
-            PagesHashStrategy pagesHashStrategy,
+            AdaptiveLongBigArray addresses, // 类似数组
+            int positionCount, // 位置总数
+            PagesHashStrategy pagesHashStrategy, // page的Hash策略
             PositionLinks.FactoryBuilder positionLinks)
     {
         this.addresses = requireNonNull(addresses, "addresses is null");
@@ -63,46 +90,66 @@ public final class PagesHash
         this.channelCount = pagesHashStrategy.getChannelCount();
 
         // reserve memory for the arrays
+        // 预留数组的内存
         int hashSize = HashCommon.arraySize(positionCount, 0.75f);
 
-        mask = hashSize - 1;
-        key = new int[hashSize];
-        Arrays.fill(key, -1);
+        mask = hashSize - 1; // 掩码
+        key = new int[hashSize]; //
+        Arrays.fill(key, -1); // 给key数组填充-1
 
         positionToHashes = new byte[positionCount];
 
         // We will process addresses in batches, to save memory on array of hashes.
+        // 我们将分批处理地址，以节省哈希数组上的内存。
+        // ==========既然要分批读取，其中的step就表示一批
+        // 在第几步中
         int positionsInStep = Math.min(positionCount + 1, (int) CACHE_SIZE.toBytes() / Integer.SIZE);
         long[] positionToFullHashes = new long[positionsInStep];
         long hashCollisionsLocal = 0;
 
+        // 遍历所有step
         for (int step = 0; step * positionsInStep <= positionCount; step++) {
+            // 每步的开始位置
             int stepBeginPosition = step * positionsInStep;
+            // 每步的结束位置
             int stepEndPosition = Math.min((step + 1) * positionsInStep, positionCount);
+            // step的长度
             int stepSize = stepEndPosition - stepBeginPosition;
 
             // First extract all hashes from blocks to native array.
             // Somehow having this as a separate loop is much faster compared
             // to extracting hashes on the fly in the loop below.
+            // 首先将所有散列从块中提取到本机数组中。不知何故，将其作为一个单独的循环比在下面的循环中动态提取散列要快得多。
+            // 遍历每一步中的
             for (int position = 0; position < stepSize; position++) {
+                // 真正的位置
                 int realPosition = position + stepBeginPosition;
+                // hash位置
                 long hash = readHashPosition(realPosition);
+                //
                 positionToFullHashes[position] = hash;
                 positionToHashes[realPosition] = (byte) hash;
             }
 
             // index pages
+            // 索引Pages
             for (int position = 0; position < stepSize; position++) {
+                // 真正的位置
                 int realPosition = position + stepBeginPosition;
                 if (isPositionNull(realPosition)) {
                     continue;
                 }
 
+                // hash值
                 long hash = positionToFullHashes[position];
+                // 获取hash位置
                 int pos = getHashPosition(hash, mask);
 
                 // look for an empty slot or a slot containing this key
+                // 查找空插槽或包含此key的插槽
+                // key[pos]不为空
                 while (key[pos] != -1) {
+                    // 获取当前key
                     int currentKey = key[pos];
                     if (((byte) hash) == positionToHashes[currentKey] && positionEqualsPositionIgnoreNulls(currentKey, realPosition)) {
                         // found a slot for this key
@@ -121,9 +168,12 @@ public final class PagesHash
             }
         }
 
+        // 占用内存大小
         size = addresses.getRetainedSizeInBytes() + pagesHashStrategy.getSizeInBytes() +
                 sizeOf(key) + sizeOf(positionToHashes);
+        // hash冲突数
         hashCollisions = hashCollisionsLocal;
+        // 预计hash冲突数
         expectedHashCollisions = estimateNumberOfHashCollisions(positionCount, hashSize);
     }
 
@@ -157,8 +207,16 @@ public final class PagesHash
         return getAddressIndex(position, hashChannelsPage, pagesHashStrategy.hashRow(position, hashChannelsPage));
     }
 
+    /**
+     * LookupJoinOperator使用hash table的核心代码片段如下：
+     * @param rightPosition
+     * @param hashChannelsPage
+     * @param rawHash : 对原始数据进行hash之后的值
+     * @return
+     */
     public int getAddressIndex(int rightPosition, Page hashChannelsPage, long rawHash)
     {
+        //
         int pos = getHashPosition(rawHash, mask);
 
         while (key[pos] != -1) {
@@ -189,6 +247,11 @@ public final class PagesHash
         return pagesHashStrategy.isPositionNull(blockIndex, blockPosition);
     }
 
+    /**
+     * hash位置
+     * @param position
+     * @return
+     */
     private long readHashPosition(int position)
     {
         long pageAddress = addresses.get(position);

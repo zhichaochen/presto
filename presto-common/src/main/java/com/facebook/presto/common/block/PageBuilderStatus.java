@@ -13,13 +13,17 @@
  */
 package com.facebook.presto.common.block;
 
+/**
+ * PageBuilder状态
+ */
 public class PageBuilderStatus
 {
+    // 默认的最大page size，默认1M
     public static final int DEFAULT_MAX_PAGE_SIZE_IN_BYTES = 1024 * 1024;
 
-    private final int maxPageSizeInBytes;
+    private final int maxPageSizeInBytes; //最大的page size
 
-    private long currentSize;
+    private long currentSize; // 当前page size
 
     public PageBuilderStatus()
     {

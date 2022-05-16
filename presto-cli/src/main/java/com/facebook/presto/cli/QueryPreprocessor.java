@@ -54,19 +54,31 @@ public final class QueryPreprocessor
     private static final Duration DEFAULT_PREPROCESSOR_TIMEOUT = new Duration(10, SECONDS);
 
     private static final Signal SIGINT = new Signal("INT");
+    // 预处理查询信息
     private static final String PREPROCESSING_QUERY_MESSAGE = "Preprocessing query...";
 
     private QueryPreprocessor() {}
 
+    /**
+     * 预处理查询
+     * @param catalog
+     * @param schema
+     * @param query
+     * @return
+     * @throws QueryPreprocessorException
+     */
     public static String preprocessQuery(Optional<String> catalog, Optional<String> schema, String query)
             throws QueryPreprocessorException
     {
+        // 默认的预处理超时时间
         Duration timeout = DEFAULT_PREPROCESSOR_TIMEOUT;
+        // 配置的预处理超时时间
         String timeoutEnvironment = nullToEmpty(System.getenv(ENV_PREPROCESSOR_TIMEOUT)).trim();
         if (!timeoutEnvironment.isEmpty()) {
             timeout = Duration.valueOf(timeoutEnvironment);
         }
 
+        // 预处理命令
         String preprocessorCommand = System.getenv(ENV_PREPROCESSOR);
         if (emptyToNull(preprocessorCommand) == null) {
             return query;
@@ -96,6 +108,17 @@ public final class QueryPreprocessor
         }
     }
 
+    /**
+     *
+     * 进程相关参考：https://blog.csdn.net/u013256816/article/details/54603910
+     * @param catalog
+     * @param schema
+     * @param query
+     * @param preprocessorCommand
+     * @param timeout
+     * @return
+     * @throws QueryPreprocessorException
+     */
     private static String preprocessQueryInternal(Optional<String> catalog, Optional<String> schema, String query, List<String> preprocessorCommand, Duration timeout)
             throws QueryPreprocessorException
     {
@@ -107,16 +130,20 @@ public final class QueryPreprocessor
             int exitCode;
             Future<String> readStderr;
             try {
+                // 创建进程构建器
                 ProcessBuilder processBuilder = new ProcessBuilder(preprocessorCommand);
+                // 设置进程的环境变量
                 processBuilder.environment().put(ENV_PRESTO_CATALOG, catalog.orElse(""));
                 processBuilder.environment().put(ENV_PRESTO_SCHEMA, schema.orElse(""));
 
+                // 创建一个子进程
                 Process process = processBuilder.start();
                 processReference.set(process);
 
                 Future<?> writeOutput = null;
                 try {
                     // write query to process standard out
+                    // 使用标准输出输出查询
                     writeOutput = executeInNewThread("Query preprocessor output", () -> {
                         try (OutputStream outputStream = process.getOutputStream()) {
                             outputStream.write(query.getBytes(UTF_8));
@@ -204,6 +231,13 @@ public final class QueryPreprocessor
         }
     }
 
+    /**
+     * 开启一个守护线程
+     * @param threadName
+     * @param callable
+     * @param <T>
+     * @return
+     */
     private static <T> Future<T> executeInNewThread(String threadName, Callable<T> callable)
     {
         FutureTask<T> task = new FutureTask<>(callable);

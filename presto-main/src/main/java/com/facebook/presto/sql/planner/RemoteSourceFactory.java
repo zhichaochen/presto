@@ -21,6 +21,9 @@ import com.facebook.presto.spi.plan.PlanNodeId;
 
 import java.util.List;
 
+/**
+ * 远程数据源工厂，是连接数据库的工厂
+ */
 public interface RemoteSourceFactory
 {
     SourceOperatorFactory createRemoteSource(Session session, int operatorId, PlanNodeId planNodeId, List<Type> types);

@@ -21,7 +21,7 @@ import io.airlift.units.DataSize;
 import io.airlift.units.Duration;
 
 /**
- * SQL查询调度器接口
+ * SQL查询调度器
  */
 public interface SqlQuerySchedulerInterface
 {

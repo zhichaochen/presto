@@ -151,6 +151,11 @@ public class MergeOperator
         return sourceId;
     }
 
+    /**
+     * 添加split
+     * @param split
+     * @return
+     */
     @Override
     public Supplier<Optional<UpdatablePageSource>> addSplit(Split split)
     {
@@ -158,7 +163,9 @@ public class MergeOperator
         checkArgument(split.getConnectorSplit() instanceof RemoteSplit, "split is not a remote split");
         checkState(!blockedOnSplits.isDone(), "noMoreSplits has been called already");
 
+        // split地址
         RemoteSplit remoteSplit = (RemoteSplit) split.getConnectorSplit();
+        // 创建ExchangeClient
         ExchangeClient exchangeClient = closer.register(taskExchangeClientManager.createExchangeClient(operatorContext.localSystemMemoryContext()));
         exchangeClient.addLocation(remoteSplit.getLocation().toURI(), remoteSplit.getRemoteSourceTaskId());
         exchangeClient.noMoreLocations();

@@ -31,6 +31,10 @@ import java.util.function.Function;
 import static com.google.common.base.Preconditions.checkState;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * sink：下沉，肯定还需要通过exchange传递到其他地方。
+ * 在接收到Exchanger从网络接收到的一个page后，会对这个page的数据进行本地的repartition
+ */
 public class LocalExchangeSinkOperator
         implements Operator
 {
@@ -97,8 +101,8 @@ public class LocalExchangeSinkOperator
     }
 
     private final OperatorContext operatorContext;
-    private final LocalExchangeSink sink;
-    private final Function<Page, Page> pagePreprocessor;
+    private final LocalExchangeSink sink; //
+    private final Function<Page, Page> pagePreprocessor; // page预处理函数
     private ListenableFuture<?> isBlocked = NOT_BLOCKED;
 
     LocalExchangeSinkOperator(OperatorContext operatorContext, LocalExchangeSink sink, Function<Page, Page> pagePreprocessor)
@@ -144,12 +148,20 @@ public class LocalExchangeSinkOperator
         return !isFinished() && isBlocked().isDone();
     }
 
+    /**
+     * 添加一个page
+     * @param page
+     */
     @Override
     public void addInput(Page page)
     {
         requireNonNull(page, "page is null");
+        // 重新分区，调用了LocalExecutionPlanner#enforceLayoutProcessor
         page = pagePreprocessor.apply(page);
+        // 将page交给一个exchanger，会将page，会调用LocalExchangeSource#addPage添加到LocalExchangeSource中。
+        // 如果是分区hash，则会进行重分区，参考：LocalExchange#createPartitionFunction
         sink.addPage(page);
+        // 记录算子输出
         operatorContext.recordOutput(page.getSizeInBytes(), page.getPositionCount());
     }
 

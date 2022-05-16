@@ -65,9 +65,9 @@ import static java.lang.Math.min;
 import static java.util.Objects.requireNonNull;
 
 /**
- * 交换客户端：接受方的客户端，用于有些操作符需要与其他任务交换数据
- *
- * 对于从ExchangeClient中接收数据的每个发送方，ExchangeClient中使用{@link PageBufferClient}与发送方通信
+ * {@link ExchangeClient}是接收方的客户端，用于需要从其他任务交换数据的算子
+ * 例如{@link-ExchangeOperator}和{@link-MergeOperator}。
+ * 对于ExchangeClient从中接收数据的每个发送方，ExchangeClient中使用{@link PageBufferClient}与发送方通信，即。
  *
  * {@link ExchangeClient} is the client on receiver side, used in operators requiring data exchange from other tasks,
  * such as {@link ExchangeOperator} and {@link MergeOperator}.
@@ -100,6 +100,7 @@ public class ExchangeClient
     @GuardedBy("this")
     private boolean noMoreLocations;
 
+    // 所有客户端，key：uri，value：PageBufferClient
     private final ConcurrentMap<URI, PageBufferClient> allClients = new ConcurrentHashMap<>();
     private final ConcurrentMap<TaskId, URI> taskIdToLocationMap = new ConcurrentHashMap<>();
     private final Set<TaskId> removedRemoteSourceTaskIds = ConcurrentHashMap.newKeySet();
@@ -109,8 +110,10 @@ public class ExchangeClient
 
     private final Set<PageBufferClient> completedClients = newConcurrentHashSet();
     private final Set<PageBufferClient> removedClients = newConcurrentHashSet();
+    // 序列化的Page缓存，会将请求到的page加入该队列
     private final LinkedBlockingDeque<SerializedPage> pageBuffer = new LinkedBlockingDeque<>();
 
+    // 阻塞的调用者，表示等待获取page的调用者
     @GuardedBy("this")
     private final List<SettableFuture<?>> blockedCallers = new ArrayList<>();
 
@@ -180,6 +183,12 @@ public class ExchangeClient
         }
     }
 
+    /**
+     * 添加url地址, 通过ExchangeOperator中的addSplit调用
+     *
+     * @param location
+     * @param remoteSourceTaskId
+     */
     public synchronized void addLocation(URI location, TaskId remoteSourceTaskId)
     {
         requireNonNull(location, "location is null");
@@ -191,20 +200,26 @@ public class ExchangeClient
         }
 
         // ignore duplicate locations
+        // 忽略已经存在的url
         if (allClients.containsKey(location)) {
             return;
         }
 
         // already removed
+        // 已经移除了
         if (removedRemoteSourceTaskIds.contains(remoteSourceTaskId)) {
             return;
         }
 
         checkState(!noMoreLocations, "No more locations already set");
 
+        // 真正的客户端
         RpcShuffleClient resultClient;
+        // 如果能够异步，则改成异步url。
         Optional<URI> asyncPageTransportLocation = getAsyncPageTransportLocation(location, asyncPageTransportEnabled);
+        // 创建相应协议的客户端
         switch (location.getScheme().toLowerCase(Locale.ENGLISH)) {
+            // http协议则创建HttpRpcShuffleClient客户端
             case "http":
             case "https":
                 resultClient = new HttpRpcShuffleClient(httpClient, location, asyncPageTransportLocation);
@@ -216,6 +231,7 @@ public class ExchangeClient
                 throw new PrestoException(GENERIC_INTERNAL_ERROR, "unsupported task result client scheme " + location.getScheme());
         }
 
+        // 创建PageBufferClient，持有RpcShuffleClient, 通过RpcShuffleClient与远程进行通信
         PageBufferClient client = new PageBufferClient(
                 resultClient,
                 maxErrorDuration,
@@ -225,10 +241,12 @@ public class ExchangeClient
                 new ExchangeClientCallback(),
                 scheduler,
                 pageBufferClientCallbackExecutor);
+        // 添加至所有客户端
         allClients.put(location, client);
         checkState(taskIdToLocationMap.put(remoteSourceTaskId, location) == null, "Duplicate remoteSourceTaskId: " + remoteSourceTaskId);
         queuedClients.add(client);
 
+        // 如果必要的话，就调度请求
         scheduleRequestIfNecessary();
     }
 
@@ -258,6 +276,9 @@ public class ExchangeClient
         completedClients.add(client);
     }
 
+    /**
+     * 没有更多的地址了
+     */
     public synchronized void noMoreLocations()
     {
         noMoreLocations = true;
@@ -285,26 +306,36 @@ public class ExchangeClient
         });
     }
 
+    /**
+     * 获得一个Page
+     * @return
+     */
     @Nullable
     public SerializedPage pollPage()
     {
         checkState(!Thread.holdsLock(this), "Can not get next page while holding a lock on this");
 
+        // 如果失败抛出异常
         throwIfFailed();
 
+        // 如果关闭返回null
         if (closed.get()) {
             return null;
         }
 
+        // 从缓存中拿一个SerializedPage
         SerializedPage page = pageBuffer.poll();
         if (page == null) {
             return null;
         }
 
+        // 如果没有page了
         if (page == NO_MORE_PAGES) {
             // mark client closed; close() will add the end marker
+            // 关闭client
             close();
 
+            // 通知阻塞的调用者
             notifyBlockedCallers();
 
             // don't return end of stream marker
@@ -312,7 +343,9 @@ public class ExchangeClient
         }
 
         synchronized (this) {
+            // 再次判断是否关闭
             if (!closed.get()) {
+                // 剩余的缓存字节数，也就是缓冲区可用字节
                 bufferRetainedSizeInBytes -= page.getRetainedSizeInBytes();
                 systemMemoryContext.setBytes(bufferRetainedSizeInBytes);
             }
@@ -353,13 +386,19 @@ public class ExchangeClient
         notifyBlockedCallers();
     }
 
+    /**
+     * 如果有需要的话，就调度请求
+     * 开启一个线程，从远程拉取数据，
+     */
     public synchronized void scheduleRequestIfNecessary()
     {
+        // 如果完成或失败了，则返回
         if (isFinished() || isFailed()) {
             return;
         }
 
         // if finished, add the end marker
+        // 如果已完成，则关闭client，并通知阻塞调用者
         if (noMoreLocations && completedClients.size() == allClients.size()) {
             if (pageBuffer.peekLast() != NO_MORE_PAGES) {
                 checkState(pageBuffer.add(NO_MORE_PAGES), "Could not add no more pages marker");
@@ -371,17 +410,21 @@ public class ExchangeClient
             return;
         }
 
+        // 如果buffer容量不够，则返回
         long neededBytes = bufferCapacity - bufferRetainedSizeInBytes;
         if (neededBytes <= 0) {
             return;
         }
+        // 客户端数量
         long averageResponseSize = max(1, responseSizeExponentialMovingAverage.get());
         int clientCount = (int) ((1.0 * neededBytes / averageResponseSize) * concurrentRequestMultiplier);
         clientCount = max(clientCount, 1);
 
+        // 挂起的客户端数量
         int pendingClients = allClients.size() - queuedClients.size() - completedClients.size();
         clientCount -= pendingClients;
 
+        // 遍历所有客户端
         for (int i = 0; i < clientCount; ) {
             PageBufferClient client = queuedClients.poll();
             if (client == null) {
@@ -433,6 +476,7 @@ public class ExchangeClient
             }
 
             if (!pages.isEmpty()) {
+                // 将请求到的page加入队列
                 pageBuffer.addAll(pages);
 
                 bufferRetainedSizeInBytes += pagesRetainedSizeInBytes;
@@ -448,6 +492,7 @@ public class ExchangeClient
             responseSizeExponentialMovingAverage.update(responseSize);
         }
         // Trigger notifications after releasing the lock
+        // 通知监听者列表
         notifyListeners(notify);
 
         return true;
@@ -515,9 +560,15 @@ public class ExchangeClient
         }
     }
 
+    /**
+     * 客户端回调
+     */
     private class ExchangeClientCallback
             implements ClientCallback
     {
+        /**
+         * 将请求获取的pages添加到pageBuffer队列中。
+         */
         @Override
         public boolean addPages(PageBufferClient client, List<SerializedPage> pages)
         {

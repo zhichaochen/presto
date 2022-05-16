@@ -43,12 +43,14 @@ import static com.google.common.base.Preconditions.checkState;
 import static java.util.Objects.requireNonNull;
 
 /**
+ * 转化映射
  * 跟踪字段和表达式及其到当前计划中符号的映射
  * Keeps track of fields and expressions and their mapping to symbols in the current plan
  */
 class TranslationMap
 {
     // all expressions are rewritten in terms of fields declared by this relation plan
+    // 所有表达式都按照此关系计划声明的字段重写
     private final RelationPlan rewriteBase;
     private final Analysis analysis;
     private final Map<NodeRef<LambdaArgumentDeclaration>, VariableReferenceExpression> lambdaDeclarationToVariableMap;

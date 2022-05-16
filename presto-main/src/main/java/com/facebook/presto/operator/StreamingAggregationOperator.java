@@ -35,6 +35,9 @@ import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.ImmutableList.toImmutableList;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 流式聚合算子
+ */
 public class StreamingAggregationOperator
         implements Operator
 {

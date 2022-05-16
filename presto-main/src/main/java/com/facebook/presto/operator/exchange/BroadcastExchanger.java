@@ -23,12 +23,16 @@ import java.util.function.Consumer;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 广播算子，比如过滤之后，将过滤之后的数据广播到不同的节点，进行其他的操作。
+ */
 class BroadcastExchanger
         implements LocalExchanger
 {
+    // page的消费者逻辑, 向LocalExchangeSource中添加page。
     private final List<Consumer<PageReference>> buffers;
-    private final LocalExchangeMemoryManager memoryManager;
-    private final PageReleasedListener onPageReleased;
+    private final LocalExchangeMemoryManager memoryManager; // 内存管理器
+    private final PageReleasedListener onPageReleased; // page释放监听器
 
     public BroadcastExchanger(List<Consumer<PageReference>> buffers, LocalExchangeMemoryManager memoryManager)
     {

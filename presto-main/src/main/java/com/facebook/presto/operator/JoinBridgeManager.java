@@ -33,6 +33,10 @@ import static com.google.common.util.concurrent.Futures.transform;
 import static com.google.common.util.concurrent.MoreExecutors.directExecutor;
 import static java.util.Objects.requireNonNull;
 
+/**
+ *  JoinBridge管理器
+ * @param <T>
+ */
 public class JoinBridgeManager<T extends JoinBridge>
 {
     @VisibleForTesting
@@ -128,6 +132,7 @@ public class JoinBridgeManager<T extends JoinBridge>
 
     public void probeOperatorCreated(Lifespan lifespan)
     {
+        // 初始化
         initializeIfNecessary();
         internalJoinBridgeDataManager.probeOperatorCreated(lifespan);
     }
@@ -171,6 +176,7 @@ public class JoinBridgeManager<T extends JoinBridge>
     {
         checkArgument(outerFactoryCount == 0 || outerFactoryCount == 1, "outerFactoryCount should only be 0 or 1 because it is expected that outer factory never gets duplicated.");
         switch (probeExecutionStrategy) {
+            // 非分组执行
             case UNGROUPED_EXECUTION:
                 switch (buildExecutionStrategy) {
                     case UNGROUPED_EXECUTION:
@@ -180,6 +186,7 @@ public class JoinBridgeManager<T extends JoinBridge>
                     default:
                         throw new IllegalArgumentException("Unknown buildExecutionStrategy: " + buildExecutionStrategy);
                 }
+            // 分组执行
             case GROUPED_EXECUTION:
                 switch (buildExecutionStrategy) {
                     case UNGROUPED_EXECUTION:
@@ -196,6 +203,7 @@ public class JoinBridgeManager<T extends JoinBridge>
 
     private interface InternalJoinBridgeDataManager<T extends JoinBridge>
     {
+        //
         T getJoinBridge(Lifespan lifespan);
 
         ListenableFuture<OuterPositionIterator> getOuterPositionsFuture(Lifespan lifespan);
@@ -204,6 +212,7 @@ public class JoinBridgeManager<T extends JoinBridge>
 
         void probeOperatorFactoryClosed(Lifespan lifespan);
 
+        // 探测算子已经创建
         void probeOperatorCreated(Lifespan lifespan);
 
         void probeOperatorClosed(Lifespan lifespan);
@@ -216,6 +225,7 @@ public class JoinBridgeManager<T extends JoinBridge>
     }
 
     // 1 probe, 1 lookup source
+    // 一个探测，一个lookup
     private static class TaskWideInternalJoinBridgeDataManager<T extends JoinBridge>
             implements InternalJoinBridgeDataManager<T>
     {
@@ -292,6 +302,7 @@ public class JoinBridgeManager<T extends JoinBridge>
     }
 
     // N probe, N lookup source; one-to-one mapping, bijective
+    // N个探测，N个查找源；一对一映射
     private static class OneToOneInternalJoinBridgeDataManager<T extends JoinBridge>
             implements InternalJoinBridgeDataManager<T>
     {
@@ -313,10 +324,16 @@ public class JoinBridgeManager<T extends JoinBridge>
             return data(lifespan).joinBridge;
         }
 
+        /**
+         *
+         * @param lifespan
+         * @return
+         */
         @Override
         public ListenableFuture<OuterPositionIterator> getOuterPositionsFuture(Lifespan lifespan)
         {
             return transform(
+                    //
                     data(lifespan).joinLifecycle.whenBuildAndProbeFinishes(),
                     ignored -> data(lifespan).joinBridge.getOuterPositionIterator(), directExecutor());
         }
@@ -466,13 +483,16 @@ public class JoinBridgeManager<T extends JoinBridge>
         }
     }
 
+    /**
+     * join生命周期
+     */
     private static class JoinLifecycle
     {
-        private final ReferenceCount probeReferenceCount;
-        private final ReferenceCount outerReferenceCount;
+        private final ReferenceCount probeReferenceCount; // 探测引用数
+        private final ReferenceCount outerReferenceCount; // 外部引用数
 
-        private final ListenableFuture<?> whenBuildAndProbeFinishes;
-        private final ListenableFuture<?> whenAllFinishes;
+        private final ListenableFuture<?> whenBuildAndProbeFinishes; // 当构建且探测完成
+        private final ListenableFuture<?> whenAllFinishes; // 当所有工作都完成
 
         public JoinLifecycle(JoinBridge joinBridge, int probeFactoryCount, int outerFactoryCount)
         {
@@ -492,6 +512,10 @@ public class JoinBridgeManager<T extends JoinBridge>
             whenAllFinishes.addListener(joinBridge::destroy, directExecutor());
         }
 
+        /**
+         * 当构建且探测完成
+         * @return
+         */
         public ListenableFuture<?> whenBuildAndProbeFinishes()
         {
             return whenBuildAndProbeFinishes;

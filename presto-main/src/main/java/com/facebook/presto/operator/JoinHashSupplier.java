@@ -29,6 +29,9 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.ImmutableList.toImmutableList;
 import static java.util.Objects.requireNonNull;
 
+/**
+ *  JoinHash的提供者
+ */
 public class JoinHashSupplier
         implements LookupSourceSupplier
 {
@@ -57,6 +60,7 @@ public class JoinHashSupplier
         requireNonNull(channels, "pages is null");
         requireNonNull(pagesHashStrategy, "pagesHashStrategy is null");
 
+        // 创建positionLinks构建器，如果sortChannel存在，则构建SortedPositionLinks，否则构建ArrayPositionLinks
         PositionLinks.FactoryBuilder positionLinksFactoryBuilder;
         if (sortChannel.isPresent() &&
                 isFastInequalityJoin(session)) {
@@ -70,8 +74,11 @@ public class JoinHashSupplier
             positionLinksFactoryBuilder = ArrayPositionLinks.builder(positionCount);
         }
 
+        // 将channels转换成pages
         this.pages = channelsToPages(channels);
+        // 创建PagesHash
         this.pagesHash = new PagesHash(addresses, positionCount, pagesHashStrategy, positionLinksFactoryBuilder);
+        // positionLinks构建器
         this.positionLinks = positionLinksFactoryBuilder.isEmpty() ? Optional.empty() : Optional.of(positionLinksFactoryBuilder.build());
     }
 
@@ -98,6 +105,7 @@ public class JoinHashSupplier
     {
         // We need to create new JoinFilterFunction per each thread using it, since those functions
         // are not thread safe...
+        //
         Optional<JoinFilterFunction> filterFunction =
                 filterFunctionFactory.map(factory -> factory.create(session.getSqlFunctionProperties(), addresses, pages));
         return new JoinHash(

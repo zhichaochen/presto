@@ -27,6 +27,11 @@ import java.util.Optional;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 修剪计划树的规则
+ *
+ * @param <T>
+ */
 public interface Rule<T>
 {
     /**

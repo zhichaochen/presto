@@ -18,6 +18,9 @@ import com.google.common.util.concurrent.ListenableFuture;
 
 import static com.facebook.presto.operator.Operator.NOT_BLOCKED;
 
+/**
+ * 本地交换器，
+ */
 public interface LocalExchanger
 {
     LocalExchanger FINISHED = new LocalExchanger()

@@ -32,14 +32,14 @@ import static java.util.Objects.requireNonNull;
 
 /**
  * 分片
- * 一个分片是一个大数据集中的一个子集。
+ * 一个Split是一个大数据集中的一个子集，比如ES中就是一个shard，多个shard（分片）构成了某个document的全集
  * 当执行查询时，首先从Coordinator得到一个表的所有Split，然后根据查询执行计划选取合适的Worker执行Task处理Split
  */
 public final class Split
 {
-    private final ConnectorId connectorId;
-    private final ConnectorTransactionHandle transactionHandle;
-    private final ConnectorSplit connectorSplit;
+    private final ConnectorId connectorId; // 连接器ID
+    private final ConnectorTransactionHandle transactionHandle; // 事务
+    private final ConnectorSplit connectorSplit; //
     private final Lifespan lifespan;
     private final SplitContext splitContext;
 

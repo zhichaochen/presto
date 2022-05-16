@@ -41,9 +41,13 @@ import static com.google.common.base.Verify.verify;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toMap;
 
+/**
+ * 本地动态过滤器
+ */
 public class LocalDynamicFilter
 {
     // Mapping from dynamic filter ID to its probe variables.
+    // 从动态筛选器ID到其探测变量的映射。
     private final Multimap<String, VariableReferenceExpression> probeVariables;
 
     // Mapping from dynamic filter ID to its build channel indices.

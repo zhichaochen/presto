@@ -26,7 +26,8 @@ import java.util.List;
 import static java.util.Objects.requireNonNull;
 
 /**
- * 表示切分资源的结果
+ * 数据切分的处理
+ * 比如ES的一个shard表示一个Split
  */
 public interface SplitSource
         extends Closeable
@@ -47,6 +48,7 @@ public interface SplitSource
 
     boolean isFinished();
 
+    // split批次
     class SplitBatch
     {
         // split列表
@@ -66,6 +68,7 @@ public interface SplitSource
         }
 
         /**
+         * 是否是最后一批次
          * Returns <tt>true</tt> if all splits for the requested driver group have been returned.
          * In other hands, splits returned from this and all previous invocations of {@link #getNextBatch}
          * form the complete set of splits in the requested driver group.

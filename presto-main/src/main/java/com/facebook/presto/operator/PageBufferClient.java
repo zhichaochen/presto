@@ -59,6 +59,10 @@ import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
+/**
+ *
+ * 每个任务对应一个PageBufferClient
+ */
 @ThreadSafe
 public final class PageBufferClient
         implements Closeable
@@ -224,6 +228,11 @@ public final class PageBufferClient
         }
     }
 
+    /**
+     * 周期性拉取page
+     * 成功之后，进行回调，将page加入ExchangeClient中的序列化page的队列。
+     * @param maxResponseSize
+     */
     public synchronized void scheduleRequest(DataSize maxResponseSize)
     {
         if (closed || (future != null) || scheduled) {
@@ -256,6 +265,7 @@ public final class PageBufferClient
             return;
         }
 
+        // 如果完成发送取消请求
         if (completed) {
             sendDelete();
         }

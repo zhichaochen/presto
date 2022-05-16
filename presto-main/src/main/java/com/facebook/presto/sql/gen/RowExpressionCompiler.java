@@ -60,6 +60,9 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static java.lang.String.format;
 
+/**
+ * RowExpression编译器
+ */
 public class RowExpressionCompiler
 {
     private final ClassDefinition classDefinition;
@@ -103,12 +106,16 @@ public class RowExpressionCompiler
         return rowExpression.accept(new Visitor(), new Context(scope, outputBlockVariable, lambdaInterface));
     }
 
+    /**
+     * RowExpression访问器
+     */
     private class Visitor
             implements RowExpressionVisitor<BytecodeNode, Context>
     {
         @Override
         public BytecodeNode visitCall(CallExpression call, Context context)
         {
+            // 函数和类型管理器
             FunctionAndTypeManager functionAndTypeManager = metadata.getFunctionAndTypeManager();
             FunctionMetadata functionMetadata = functionAndTypeManager.getFunctionMetadata(call.getFunctionHandle());
             BytecodeGeneratorContext generatorContext;

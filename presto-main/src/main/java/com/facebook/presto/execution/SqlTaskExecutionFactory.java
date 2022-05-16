@@ -78,6 +78,10 @@ public class SqlTaskExecutionFactory
         this.legacyLifespanCompletionCondition = config.isLegacyLifespanCompletionCondition();
     }
 
+    /**
+     * 创建SqlTaskExecution
+     * @return
+     */
     public SqlTaskExecution create(
             Session session,
             QueryContext queryContext,
@@ -88,6 +92,7 @@ public class SqlTaskExecutionFactory
             List<TaskSource> sources,
             TableWriteInfo tableWriteInfo)
     {
+        // 创建任务上下文
         TaskContext taskContext = queryContext.addTaskContext(
                 taskStateMachine,
                 session,
@@ -97,9 +102,11 @@ public class SqlTaskExecutionFactory
                 allocationTrackingEnabled,
                 legacyLifespanCompletionCondition);
 
-        LocalExecutionPlan localExecutionPlan;LocalExecutionPlanner
+        // 生成Worker本地执行计划，
+        LocalExecutionPlan localExecutionPlan;
         try (SetThreadName ignored = new SetThreadName("Task-%s", taskStateMachine.getTaskId())) {
             try {
+                // 生成物理执行计划
                 localExecutionPlan = planner.plan(
                         taskContext,
                         fragment.getRoot(),
@@ -107,6 +114,7 @@ public class SqlTaskExecutionFactory
                         fragment.getStageExecutionDescriptor(),
                         fragment.getTableScanSchedulingOrder(),
                         outputBuffer,
+                        // 创建与数据库通信的工厂
                         new HttpRemoteSourceFactory(blockEncodingSerde, taskExchangeClientManager, orderingCompiler),
                         tableWriteInfo);
             }

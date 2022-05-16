@@ -30,7 +30,8 @@ import static com.google.common.collect.Iterables.getOnlyElement;
 import static java.util.Objects.requireNonNull;
 
 /**
- * 计划节点查找器，能通过根节点查找其他节点
+ * 计划节点查找器
+ * 能通过根节点查找其他节点
  */
 public class PlanNodeSearcher
 {

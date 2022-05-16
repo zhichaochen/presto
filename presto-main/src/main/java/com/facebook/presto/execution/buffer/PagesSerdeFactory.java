@@ -28,6 +28,9 @@ import java.util.Optional;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * Page的序列化反序列化工厂
+ */
 public class PagesSerdeFactory
 {
     private final BlockEncodingSerde blockEncodingSerde;

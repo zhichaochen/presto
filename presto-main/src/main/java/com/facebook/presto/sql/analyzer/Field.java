@@ -21,6 +21,9 @@ import java.util.Optional;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 表示一个查询字段
+ */
 public class Field
 {
     private final Optional<QualifiedObjectName> originTable;

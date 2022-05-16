@@ -28,10 +28,14 @@ import static com.facebook.presto.execution.buffer.OutputBuffers.createInitialEm
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 分区类型的输出缓存管理器
+ */
 @ThreadSafe
 public class PartitionedOutputBufferManager
         implements OutputBufferManager
 {
+    // 输出缓存
     private final Map<OutputBufferId, Integer> outputBuffers;
 
     public PartitionedOutputBufferManager(PartitioningHandle partitioningHandle, int partitionCount, Consumer<OutputBuffers> outputBufferTarget)
@@ -56,6 +60,7 @@ public class PartitionedOutputBufferManager
     {
         // All buffers are created in the constructor, so just validate that this isn't
         // a request to add a new buffer
+        // 所有缓冲区都是在构造函数中创建的，所以只需验证这不是添加新缓冲区的请求
         for (OutputBufferId newBuffer : newBuffers) {
             Integer existingBufferId = outputBuffers.get(newBuffer);
             if (existingBufferId == null) {

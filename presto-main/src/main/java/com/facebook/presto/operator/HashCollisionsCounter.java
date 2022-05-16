@@ -17,13 +17,16 @@ import java.util.function.Supplier;
 
 import static com.facebook.presto.operator.HashCollisionsInfo.createHashCollisionsInfo;
 
+/**
+ * Hash冲突计数器
+ */
 public class HashCollisionsCounter
         implements Supplier<OperatorInfo>
 {
-    private final OperatorContext operatorContext;
+    private final OperatorContext operatorContext; // 算子上下文
 
-    private long hashCollisions;
-    private double expectedHashCollisions;
+    private long hashCollisions; // hash冲突数
+    private double expectedHashCollisions; // 预期的hash冲突数
 
     public HashCollisionsCounter(OperatorContext operatorContext)
     {

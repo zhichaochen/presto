@@ -32,6 +32,10 @@ import static com.google.common.io.ByteStreams.toByteArray;
 import static com.google.common.net.HttpHeaders.CONTENT_TYPE;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 微笑响应处理器
+ * @param <T>
+ */
 public class FullSmileResponseHandler<T>
         implements ResponseHandler<FullSmileResponseHandler.SmileResponse<T>, RuntimeException>
 {

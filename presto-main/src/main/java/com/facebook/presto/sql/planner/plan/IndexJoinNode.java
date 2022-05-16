@@ -28,6 +28,9 @@ import java.util.Optional;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 通过索引进行关联的JOIN节点
+ */
 @Immutable
 public class IndexJoinNode
         extends InternalPlanNode

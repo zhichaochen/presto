@@ -32,7 +32,7 @@ public interface Operator
     OperatorContext getOperatorContext();
 
     /**
-     * 是否阻塞
+     * 当前算子是否被阻塞了
      * Returns a future that will be completed when the operator becomes
      * unblocked.  If the operator is not blocked, this method should return
      * {@code NOT_BLOCKED}.
@@ -91,6 +91,7 @@ public interface Operator
 
     /**
      * 刷写出处理
+     * 通知下游算子，当前算子不会再有page添加进来
      * Notifies the operator that no more pages will be added and the
      * operator should finish processing and flush results. This method
      * will not be called if the Task is already failed or canceled.

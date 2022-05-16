@@ -20,6 +20,9 @@ import com.google.common.util.concurrent.ListenableFuture;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * split放置结果
+ */
 public final class SplitPlacementResult
 {
     private final ListenableFuture<?> blocked;

@@ -37,6 +37,9 @@ import static com.google.common.base.Preconditions.checkState;
 import static io.airlift.slice.Slices.wrappedBuffer;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 删除算子
+ */
 public class DeleteOperator
         implements Operator
 {
@@ -155,6 +158,12 @@ public class DeleteOperator
         }
         state = State.FINISHED;
 
+        /**
+         * DeleteOperator的输出Page中有三个通道
+         * 1. 行计数（BIGINT）
+         * 2. 删除片段（VARBINARY）
+         * 3. 表提交上下文（VARBINARY）
+         */
         // There are three channels in the output page of DeleteOperator
         // 1. Row count (BIGINT)
         // 2. Delete fragments (VARBINARY)

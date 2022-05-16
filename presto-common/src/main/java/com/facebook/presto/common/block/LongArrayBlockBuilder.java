@@ -32,14 +32,19 @@ import static java.lang.Math.max;
 import static java.lang.Math.toIntExact;
 import static java.lang.String.format;
 
+/**
+ * long类型数据的BlockBuilder
+ */
 public class LongArrayBlockBuilder
         implements BlockBuilder
 {
+    // 当前实例占用字节码的大小
     private static final int INSTANCE_SIZE = ClassLayout.parseClass(LongArrayBlockBuilder.class).instanceSize();
+    //
     private static final Block NULL_VALUE_BLOCK = new LongArrayBlock(0, 1, new boolean[] {true}, new long[1]);
 
     @Nullable
-    private BlockBuilderStatus blockBuilderStatus;
+    private BlockBuilderStatus blockBuilderStatus; //
     private boolean initialized;
     private int initialEntryCount;
 

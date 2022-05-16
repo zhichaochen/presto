@@ -26,6 +26,11 @@ public final class JoinUtils
 {
     private JoinUtils() {}
 
+    /**
+     * 将通道转换成Pages
+     * @param channels
+     * @return
+     */
     public static List<Page> channelsToPages(List<List<Block>> channels)
     {
         if (channels.isEmpty()) {

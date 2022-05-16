@@ -57,6 +57,11 @@ import static com.google.common.base.Verify.verify;
 import static com.google.common.collect.ImmutableList.toImmutableList;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 通过Exchange推送部分聚合
+ *
+ * 这里会将一个AggregationNode 分成两个，其中step 分别是 PARTIAL 和 FINAL，也就是对应部分聚合结果和最终的结合结果
+ */
 public class PushPartialAggregationThroughExchange
         implements Rule<AggregationNode>
 {

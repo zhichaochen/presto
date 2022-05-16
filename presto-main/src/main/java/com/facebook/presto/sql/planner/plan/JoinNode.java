@@ -49,27 +49,22 @@ import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 
 /**
- * join节点，某两个表进行关联
+ * 关联节点
+ * 数值或字符串的比较进行关联
  */
 @Immutable
 public class JoinNode
         extends AbstractJoinNode
 {
-    // Join类型
-    private final Type type;
-    // 左边的节点
-    private final PlanNode left;
-    // 右边的节点
-    private final PlanNode right;
-    //
-    private final List<EquiJoinClause> criteria;
-    //
-    private final List<VariableReferenceExpression> outputVariables;
-    //
-    private final Optional<RowExpression> filter;
-    private final Optional<VariableReferenceExpression> leftHashVariable;
-    private final Optional<VariableReferenceExpression> rightHashVariable;
-    private final Optional<DistributionType> distributionType;
+    private final Type type; // Join类型
+    private final PlanNode left;  // 左边的节点
+    private final PlanNode right;  // 右边的节点
+    private final List<EquiJoinClause> criteria; // 优化后的等连接子句
+    private final List<VariableReferenceExpression> outputVariables;  // 输出变量列表
+    private final Optional<RowExpression> filter; // 过滤
+    private final Optional<VariableReferenceExpression> leftHashVariable; // hash变量
+    private final Optional<VariableReferenceExpression> rightHashVariable; // hash变量
+    private final Optional<DistributionType> distributionType; //
     //
     private final Map<String, VariableReferenceExpression> dynamicFilters;
 
@@ -198,8 +193,10 @@ public class JoinNode
 
     public enum DistributionType
     {
-        PARTITIONED,
-        REPLICATED
+        // 分区就是hash分区之后join，复制就是复制数据到一个节点上做join
+        PARTITIONED, // 分区
+        // 分区类型是复制，则会使用广播JOIN
+        REPLICATED // 复制
     }
 
     public enum Type
@@ -207,7 +204,7 @@ public class JoinNode
         INNER("InnerJoin"),
         LEFT("LeftJoin"),
         RIGHT("RightJoin"),
-        FULL("FullJoin");
+        FULL("FullJoin"); // 全连接，full join左右两张表只要有一张表中包含，就返回。
 
         private final String joinLabel;
 
@@ -343,6 +340,9 @@ public class JoinNode
         return criteria.isEmpty() && !filter.isPresent() && type == INNER;
     }
 
+    /**
+     * 等连接子句
+     */
     public static class EquiJoinClause
     {
         private final VariableReferenceExpression left;

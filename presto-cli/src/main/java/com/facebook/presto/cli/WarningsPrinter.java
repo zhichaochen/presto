@@ -17,6 +17,9 @@ import com.facebook.presto.spi.PrestoWarning;
 
 import java.util.List;
 
+/**
+ * 告警打印器
+ */
 public interface WarningsPrinter
 {
     void print(List<PrestoWarning> warnings, boolean withInitialSeparator, boolean withTrailingSeparator);

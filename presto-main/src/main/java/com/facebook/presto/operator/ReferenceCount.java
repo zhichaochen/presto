@@ -22,6 +22,9 @@ import javax.annotation.concurrent.ThreadSafe;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 
+/**
+ * 引用计数器
+ */
 @ThreadSafe
 public class ReferenceCount
 {

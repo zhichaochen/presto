@@ -24,16 +24,21 @@ import java.util.List;
 import static io.airlift.slice.SizeOf.sizeOf;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 数组位置连接
+ * 链接什么和什么？
+ */
 public final class ArrayPositionLinks
         implements PositionLinks
 {
+    // 当前实例大小
     private static final int INSTANCE_SIZE = ClassLayout.parseClass(ArrayPositionLinks.class).instanceSize();
 
     public static class FactoryBuilder
             implements PositionLinks.FactoryBuilder
     {
-        private final int[] positionLinks;
-        private int size;
+        private final int[] positionLinks;  // 位置连接，默认填充-1
+        private int size; // 数组长度
 
         private FactoryBuilder(int size)
         {

@@ -43,7 +43,7 @@ public final class LocalMemoryManager
 {
     // 通用内存池
     public static final MemoryPoolId GENERAL_POOL = new MemoryPoolId("general");
-    //
+    // 预留内存池
     public static final MemoryPoolId RESERVED_POOL = new MemoryPoolId("reserved");
 
     // 最大内存

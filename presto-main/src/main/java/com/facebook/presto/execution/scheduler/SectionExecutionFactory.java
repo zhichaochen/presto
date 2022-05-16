@@ -89,6 +89,10 @@ import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 
+/**
+ * SectionExecution工厂，创建SectionExecution对象
+ * 该类是一个非常重要的类。
+ */
 public class SectionExecutionFactory
 {
     private final Metadata metadata;
@@ -148,6 +152,8 @@ public class SectionExecutionFactory
     }
 
     /**
+     * 创建SectionExecution
+     * 返回一个SectionExecutions列表，用一个后序表示一棵树
      * returns a List of SectionExecutions in a postorder representation of the tree
      */
     public SectionExecution createSectionExecutions(
@@ -162,12 +168,16 @@ public class SectionExecutionFactory
             int attemptId)
     {
         // Only fetch a distribution once per section to ensure all stages see the same machine assignments
+        // 每个部分仅获取一次分发，以确保所有阶段都看到相同的机器分配
         Map<PartitioningHandle, NodePartitionMap> partitioningCache = new HashMap<>();
+        // 创建TableWriteInfo
         TableWriteInfo tableWriteInfo = createTableWriteInfo(section.getPlan(), metadata, session);
+        // 将Stage的执行和调度器进行绑定
         List<StageExecutionAndScheduler> sectionStages = createStreamingLinkedStageExecutions(
                 session,
                 locationsConsumer,
                 section.getPlan().withBucketToPartition(bucketToPartition),
+                // TODO 这里会返回一个函数，如果有分区句柄，则构建NodePartitionMap
                 partitioningHandle -> partitioningCache.computeIfAbsent(partitioningHandle, handle -> nodePartitioningManager.getNodePartitioningMap(session, handle)),
                 tableWriteInfo,
                 Optional.empty(),
@@ -175,18 +185,26 @@ public class SectionExecutionFactory
                 remoteTaskFactory,
                 splitSourceFactory,
                 attemptId);
+        // 获取最后一个StageExecutionAndScheduler
+        // TODO 由上面createStreamingLinkedStageExecutions方法可知，rootStage是最后一个放进去的，这里把他给取出来
         StageExecutionAndScheduler rootStage = getLast(sectionStages);
+        // 设置根阶段的outputBuffers
         rootStage.getStageExecution().setOutputBuffers(outputBuffers);
+        // 创建SectionExecution对象，
         return new SectionExecution(rootStage, sectionStages);
     }
 
     /**
+     * 创建流式的StageExecutionAndSchedulers
+     *
+     * 返回StageExecutionAndSchedulers列表树的后序表示形式
      * returns a List of StageExecutionAndSchedulers in a postorder representation of the tree
      */
     private List<StageExecutionAndScheduler> createStreamingLinkedStageExecutions(
             Session session,
             ExchangeLocationsConsumer parent,
             StreamingSubPlan plan,
+            // TODO 分区函数，该函数包含了，桶、分区、节点间的对应关系
             Function<PartitioningHandle, NodePartitionMap> partitioningCache,
             TableWriteInfo tableWriteInfo,
             Optional<SqlStageExecution> parentStageExecution,
@@ -195,10 +213,14 @@ public class SectionExecutionFactory
             SplitSourceFactory splitSourceFactory,
             int attemptId)
     {
+        // 创建StageExecutionAndScheduler列表
         ImmutableList.Builder<StageExecutionAndScheduler> stageExecutionAndSchedulers = ImmutableList.builder();
 
+        // 创建StageId
         PlanFragmentId fragmentId = plan.getFragment().getId();
         StageId stageId = new StageId(session.getQueryId(), fragmentId.getId());
+        // 创建SqlStageExecution对象
+        // 在阶段执行的时候，会传入该对象
         SqlStageExecution stageExecution = createSqlStageExecution(
                 new StageExecutionId(stageId, attemptId),
                 plan.getFragment(),
@@ -211,15 +233,22 @@ public class SectionExecutionFactory
                 schedulerStats,
                 tableWriteInfo);
 
+        // 分区句柄
         PartitioningHandle partitioningHandle = plan.getFragment().getPartitioning();
+        // 查询RemoteSourceNode节点列表
         List<RemoteSourceNode> remoteSourceNodes = plan.getFragment().getRemoteSourceNodes();
+        // 获取桶到分区的映射关系
         Optional<int[]> bucketToPartition = getBucketToPartition(partitioningHandle, partitioningCache, plan.getFragment().getRoot(), remoteSourceNodes);
 
         // create child stages
+        // 创建子阶段
         ImmutableSet.Builder<SqlStageExecution> childStagesBuilder = ImmutableSet.builder();
+        // 遍历流式子计划的子计划
         for (StreamingSubPlan stagePlan : plan.getChildren()) {
+            // TODO 递归调用当前方法，创建不同阶段的调度器
             List<StageExecutionAndScheduler> subTree = createStreamingLinkedStageExecutions(
                     session,
+                    // TODO 添加数据交换的位置信息
                     stageExecution::addExchangeLocations,
                     stagePlan.withBucketToPartition(bucketToPartition),
                     partitioningCache,
@@ -230,16 +259,22 @@ public class SectionExecutionFactory
                     splitSourceFactory,
                     attemptId);
             stageExecutionAndSchedulers.addAll(subTree);
+            // 其中getLast拿的就是outputStage，
             childStagesBuilder.add(getLast(subTree).getStageExecution());
         }
+        // 子节点
         Set<SqlStageExecution> childStageExecutions = childStagesBuilder.build();
+        // 添加状态改变监听器，当完成之后，取消远程任务
         stageExecution.addStateChangeListener(newState -> {
             if (newState.isDone()) {
                 childStageExecutions.forEach(SqlStageExecution::cancel);
             }
         });
 
+        // 创建StageLinkage
         StageLinkage stageLinkage = new StageLinkage(fragmentId, parent, childStageExecutions);
+        // TODO 创建StageScheduler, 不同的阶段创建了不同的调度器， 这个应该是Root StageScheduler
+        // 因为上面会递归调用当前方法，所以这里会为【不同的阶段创建不同的调度器】
         StageScheduler stageScheduler = createStageScheduler(
                 splitSourceFactory,
                 session,
@@ -251,6 +286,7 @@ public class SectionExecutionFactory
                 partitioningHandle,
                 tableWriteInfo,
                 childStageExecutions);
+        // 创建StageExecutionAndScheduler并添加至列表
         stageExecutionAndSchedulers.add(new StageExecutionAndScheduler(
                 stageExecution,
                 stageLinkage,
@@ -259,10 +295,17 @@ public class SectionExecutionFactory
         return stageExecutionAndSchedulers.build();
     }
 
+    /**
+     * 创建Stage调度器，不同的阶段创建的调度器不同
+     * 。
+     * 其中single 和 fixed 均是随机选择
+     * TODO remote source 指的是，worker节点上的split，而不是Connector上的split（split source）
+     */
     private StageScheduler createStageScheduler(
             SplitSourceFactory splitSourceFactory,
             Session session,
             StreamingSubPlan plan,
+            // 该函数会返回NodePartitionMap对象，可以获取 桶、分区、节点之间的对应关系
             Function<PartitioningHandle, NodePartitionMap> partitioningCache,
             Optional<SqlStageExecution> parentStageExecution,
             StageId stageId,
@@ -271,10 +314,14 @@ public class SectionExecutionFactory
             TableWriteInfo tableWriteInfo,
             Set<SqlStageExecution> childStageExecutions)
     {
+        // TODO 创建SplitSource，其中：key：计划ID，value：数据库的数据分片
         Map<PlanNodeId, SplitSource> splitSources = splitSourceFactory.createSplitSources(plan.getFragment(), session, tableWriteInfo);
+        // 每个阶段的最大任务数
         int maxTasksPerStage = getMaxTasksPerStage(session);
+        // TODO SOURCE分布，表示查询数据源的操作，使用SourcePartitionedScheduler进行调度
         if (partitioningHandle.equals(SOURCE_DISTRIBUTION)) {
             // nodes are selected dynamically based on the constraints of the splits and the system load
+            // 根据split约束和系统负载动态选择节点
             Map.Entry<PlanNodeId, SplitSource> entry = getOnlyElement(splitSources.entrySet());
             PlanNodeId planNodeId = entry.getKey();
             SplitSource splitSource = entry.getValue();
@@ -283,12 +330,16 @@ public class SectionExecutionFactory
                 connectorId = null;
             }
 
+            // 创建节点选择器 TopologyAwareNodeSelector or SimpleNodeSelector
             NodeSelector nodeSelector = nodeScheduler.createNodeSelector(session, connectorId, maxTasksPerStage);
+            // 创建Split安放策略，是动态Split安置策略，在调度的时候会使用到
             SplitPlacementPolicy placementPolicy = new DynamicSplitPlacementPolicy(nodeSelector, stageExecution::getAllTasks);
 
             checkArgument(!plan.getFragment().getStageExecutionDescriptor().isStageGroupedExecution());
+            // TODO 创建SourcePartitionedScheduler作为StageScheduler
             return newSourcePartitionedSchedulerAsStageScheduler(stageExecution, planNodeId, splitSource, placementPolicy, splitBatchSize);
         }
+        // TODO 使用ScaledWriterScheduler调度SCALED_WRITER_DISTRIBUTION阶段任务
         else if (partitioningHandle.equals(SCALED_WRITER_DISTRIBUTION)) {
             Supplier<Collection<TaskStatus>> sourceTasksProvider = () -> childStageExecutions.stream()
                     .map(SqlStageExecution::getAllTasks)
@@ -312,7 +363,11 @@ public class SectionExecutionFactory
                     .addListener(scheduler::finish, directExecutor());
             return scheduler;
         }
+        // TODO 其他的分布方式，SINGLE、FIXED
         else {
+            // TODO 如果当前stage需要读取本地数据源，创建 FixedSourcePartitionedScheduler
+            //  为啥不为空就是读取本地数据源呢？因为：splitSources切片本身就是去读取数据库服务的，split是对数据库自身对数据的切分。
+            // splitSources应该是读取Connector的split，表示当前调度器可能需要
             if (!splitSources.isEmpty()) {
                 // contains local source
                 List<PlanNodeId> schedulingOrder = plan.getFragment().getTableScanSchedulingOrder();
@@ -327,11 +382,15 @@ public class SectionExecutionFactory
                     connectorPartitionHandles = ImmutableList.of(NOT_PARTITIONED);
                 }
 
+                // 桶到节点的映射关系
                 BucketNodeMap bucketNodeMap;
+                // 本阶段涉及到的节点列表
                 List<InternalNode> stageNodeList;
+                // 如果ExchangeType是广播
                 if (plan.getFragment().getRemoteSourceNodes().stream().allMatch(node -> node.getExchangeType() == REPLICATE)) {
                     // no non-replicated remote source
                     boolean dynamicLifespanSchedule = plan.getFragment().getStageExecutionDescriptor().isDynamicLifespanSchedule();
+                    // 获取桶和节点的映射
                     bucketNodeMap = nodePartitioningManager.getBucketNodeMap(session, partitioningHandle, dynamicLifespanSchedule);
 
                     // verify execution is consistent with planner's decision on dynamic lifespan schedule
@@ -351,7 +410,9 @@ public class SectionExecutionFactory
                     verify(!plan.getFragment().getStageExecutionDescriptor().isDynamicLifespanSchedule());
 
                     // remote source requires nodePartitionMap
+                    // 节点到分区的映射，remote source要求有nodePartitionMap
                     NodePartitionMap nodePartitionMap = partitioningCache.apply(plan.getFragment().getPartitioning());
+                    // 是否分组执行
                     if (groupedExecutionForStage) {
                         checkState(connectorPartitionHandles.size() == nodePartitionMap.getBucketToPartition().length);
                     }
@@ -359,6 +420,7 @@ public class SectionExecutionFactory
                     bucketNodeMap = nodePartitionMap.asBucketNodeMap();
                 }
 
+                // 创建调度器
                 FixedSourcePartitionedScheduler fixedSourcePartitionedScheduler = new FixedSourcePartitionedScheduler(
                         stageExecution,
                         splitSources,
@@ -383,9 +445,12 @@ public class SectionExecutionFactory
                 return fixedSourcePartitionedScheduler;
             }
 
+            // TODO 如果所有的sources都是remote source，则创建FixedCountScheduler. 这里就
             else {
                 // all sources are remote
+                // 这里属于所有的source都是remote source
                 NodePartitionMap nodePartitionMap = partitioningCache.apply(plan.getFragment().getPartitioning());
+                // 分区和节点的映射
                 List<InternalNode> partitionToNode = nodePartitionMap.getPartitionToNode();
                 // todo this should asynchronously wait a standard timeout period before failing
                 checkCondition(!partitionToNode.isEmpty(), NO_NODES_AVAILABLE, "No worker nodes available");
@@ -394,6 +459,14 @@ public class SectionExecutionFactory
         }
     }
 
+    /**
+     *
+     * @param partitioningHandle
+     * @param partitioningCache
+     * @param fragmentRoot
+     * @param remoteSourceNodes
+     * @return
+     */
     private static Optional<int[]> getBucketToPartition(
             PartitioningHandle partitioningHandle,
             Function<PartitioningHandle, NodePartitionMap> partitioningCache,

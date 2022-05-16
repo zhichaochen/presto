@@ -18,6 +18,11 @@ import static java.lang.Math.ceil;
 import static java.lang.Math.floor;
 
 /**
+ * hash冲突估计器
+ *
+ * 估计将值插入哈希表时的冲突数。哈希冲突的数量是基于外推的预计算值估计的。
+ * 预先计算的值是HashCollisionsSimulator模拟的结果，它使用线性冲突解决策略模拟哈希表（例如：碰撞后尝试下一个位置）。
+ *
  * Estimates number of collisions when inserting values into hash table. The number of hash collisions is
  * estimated based on extrapolated precalculated values. Precalculated values are results of simulation
  * by HashCollisionsSimulator which mimics hash table with linear conflict resolution strategy (e.g:

@@ -48,6 +48,9 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.IntStream.range;
 
+/**
+ * 状态打印器
+ */
 public class StatusPrinter
 {
     private static final Logger log = Logger.get(StatusPrinter.class);
@@ -89,6 +92,9 @@ Spilled: 20GB
 
  */
 
+    /**
+     * 打印初始状态更新
+     */
     public void printInitialStatusUpdates()
     {
         long lastPrint = System.nanoTime();
@@ -127,6 +133,7 @@ Spilled: 20GB
                     }
 
                     // fetch next results (server will wait for a while if no data)
+                    // 获取下一个结果（如果没有数据，服务器将等待一段时间）
                     client.advance();
                 }
                 catch (RuntimeException e) {
@@ -472,6 +479,9 @@ Spilled: 20GB
         return min(100, (count * 100.0) / total);
     }
 
+    /**
+     * 控制台告警打印器
+     */
     private static class ConsoleWarningsPrinter
             extends AbstractWarningsPrinter
     {

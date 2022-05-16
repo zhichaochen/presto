@@ -15,6 +15,9 @@ package com.facebook.presto.common.block;
 
 import com.facebook.presto.common.type.Type;
 
+/**
+ * 排序枚举
+ */
 public enum SortOrder
 {
     ASC_NULLS_FIRST(true, true),

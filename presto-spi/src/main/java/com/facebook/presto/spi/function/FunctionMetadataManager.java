@@ -13,6 +13,9 @@
  */
 package com.facebook.presto.spi.function;
 
+/**
+ * 函数管理器
+ */
 public interface FunctionMetadataManager
 {
     FunctionMetadata getFunctionMetadata(FunctionHandle functionHandle);

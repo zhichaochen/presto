@@ -74,6 +74,9 @@ import static com.facebook.presto.spi.connector.ConnectorSplitManager.SplitSched
 import static com.google.common.collect.Iterables.getOnlyElement;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * SplitSource工厂
+ */
 public class SplitSourceFactory
 {
     private static final Logger log = Logger.get(SplitSourceFactory.class);
@@ -87,10 +90,18 @@ public class SplitSourceFactory
         this.warningCollector = requireNonNull(warningCollector, "warningCollector is null");
     }
 
+    /**
+     * 创建SplitSource
+     * @param fragment
+     * @param session
+     * @param tableWriteInfo
+     * @return
+     */
     public Map<PlanNodeId, SplitSource> createSplitSources(PlanFragment fragment, Session session, TableWriteInfo tableWriteInfo)
     {
         ImmutableList.Builder<SplitSource> splitSources = ImmutableList.builder();
         try {
+            // 接受一个visitor，处理
             return fragment.getRoot().accept(new Visitor(session, fragment.getStageExecutionDescriptor(), splitSources), new Context(tableWriteInfo));
         }
         catch (Throwable t) {
@@ -120,6 +131,9 @@ public class SplitSourceFactory
         return UNGROUPED_SCHEDULING;
     }
 
+    /**
+     * 该Visitor是为了获取SplitSource
+     */
     private final class Visitor
             extends InternalPlanVisitor<Map<PlanNodeId, SplitSource>, Context>
     {
@@ -140,10 +154,17 @@ public class SplitSourceFactory
             return node.getSource().accept(this, context);
         }
 
+        /**
+         * 主要处理TableScan
+         * @param node
+         * @param context
+         * @return
+         */
         @Override
         public Map<PlanNodeId, SplitSource> visitTableScan(TableScanNode node, Context context)
         {
             // get dataSource for table
+            // 获取数据库的表句柄
             TableHandle table;
             Optional<DeleteScanInfo> deleteScanInfo = context.getTableWriteInfo().getDeleteScanInfo();
             if (deleteScanInfo.isPresent() && deleteScanInfo.get().getId() == node.getId()) {
@@ -152,12 +173,14 @@ public class SplitSourceFactory
             else {
                 table = node.getTable();
             }
+            // Split提供器
             Supplier<SplitSource> splitSourceSupplier = () -> splitSourceProvider.getSplits(
                     session,
                     table,
                     getSplitSchedulingStrategy(stageExecutionDescriptor, node.getId()),
                     warningCollector);
 
+            //
             SplitSource splitSource = new LazySplitSource(splitSourceSupplier);
 
             splitSources.add(splitSource);

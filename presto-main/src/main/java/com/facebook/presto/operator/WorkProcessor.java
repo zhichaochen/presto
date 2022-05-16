@@ -26,9 +26,14 @@ import java.util.function.Function;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 工作处理器
+ * @param <T>
+ */
 public interface WorkProcessor<T>
 {
     /**
+     * 调用该方法去处理工作。
      * Call the method to progress the work.
      * When this method returns true then the processor is either finished
      * or has a result available via {@link WorkProcessor#getResult()}.
@@ -37,6 +42,10 @@ public interface WorkProcessor<T>
      */
     boolean process();
 
+    /**
+     * 是否阻塞
+     * @return
+     */
     boolean isBlocked();
 
     /**

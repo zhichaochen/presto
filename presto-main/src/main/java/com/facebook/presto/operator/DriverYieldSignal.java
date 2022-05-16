@@ -27,6 +27,9 @@ import static com.google.common.base.Preconditions.checkState;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
 /**
+ * 驱动让行信号
+ * 任务等待个多长时间
+ *
  * Methods setWithDelay and reset should be used in pairs;
  * usually follow the following idiom:
  * <pre> {@code
@@ -50,6 +53,11 @@ public class DriverYieldSignal
 
     private final AtomicBoolean yield = new AtomicBoolean();
 
+    /**
+     * 设置了一个周期定时器，每隔一段时间，设置成true，表示要让行。
+     * @param maxRunNanos
+     * @param executor
+     */
     public synchronized void setWithDelay(long maxRunNanos, ScheduledExecutorService executor)
     {
         checkState(yieldFuture == null, "there is an ongoing yield");

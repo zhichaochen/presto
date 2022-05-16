@@ -80,10 +80,10 @@ import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toList;
 
 /**
- * Sql任务执行器
+ * Sql任务执行
+ *
  *
  * 每个SqlTaskExecution运行在一个worker，每个任务在Worker上以SqlTaskExecution存在
- *
  * 在Worker上只可运行SqlStageExecution的一个task，当然通过设置可以运行多个
  *
  * SqlStageExecution可拆分成多个SqlTaskExecution
@@ -95,6 +95,9 @@ public class SqlTaskExecution
 
     // For each driver in a task, it belong to a pipeline and a driver life cycle.
     // Pipeline and driver life cycle are two perpendicular organizations of tasks.
+
+    // 同一管道中的所有驱动程序具有相同的形状。 （即，操作员由同一组操作员工厂构成）
+    // 同一驾驶员生命周期内的所有驾驶员负责处理一组数据。 （例如，落在铲斗42中的所有行）
     //
     // * All drivers in the same pipeline has the same shape.
     //   (i.e. operators are constructed from the same set of operator factories)
@@ -115,7 +118,11 @@ public class SqlTaskExecution
     //    TableScan       LocalExSrc  ...  LocalExSink
     //                                          |
     //                                      TableScan
-    //
+
+
+    // 在这种情况下,，
+    // 驱动程序可能属于管道1和驱动程序生命周期42。
+    // 另一个驱动程序可能属于管道3和任务范围的驱动程序生命周期。
     // In this case,
     // * a driver could belong to pipeline 1 and driver life cycle 42.
     // * another driver could belong to pipeline 3 and task-wide driver life cycle.
@@ -149,6 +156,7 @@ public class SqlTaskExecution
     @GuardedBy("this")
     private final SchedulingLifespanManager schedulingLifespanManager;
 
+    // 表示挂起的，待执行的splits
     @GuardedBy("this")
     private final Map<PlanNodeId, PendingSplitsForPlanNode> pendingSplitsByPlanNode;
 
@@ -181,7 +189,8 @@ public class SqlTaskExecution
         }
     }
     /**
-     * 创建任务执行
+     * 创建任务执行对象
+     * 在其中会创建任务
      **/
     private SqlTaskExecution(
             TaskStateMachine taskStateMachine,
@@ -192,6 +201,7 @@ public class SqlTaskExecution
             SplitMonitor splitMonitor,
             Executor notificationExecutor)
     {
+        // 校验传入对象不能为空
         this.taskStateMachine = requireNonNull(taskStateMachine, "taskStateMachine is null");
         this.taskId = taskStateMachine.getTaskId();
         this.taskContext = requireNonNull(taskContext, "taskContext is null");
@@ -205,20 +215,28 @@ public class SqlTaskExecution
         // 设置线程名称
         try (SetThreadName ignored = new SetThreadName("Task-%s", taskId)) {
             // index driver factories
+            // 任务要查询的表
             Set<PlanNodeId> tableScanSources = ImmutableSet.copyOf(localExecutionPlan.getTableScanSourceOrder());
+            // 要使用的驱动工厂
             ImmutableMap.Builder<PlanNodeId, DriverSplitRunnerFactory> driverRunnerFactoriesWithSplitLifeCycle = ImmutableMap.builder();
             ImmutableList.Builder<DriverSplitRunnerFactory> driverRunnerFactoriesWithTaskLifeCycle = ImmutableList.builder();
             ImmutableList.Builder<DriverSplitRunnerFactory> driverRunnerFactoriesWithDriverGroupLifeCycle = ImmutableList.builder();
+            // 遍历驱动工厂
             for (DriverFactory driverFactory : localExecutionPlan.getDriverFactories()) {
+                // source Id
                 Optional<PlanNodeId> sourceId = driverFactory.getSourceId();
+                // 如果包含，则加入缓存
                 if (sourceId.isPresent() && tableScanSources.contains(sourceId.get())) {
                     driverRunnerFactoriesWithSplitLifeCycle.put(sourceId.get(), new DriverSplitRunnerFactory(driverFactory, true));
                 }
+                // 是否分区是什么意思
                 else {
                     switch (driverFactory.getPipelineExecutionStrategy()) {
+                        // 分组执行
                         case GROUPED_EXECUTION:
                             driverRunnerFactoriesWithDriverGroupLifeCycle.add(new DriverSplitRunnerFactory(driverFactory, false));
                             break;
+                        // 未分组执行
                         case UNGROUPED_EXECUTION:
                             driverRunnerFactoriesWithTaskLifeCycle.add(new DriverSplitRunnerFactory(driverFactory, false));
                             break;
@@ -231,19 +249,23 @@ public class SqlTaskExecution
             this.driverRunnerFactoriesWithDriverGroupLifeCycle = driverRunnerFactoriesWithDriverGroupLifeCycle.build();
             this.driverRunnerFactoriesWithTaskLifeCycle = driverRunnerFactoriesWithTaskLifeCycle.build();
 
+            // 挂起的Splits
             this.pendingSplitsByPlanNode = this.driverRunnerFactoriesWithSplitLifeCycle.keySet().stream()
                     .collect(toImmutableMap(identity(), ignore -> new PendingSplitsForPlanNode()));
+            // 创建状态对象
             this.status = new Status(
                     taskContext,
                     outputBuffer,
                     localExecutionPlan.getDriverFactories().stream()
                             .collect(toImmutableMap(DriverFactory::getPipelineId, DriverFactory::getPipelineExecutionStrategy)));
+            //
             this.schedulingLifespanManager = new SchedulingLifespanManager(localExecutionPlan.getTableScanSourceOrder(), localExecutionPlan.getStageExecutionDescriptor(), this.status);
 
             checkArgument(this.driverRunnerFactoriesWithSplitLifeCycle.keySet().equals(tableScanSources),
                     "Fragment is partitioned, but not all partitioned drivers were found");
 
             // Pre-register Lifespans for ungrouped partitioned drivers in case they end up get no splits.
+            // 预注册未分组分区驱动程序的寿命，以防它们最终无法拆分。
             for (Entry<PlanNodeId, DriverSplitRunnerFactory> entry : this.driverRunnerFactoriesWithSplitLifeCycle.entrySet()) {
                 PlanNodeId planNodeId = entry.getKey();
                 DriverSplitRunnerFactory driverSplitRunnerFactory = entry.getValue();
@@ -254,7 +276,9 @@ public class SqlTaskExecution
             }
 
             // don't register the task if it is already completed (most likely failed during planning above)
+            // 如果任务已完成，则不要注册该任务（最有可能在上述计划期间失败）
             if (!taskStateMachine.getState().isDone()) {
+                // 创建任务句柄
                 taskHandle = createTaskHandle(taskStateMachine, taskContext, outputBuffer, localExecutionPlan, taskExecutor);
             }
             else {
@@ -266,7 +290,17 @@ public class SqlTaskExecution
         }
     }
 
+    /**
+     * 创建任务句柄
+     * @param taskStateMachine
+     * @param taskContext
+     * @param outputBuffer
+     * @param localExecutionPlan
+     * @param taskExecutor
+     * @return
+     */
     // this is a separate method to ensure that the `this` reference is not leaked during construction
+    // 这是一种单独的方法，以确保“this”引用在施工期间不会泄漏
     private static TaskHandle createTaskHandle(
             TaskStateMachine taskStateMachine,
             TaskContext taskContext,
@@ -274,15 +308,20 @@ public class SqlTaskExecution
             LocalExecutionPlan localExecutionPlan,
             TaskExecutor taskExecutor)
     {
+        // 添加任务到任务执行器
         TaskHandle taskHandle = taskExecutor.addTask(
                 taskStateMachine.getTaskId(),
                 outputBuffer::getUtilization,
                 getInitialSplitsPerNode(taskContext.getSession()),
                 getSplitConcurrencyAdjustmentInterval(taskContext.getSession()),
                 getMaxDriversPerTask(taskContext.getSession()));
+        // 添加状态改变监听器
         taskStateMachine.addStateChangeListener(state -> {
+            // 如果任务完成
             if (state.isDone()) {
+                // 删除任务句柄
                 taskExecutor.removeTask(taskHandle);
+                // 遍历驱动工厂
                 for (DriverFactory factory : localExecutionPlan.getDriverFactories()) {
                     factory.noMoreDrivers();
                 }
@@ -306,6 +345,7 @@ public class SqlTaskExecution
         Map<PlanNodeId, TaskSource> updatedRemoteSources = new HashMap<>();
 
         // first remove any split that was already acknowledged
+        // 首先删除已确认的任务分片
         long currentMaxAcknowledgedSplit = this.maxAcknowledgedSplit;
         sources = sources.stream()
                 .map(source -> new TaskSource(
@@ -320,6 +360,7 @@ public class SqlTaskExecution
                 .collect(toList());
 
         // update task with new sources
+        // 使用新的数据源更新任务
         for (TaskSource source : sources) {
             if (driverRunnerFactoriesWithSplitLifeCycle.containsKey(source.getPlanNodeId())) {
                 scheduleTableScanSource(source);
@@ -335,6 +376,7 @@ public class SqlTaskExecution
         }
 
         // update maxAcknowledgedSplit
+        // 更新最大确认分片
         maxAcknowledgedSplit = sources.stream()
                 .flatMap(source -> source.getSplits().stream())
                 .mapToLong(ScheduledSplit::getSequenceId)
@@ -352,14 +394,16 @@ public class SqlTaskExecution
         requireNonNull(sources, "sources is null");
         checkState(!Thread.holdsLock(this), "Can not add sources while holding a lock on the %s", getClass().getSimpleName());
 
+        // 设置线程名称
         try (SetThreadName ignored = new SetThreadName("Task-%s", taskId)) {
             // update our record of sources and schedule drivers for new partitioned splits
             // 更新新分区splits的源记录和计划驱动程序
             Map<PlanNodeId, TaskSource> updatedRemoteSources = updateSources(sources);
 
             // tell existing drivers about the new splits; it is safe to update drivers
-            // multiple times and out of order because sources contain full record of
-            // the unpartitioned splits
+            // multiple times and out of order because sources contain full record of the unpartitioned splits
+            // 告诉现有drivers有关新split的信息；更新驱动程序是安全的
+            // 多次出现错误，因为源包含未分区split的完整记录
             // 遍历所有驱动
             for (WeakReference<Driver> driverReference : drivers) {
                 Driver driver = driverReference.get();
@@ -379,10 +423,12 @@ public class SqlTaskExecution
                 if (sourceUpdate == null) {
                     continue;
                 }
+                // 更新驱动中的TaskSource
                 driver.updateSource(sourceUpdate);
             }
 
             // we may have transitioned to no more splits, so check for completion
+            // 我们可能已经过渡到no more splits，所以请检查是否完成
             checkTaskCompletion();
         }
     }
@@ -721,6 +767,9 @@ public class SqlTaskExecution
         }
     }
 
+    /**
+     * 特定计划节点的Split（所有驱动程序组）
+     */
     // Splits for a particular plan node (all driver groups)
     @NotThreadSafe
     private static class PendingSplitsForPlanNode
@@ -745,6 +794,9 @@ public class SqlTaskExecution
         }
     }
 
+    /**
+     * 特定计划节点和驱动程序组组合的Splits
+     */
     // Splits for a particular plan node and driver group combination
     @NotThreadSafe
     private static class PendingSplits
@@ -791,16 +843,16 @@ public class SqlTaskExecution
      */
     enum SplitsState
     {
-        ADDING_SPLITS,
+        ADDING_SPLITS, // 添加Split中
         // All splits have been received from scheduler.
         // No more splits will be added to the pendingSplits set.
-        NO_MORE_SPLITS,
+        NO_MORE_SPLITS, // 没有SPLIT状态
         // All splits has been turned into DriverSplitRunner.
-        FINISHED,
+        FINISHED, // 所有的splits已经被转化成DriverSplitRunner
     }
 
     /**
-     *
+     * 表示调度中的Lifespan管理器
      */
     private static class SchedulingLifespanManager
     {
@@ -961,7 +1013,7 @@ public class SqlTaskExecution
     }
 
     /**
-     * 驱动split运行工厂
+     * 驱动分片运行工厂
      */
     private class DriverSplitRunnerFactory
     {
@@ -995,18 +1047,22 @@ public class SqlTaskExecution
          */
         public Driver createDriver(DriverContext driverContext, @Nullable ScheduledSplit partitionedSplit)
         {
+            // 创建驱动
             Driver driver = driverFactory.createDriver(driverContext);
 
             // record driver so other threads add remote sources can see the driver
             // NOTE: this MUST be done before reading remoteSources, so we see a consistent view of the remote sources
+            // 记录驱动程序，以便添加remote sources的其他线程可以看到驱动程序
             drivers.add(new WeakReference<>(driver));
 
+            //
             if (partitionedSplit != null) {
                 // TableScanOperator requires partitioned split to be added before the first call to process
                 driver.updateSource(new TaskSource(partitionedSplit.getPlanNodeId(), ImmutableSet.of(partitionedSplit), true));
             }
 
             // add remote sources
+            // 添加远程数据源
             Optional<PlanNodeId> sourceId = driver.getSourceId();
             if (sourceId.isPresent()) {
                 TaskSource taskSource = remoteSources.get(sourceId.get());
@@ -1016,6 +1072,7 @@ public class SqlTaskExecution
             }
 
             status.decrementPendingCreation(pipelineContext.getPipelineId(), driverContext.getLifespan());
+            // 如果完全创建，则关闭驱动程序工厂
             closeDriverFactoryIfFullyCreated();
 
             return driver;
@@ -1034,6 +1091,9 @@ public class SqlTaskExecution
             return status.isNoMoreDriverRunners(pipelineContext.getPipelineId());
         }
 
+        /**
+         * 如果完全创建，则关闭驱动程序工厂
+         */
         public void closeDriverFactoryIfFullyCreated()
         {
             if (closed) {
@@ -1066,7 +1126,8 @@ public class SqlTaskExecution
     }
 
     /**
-     * 分片执行器，执行的分片动作
+     * 驱动Split运行器
+     * 表示一个可以被执行的Split
      */
     private static class DriverSplitRunner
             implements SplitRunner
@@ -1132,7 +1193,7 @@ public class SqlTaskExecution
                     return Futures.immediateFuture(null);
                 }
 
-                // 创建驱动
+                // 如果驱动为空，则创建驱动
                 if (this.driver == null) {
                     this.driver = driverSplitRunnerFactory.createDriver(driverContext, partitionedSplit);
                 }
@@ -1140,6 +1201,7 @@ public class SqlTaskExecution
                 driver = this.driver;
             }
 
+            // 处理
             return driver.processFor(duration);
         }
 
@@ -1187,6 +1249,10 @@ public class SqlTaskExecution
         }
     }
 
+    /**
+     * 状态
+     * 记录了一些关键对象的状态
+     */
     @ThreadSafe
     private static class Status
     {
@@ -1431,6 +1497,9 @@ public class SqlTaskExecution
         }
     }
 
+    /**
+     * 管道状态
+     */
     private static class PerPipelineStatus
     {
         final PipelineExecutionStrategy executionStrategy;

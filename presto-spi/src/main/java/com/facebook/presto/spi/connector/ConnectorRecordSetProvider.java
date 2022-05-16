@@ -21,6 +21,15 @@ import com.facebook.presto.spi.RecordSet;
 import java.util.List;
 
 /**
+ * 本类适用于数据量不大的查询，返回的 RecordSet 类似List
+ * RecordSet 有个 InMemoryRecordSet 默认的实现，用于把返回的数据集直接放到内存List中。
+ * 如果需要采用游标的方式获得数据需要自行实现 RecordSet 按照 batch 遍历数据。
+ * 实际上，Presto Core 也是通过 RecordPageSource 代理 RecordSet 的方式，把 ResourceSet数据集转为 Page的。
+ *
+ * presto通过 ConnectorPageSourceProvider 或者 ConnectorRecordSetProvider 来获取数据
+ *  * 两者可任选其一，其中ConnectorRecordSetProvider 适合数据量不大的查询
+ *  * 实际上，Presto Core 也是通过 RecordPageSource 代理 RecordSet 的方式，把 ResourceSet数据集转为 Page的。
+ *
  * 给定一个split和一组columns列表，RecordSetProvider负责将数据传输到Presto的执行引擎execution engine。
  * 它会构建一个RecordSet记录集，继而建立RecordCursor游标，供Presto行行读取各行中的列值（类似于JDBC）
  */

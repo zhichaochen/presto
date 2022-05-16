@@ -28,11 +28,16 @@ import java.util.List;
 import java.util.function.Consumer;
 
 /**
- * 调整节点顺序
+ * 调度顺序访问器
  * 通过accept会形成一个递归，生成一个有序的计划节点列表
  */
 public class SchedulingOrderVisitor
 {
+    /**
+     * 生成调度顺序
+     * @param root
+     * @return
+     */
     public static List<PlanNodeId> scheduleOrder(PlanNode root)
     {
         // 访问的上下文

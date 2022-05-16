@@ -59,7 +59,16 @@ import static java.lang.Math.toIntExact;
 import static java.util.Objects.requireNonNull;
 
 /**
- * 调度Fixed任务
+ * Fixed Stage 调度器
+ * 当stage输入数据包含有本地数据源时，则使用FixedSourcePartitionedScheduler调度器
+ *
+ * 所谓的fix，说明是能确定的固定个数的。
+ * TODO 和SourcePartitionedScheduler有什么关系呢？？？
+ * 1、看看他们集成的接口，一个是stage调度器、一个是source调度器
+ * 2、SourcePartitionedScheduler会为一批splits动态调度一个新的task，而FixedSourcePartitionedScheduler是使用先前调度好的task
+ * 由startLifespan便可知。
+ *
+ * 参考：https://blog.csdn.net/qq_27639777/article/details/119596380
  */
 public class FixedSourcePartitionedScheduler
         implements StageScheduler
@@ -71,7 +80,7 @@ public class FixedSourcePartitionedScheduler
 
     private final List<SourceScheduler> sourceSchedulers;
     private final List<ConnectorPartitionHandle> partitionHandles;
-    private boolean scheduledTasks;
+    private boolean scheduledTasks;    // 当前任务是否已经被调度
     private boolean anySourceSchedulingFinished;
     private final Optional<LifespanScheduler> groupedLifespanScheduler;
 
@@ -104,14 +113,15 @@ public class FixedSourcePartitionedScheduler
 
         checkArgument(splitSources.keySet().equals(ImmutableSet.copyOf(schedulingOrder)));
 
+        // TODO 按桶分配Split策略，根据bucketNodeMap的映射关系分配split
         BucketedSplitPlacementPolicy splitPlacementPolicy = new BucketedSplitPlacementPolicy(nodeSelector, nodes, bucketNodeMap, stage::getAllTasks);
 
         ArrayList<SourceScheduler> sourceSchedulers = new ArrayList<>();
         checkArgument(
                 partitionHandles.equals(ImmutableList.of(NOT_PARTITIONED)) != stageExecutionDescriptor.isStageGroupedExecution(),
                 "PartitionHandles should be [NOT_PARTITIONED] if and only if all scan nodes use ungrouped execution strategy");
-        int nodeCount = nodes.size();
-        int concurrentLifespans;
+        int nodeCount = nodes.size(); // 节点数量
+        int concurrentLifespans; // 并发数
         if (concurrentLifespansPerTask.isPresent() && concurrentLifespansPerTask.getAsInt() * nodeCount <= partitionHandles.size()) {
             concurrentLifespans = concurrentLifespansPerTask.getAsInt() * nodeCount;
         }
@@ -119,11 +129,13 @@ public class FixedSourcePartitionedScheduler
             concurrentLifespans = partitionHandles.size();
         }
 
-        boolean firstPlanNode = true;
+        boolean firstPlanNode = true; // 是否是第一个计划节点
         Optional<LifespanScheduler> groupedLifespanScheduler = Optional.empty();
+        // 遍历计划节点id
         for (PlanNodeId planNodeId : schedulingOrder) {
             SplitSource splitSource = splitSources.get(planNodeId);
             boolean groupedExecutionForScanNode = stageExecutionDescriptor.isScanGroupedExecution(planNodeId);
+            // TODO 创建SourcePartitionedScheduler，由此可见当前调度器也是使用ourcePartitionedScheduler进行调度的
             SourceScheduler sourceScheduler = newSourcePartitionedSchedulerAsSourceScheduler(
                     stage,
                     planNodeId,
@@ -137,6 +149,7 @@ public class FixedSourcePartitionedScheduler
             }
             sourceSchedulers.add(sourceScheduler);
 
+            // 如果是第一个节点
             if (firstPlanNode) {
                 firstPlanNode = false;
                 if (!stageExecutionDescriptor.isStageGroupedExecution()) {
@@ -183,10 +196,13 @@ public class FixedSourcePartitionedScheduler
     public ScheduleResult schedule()
     {
         // schedule a task on every node in the distribution
+        // 分布式调度一个任务
         List<RemoteTask> newTasks = ImmutableList.of();
+        // 如果当前任务没有被调度
         if (!scheduledTasks) {
             newTasks = Streams.mapWithIndex(
                     nodes.stream(),
+                    // 调度任务
                     (node, id) -> stage.scheduleTask(node, toIntExact(id)))
                     .filter(Optional::isPresent)
                     .map(Optional::get)
@@ -194,6 +210,7 @@ public class FixedSourcePartitionedScheduler
             scheduledTasks = true;
 
             // notify listeners that we have scheduled all tasks so they can set no more buffers or exchange splits
+            // 通知监听器我们已安排所有任务，以便他们不能再设置缓冲区或exchange split
             stage.transitionToFinishedTaskScheduling();
         }
 
@@ -293,12 +310,16 @@ public class FixedSourcePartitionedScheduler
         sourceSchedulers.clear();
     }
 
+    /**
+     * 桶切分安置策略，那么当前的调度器就使用了该安置策略
+     * 主要使用bucket 和 node的映射
+     */
     public static class BucketedSplitPlacementPolicy
             implements SplitPlacementPolicy
     {
         private final NodeSelector nodeSelector;
         private final List<InternalNode> activeNodes;
-        private final BucketNodeMap bucketNodeMap;
+        private final BucketNodeMap bucketNodeMap; // 桶和节点的映射
         private final Supplier<? extends List<RemoteTask>> remoteTasks;
 
         public BucketedSplitPlacementPolicy(
@@ -336,6 +357,9 @@ public class FixedSourcePartitionedScheduler
         }
     }
 
+    /**
+     * 如果是分组执行，则会使用该调度器
+     */
     private static class AsGroupedSourceScheduler
             implements SourceScheduler
     {

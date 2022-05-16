@@ -88,16 +88,20 @@ public abstract class SimplePlanRewriter<C>
         }
 
         /**
-         * 默认重写
+         * 默认重写：从逻辑计划的root节点开始，递归调用其子节点
          * Invoke the rewrite logic recursively on children of the given node and swap it
          * out with an identical copy with the rewritten children
+         *
+         * 在给定节点的子节点上递归调用重写逻辑，并使用与重写子节点相同的副本将其交换出去
          */
         public PlanNode defaultRewrite(PlanNode node, C context)
         {
+            // 重写当前节点的子节点
             List<PlanNode> children = node.getSources().stream()
                     .map(child -> rewrite(child, context))
                     .collect(toImmutableList());
 
+            // 替换当前节点的子节点
             return replaceChildren(node, children);
         }
 

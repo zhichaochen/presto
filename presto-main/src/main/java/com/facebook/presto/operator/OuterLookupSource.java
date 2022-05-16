@@ -27,6 +27,9 @@ import static com.google.common.base.Verify.verify;
 import static java.lang.Math.toIntExact;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 外关联的LookupSource
+ */
 @NotThreadSafe
 public final class OuterLookupSource
         implements LookupSource
@@ -102,6 +105,7 @@ public final class OuterLookupSource
     @Override
     public void appendTo(long position, PageBuilder pageBuilder, int outputChannelOffset)
     {
+        //
         lookupSource.appendTo(position, pageBuilder, outputChannelOffset);
         outerPositionTracker.positionVisited(position);
     }

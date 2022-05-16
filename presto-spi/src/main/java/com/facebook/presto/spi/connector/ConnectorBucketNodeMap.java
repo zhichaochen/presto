@@ -26,11 +26,11 @@ import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 
 /**
- *
+ * 连接器 桶和节点的映射
  */
 public final class ConnectorBucketNodeMap
 {
-    private final int bucketCount;
+    private final int bucketCount; //
     private final Optional<List<Node>> bucketToNode;
     private final NodeSelectionStrategy nodeSelectionStrategy;
 

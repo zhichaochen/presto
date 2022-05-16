@@ -47,6 +47,9 @@ import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
+/**
+ * 请求错误追踪器
+ */
 @ThreadSafe
 public class RequestErrorTracker
 {

@@ -40,6 +40,9 @@ import static com.google.common.collect.Iterators.transform;
 import static com.google.common.util.concurrent.Futures.immediateFuture;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 排序算子
+ */
 public class OrderByOperator
         implements Operator
 {

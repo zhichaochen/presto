@@ -15,6 +15,9 @@ package com.facebook.presto.common.type;
 
 import java.util.List;
 
+/**
+ * 数据类型管理器
+ */
 public interface TypeManager
 {
     /**

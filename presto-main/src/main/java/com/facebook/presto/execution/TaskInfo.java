@@ -165,6 +165,9 @@ public class TaskInfo
                 .toString();
     }
 
+    /**
+     * 创建初始化状态的任务
+     */
     public static TaskInfo createInitialTask(TaskId taskId, URI location, List<BufferInfo> bufferStates, TaskStats taskStats, String nodeId)
     {
         return new TaskInfo(

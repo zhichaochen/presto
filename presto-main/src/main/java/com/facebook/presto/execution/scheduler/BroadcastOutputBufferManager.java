@@ -27,6 +27,11 @@ import static com.facebook.presto.execution.buffer.OutputBuffers.BufferType.BROA
 import static com.facebook.presto.execution.buffer.OutputBuffers.createInitialEmptyOutputBuffers;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 广播输出缓存管理器
+ * 注意：每个阶段都会有这样一个管理器
+ * FIXED_BROADCAST_DISTRIBUTION 分区，会创建该管理器
+ */
 @ThreadSafe
 class BroadcastOutputBufferManager
         implements OutputBufferManager
@@ -39,9 +44,15 @@ class BroadcastOutputBufferManager
     public BroadcastOutputBufferManager(Consumer<OutputBuffers> outputBufferTarget)
     {
         this.outputBufferTarget = requireNonNull(outputBufferTarget, "outputBufferTarget is null");
+        // 这里会调用 SqlStageExecution 的 setOutputBuffers
         outputBufferTarget.accept(outputBuffers);
     }
 
+    /**
+     *
+     * @param newBuffers
+     * @param noMoreBuffers
+     */
     @Override
     public void addOutputBuffers(List<OutputBufferId> newBuffers, boolean noMoreBuffers)
     {

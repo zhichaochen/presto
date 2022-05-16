@@ -29,6 +29,9 @@ import static com.facebook.presto.spi.schedule.NodeSelectionStrategy.NO_PREFEREN
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * ES的split，每个分片，表示一个split
+ */
 public class ElasticsearchSplit
         implements ConnectorSplit
 {
@@ -36,6 +39,7 @@ public class ElasticsearchSplit
     private final String index;
     //
     private final int shard;
+    // TODO 很重要，存储了谓词下推的信息
     private final TupleDomain<ColumnHandle> tupleDomain;
     private final Optional<String> address;
 

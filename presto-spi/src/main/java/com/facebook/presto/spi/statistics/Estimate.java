@@ -22,6 +22,9 @@ import static java.lang.Double.NaN;
 import static java.lang.Double.isInfinite;
 import static java.lang.Double.isNaN;
 
+/**
+ * 估计
+ */
 public final class Estimate
 {
     // todo eventually add some notion of statistic reliability

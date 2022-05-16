@@ -14,7 +14,8 @@
 package com.facebook.presto.spi.connector;
 
 /**
- * 连接器分区句柄，实现类可能是SystemPartitioningHandle
+ * 连接器分区句柄
+ * 比如ES使用的是SystemPartitioningHandle
  */
 public interface ConnectorPartitioningHandle
 {

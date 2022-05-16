@@ -21,6 +21,9 @@ import java.util.Optional;
 import static java.util.Locale.ENGLISH;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * boolean字面值
+ */
 public class BooleanLiteral
         extends Literal
 {

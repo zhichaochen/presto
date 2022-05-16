@@ -58,6 +58,8 @@ import static java.util.Objects.requireNonNull;
  *
  * @author Paul Marks
  * @since 10.0
+ *
+ * 主机和端口的不可变表示形式。
  */
 @ThriftStruct
 public class HostAddress

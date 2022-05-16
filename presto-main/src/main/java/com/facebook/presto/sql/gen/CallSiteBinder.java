@@ -22,6 +22,10 @@ import java.util.Map;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
 
+/**
+ * 调用点绑定器
+ * 我理解是调用方法的顺序
+ */
 public final class CallSiteBinder
 {
     private int nextId;

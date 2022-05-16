@@ -47,6 +47,12 @@ import static com.google.common.util.concurrent.Futures.immediateFuture;
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * Hash表的构建类
+ * 1） addInput()时将Page累积在内存中；
+ * 2） finish()时，则创建Hash Table；
+ * 3） 不再阻塞LookupJoinOperator，即LookupJoinOperator可以开始处理。
+ */
 @ThreadSafe
 public class HashBuilderOperator
         implements Operator
@@ -111,15 +117,23 @@ public class HashBuilderOperator
             this.enforceBroadcastMemoryLimit = enforceBroadcastMemoryLimit;
         }
 
+        /**
+         * 创建HashBuilderOperator
+         * @param driverContext
+         * @return
+         */
         @Override
         public HashBuilderOperator createOperator(DriverContext driverContext)
         {
             checkState(!closed, "Factory is already closed");
+            // 添加算子上下文
             OperatorContext operatorContext = driverContext.addOperatorContext(operatorId, planNodeId, HashBuilderOperator.class.getSimpleName());
-
+            // 分区查询工厂
             PartitionedLookupSourceFactory lookupSourceFactory = this.lookupSourceFactoryManager.getJoinBridge(driverContext.getLifespan());
+            // 分区下标
             int partitionIndex = getAndIncrementPartitionIndex(driverContext.getLifespan());
             verify(partitionIndex < lookupSourceFactory.partitions());
+            // 创建HashBuilderOperator
             return new HashBuilderOperator(
                     operatorContext,
                     lookupSourceFactory,
@@ -169,6 +183,7 @@ public class HashBuilderOperator
         SPILLING_INPUT,
 
         /**
+         * LookupSource已经构建并传递，没有发生任何泄漏
          * LookupSource has been built and passed on without any spill occurring
          */
         LOOKUP_SOURCE_BUILT,
@@ -210,7 +225,7 @@ public class HashBuilderOperator
     private final Optional<Integer> sortChannel;
     private final List<JoinFilterFunctionFactory> searchFunctionFactories;
 
-    private final PagesIndex index;
+    private final PagesIndex index; // pages索引
 
     private final boolean spillEnabled;
     private final SingleStreamSpillerFactory singleStreamSpillerFactory;
@@ -230,6 +245,12 @@ public class HashBuilderOperator
     private Optional<Runnable> finishMemoryRevoke = Optional.empty();
 
     private final boolean enforceBroadcastMemoryLimit;
+
+    @Override
+    public OperatorContext getOperatorContext()
+    {
+        return operatorContext;
+    }
 
     public HashBuilderOperator(
             OperatorContext operatorContext,
@@ -257,6 +278,7 @@ public class HashBuilderOperator
         this.localUserMemoryContext = operatorContext.localUserMemoryContext();
         this.localRevocableMemoryContext = operatorContext.localRevocableMemoryContext();
 
+        // 创建Page的索引对象：PagesIndex
         this.index = pagesIndexFactory.newPagesIndex(lookupSourceFactory.getTypes(), expectedPositions);
         this.lookupSourceFactory = lookupSourceFactory;
         lookupSourceFactoryDestroyed = lookupSourceFactory.isDestroyed();
@@ -265,18 +287,13 @@ public class HashBuilderOperator
         this.hashChannels = hashChannels;
         this.preComputedHashChannel = preComputedHashChannel;
 
+        // 创建Hash冲突计数器
         this.hashCollisionsCounter = new HashCollisionsCounter(operatorContext);
         operatorContext.setInfoSupplier(hashCollisionsCounter);
 
         this.spillEnabled = spillEnabled;
         this.singleStreamSpillerFactory = requireNonNull(singleStreamSpillerFactory, "singleStreamSpillerFactory is null");
         this.enforceBroadcastMemoryLimit = enforceBroadcastMemoryLimit;
-    }
-
-    @Override
-    public OperatorContext getOperatorContext()
-    {
-        return operatorContext;
     }
 
     @VisibleForTesting
@@ -327,22 +344,30 @@ public class HashBuilderOperator
     {
         requireNonNull(page, "page is null");
 
+        // 如果探测侧已经销毁，则关闭
         if (lookupSourceFactoryDestroyed.isDone()) {
             close();
             return;
         }
 
+        // 如果已经溢出了，则将Page写入磁盘
         if (state == State.SPILLING_INPUT) {
             spillInput(page);
             return;
         }
 
         checkState(state == State.CONSUMING_INPUT);
+        // 更新索引
         updateIndex(page);
     }
 
+    /**
+     * 更新索引
+     * @param page
+     */
     private void updateIndex(Page page)
     {
+        // 添加page
         index.addPage(page);
 
         if (spillEnabled) {
@@ -433,6 +458,9 @@ public class HashBuilderOperator
         return null;
     }
 
+    /**
+     * 没有Page输入了。
+     */
     @Override
     public void finish()
     {
@@ -446,10 +474,13 @@ public class HashBuilderOperator
         }
 
         switch (state) {
+            // 正在消费输入的Page的状态，但是因为当前是finish方法，所以这里是完成最后一个输入的Page
             case CONSUMING_INPUT:
+                // 完成Page的输入，就可以通知LookUpOperator进行探测了。
                 finishInput();
                 return;
 
+                // lookup的数据源构建完成
             case LOOKUP_SOURCE_BUILT:
                 disposeLookupSourceIfRequested();
                 return;
@@ -483,23 +514,32 @@ public class HashBuilderOperator
         throw new IllegalStateException("Unhandled state: " + state);
     }
 
+    /**
+     * 完成所有page的输入
+     */
     private void finishInput()
     {
         checkState(state == State.CONSUMING_INPUT);
+        // 再次判断如果探测端已经销毁，则关闭
         if (lookupSourceFactoryDestroyed.isDone()) {
             close();
             return;
         }
 
+        // 构建LookupSourceSupplier -> 会创建JoinHashSupplier
         LookupSourceSupplier partition = buildLookupSource();
+        // 如果可以写入磁盘，则设置可回收的内存size
         if (spillEnabled) {
             localRevocableMemoryContext.setBytes(partition.get().getInMemorySizeInBytes());
         }
+        // 如果不能写入磁盘，则记录已使用的内存size
         else {
             localUserMemoryContext.setBytes(partition.get().getInMemorySizeInBytes(), enforceBroadcastMemoryLimit);
         }
+        // 不需要
         lookupSourceNotNeeded = Optional.of(lookupSourceFactory.lendPartitionLookupSource(partitionIndex, partition));
 
+        // LookupSource已经构建并传递，没有发生任何泄漏
         state = State.LOOKUP_SOURCE_BUILT;
     }
 
@@ -592,18 +632,29 @@ public class HashBuilderOperator
         close();
     }
 
+    /**
+     * 构建LookupSource
+     * @return
+     */
     private LookupSourceSupplier buildLookupSource()
     {
+        // 创建LookupSourceSupplier，创建JoinHashSupplier
         LookupSourceSupplier partition = index.createLookupSourceSupplier(operatorContext.getSession(), hashChannels, preComputedHashChannel, filterFunctionFactory, sortChannel, searchFunctionFactories, Optional.of(outputChannels));
+        // 记录hash冲突
         hashCollisionsCounter.recordHashCollision(partition.getHashCollisions(), partition.getExpectedHashCollisions());
         checkState(lookupSourceSupplier == null, "lookupSourceSupplier is already set");
         this.lookupSourceSupplier = partition;
         return partition;
     }
 
+    /**
+     * 是否已经构建完成
+     * @return
+     */
     @Override
     public boolean isFinished()
     {
+        //
         if (lookupSourceFactoryDestroyed.isDone()) {
             // Finish early when the probe side is empty
             close();

@@ -33,15 +33,20 @@ import static com.google.common.base.Preconditions.checkState;
 import static java.util.Objects.requireNonNull;
 
 /**
- * 交换操作，用于从上一个stage读取数据
+ * 数据远程交换算子，用于从上一个stage读取数据
+ * TODO 为啥就能与远程进行交互呢？依赖于exchangeClient算子，exchangeClient会接受远程来的数据。
  *
  * 该操作可以从上一个stage的output buffer中读取数据
  */
 public class ExchangeOperator
         implements SourceOperator, Closeable
 {
+    // 连接器ID，适用于RemoteSplit
     public static final ConnectorId REMOTE_CONNECTOR_ID = new ConnectorId("$remote");
 
+    /**
+     * ExchangeOperator工厂
+     */
     public static class ExchangeOperatorFactory
             implements SourceOperatorFactory
     {
@@ -70,6 +75,11 @@ public class ExchangeOperator
             return sourceId;
         }
 
+        /**
+         * 创建ExchangeOperator算子
+         * @param driverContext
+         * @return
+         */
         @Override
         public SourceOperator createOperator(DriverContext driverContext)
         {
@@ -119,13 +129,21 @@ public class ExchangeOperator
         return sourceId;
     }
 
+    /**
+     * 添加split，添加一个数据分片
+     * TODO 这里特别重要，会添加一个split，一个split就是一个远程连接。
+     * @param split
+     * @return
+     */
     @Override
     public Supplier<Optional<UpdatablePageSource>> addSplit(Split split)
     {
         requireNonNull(split, "split is null");
         checkArgument(split.getConnectorId().equals(REMOTE_CONNECTOR_ID), "split is not a remote split");
 
+        // 将该split的url添加到exchangeClient中
         RemoteSplit remoteSplit = (RemoteSplit) split.getConnectorSplit();
+        // 添加url，建立连接，并开始从指定的url查询Page，并缓存在ExchangeClient中的PageBuffer
         exchangeClient.addLocation(remoteSplit.getLocation().toURI(), remoteSplit.getRemoteSourceTaskId());
 
         return Optional::empty;
@@ -180,17 +198,25 @@ public class ExchangeOperator
         throw new UnsupportedOperationException(getClass().getName() + " can not take input");
     }
 
+    /**
+     * 获取输出内容
+     * @return
+     */
     @Override
     public Page getOutput()
     {
+        // 在驱动中已经触发ExchangeClient拉取page，那么这里直接获取就行了。
         SerializedPage page = exchangeClient.pollPage();
         if (page == null) {
             return null;
         }
 
+        // 记录行数和字节数
         operatorContext.recordRawInput(page.getSizeInBytes(), page.getPositionCount());
 
+        // 反序列化Page
         Page deserializedPage = serde.deserialize(page);
+        // 记录已处理的行数和字节数
         operatorContext.recordProcessedInput(deserializedPage.getSizeInBytes(), page.getPositionCount());
 
         return deserializedPage;

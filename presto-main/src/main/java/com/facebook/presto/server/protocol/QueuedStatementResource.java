@@ -406,10 +406,17 @@ public class QueuedStatementResource
             return dispatchManager.waitForDispatched(queryId);
         }
 
+        /**
+         * 获取初始查询结果
+         * @param uriInfo
+         * @param xForwardedProto
+         * @return
+         */
         public synchronized QueryResults getInitialQueryResults(UriInfo uriInfo, String xForwardedProto)
         {
             verify(lastToken.get() == 0);
             verify(querySubmissionFuture == null);
+            // 创建查询结果
             return createQueryResults(
                     1,
                     uriInfo,

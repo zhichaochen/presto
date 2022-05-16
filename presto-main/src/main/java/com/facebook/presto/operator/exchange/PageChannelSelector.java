@@ -21,6 +21,9 @@ import java.util.stream.IntStream;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * Page通道选择器
+ */
 public class PageChannelSelector
         implements Function<Page, Page>
 {
@@ -29,9 +32,15 @@ public class PageChannelSelector
     public PageChannelSelector(int... channels)
     {
         this.channels = requireNonNull(channels, "channels is null").clone();
+        // channel必须都>=0
         checkArgument(IntStream.of(channels).allMatch(channel -> channel >= 0), "channels must be positive");
     }
 
+    /**
+     * 通过channels提取一个page
+     * @param page
+     * @return
+     */
     @Override
     public Page apply(Page page)
     {

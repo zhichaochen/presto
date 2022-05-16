@@ -13,6 +13,11 @@
  */
 package com.facebook.presto.spi.relation;
 
+/**
+ * 行表达式访问器
+ * @param <R>
+ * @param <C>
+ */
 public interface RowExpressionVisitor<R, C>
 {
     R visitCall(CallExpression call, C context);

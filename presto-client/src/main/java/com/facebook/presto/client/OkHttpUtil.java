@@ -138,6 +138,14 @@ public final class OkHttpUtil
         return InetSocketAddress.createUnresolved(address.getHost(), address.getPort());
     }
 
+    /**
+     * 设置ssl
+     * @param clientBuilder
+     * @param keyStorePath
+     * @param keyStorePassword
+     * @param trustStorePath
+     * @param trustStorePassword
+     */
     public static void setupSsl(
             OkHttpClient.Builder clientBuilder,
             Optional<String> keyStorePath,

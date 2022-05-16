@@ -13,11 +13,14 @@
  */
 package com.facebook.presto.spi.function;
 
+/**
+ * 函数实现类型
+ */
 public enum FunctionImplementationType
 {
-    BUILTIN(false),
-    SQL(false),
-    THRIFT(true);
+    BUILTIN(false), // 内置
+    SQL(false), // SQL
+    THRIFT(true); // thrift 函数
 
     private final boolean external;
 

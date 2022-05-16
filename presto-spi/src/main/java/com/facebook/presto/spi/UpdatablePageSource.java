@@ -19,6 +19,9 @@ import io.airlift.slice.Slice;
 import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
 
+/**
+ * 可更新的PageSource
+ */
 public interface UpdatablePageSource
         extends ConnectorPageSource
 {

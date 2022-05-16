@@ -14,7 +14,7 @@
 package com.facebook.presto.spi.function;
 
 /**
- * Sql函数
+ * Sql中的函数，函数的顶级接口，所有函数都实现该规范
  */
 public interface SqlFunction
 {

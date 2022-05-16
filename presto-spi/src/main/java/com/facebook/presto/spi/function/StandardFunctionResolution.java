@@ -18,6 +18,9 @@ import com.facebook.presto.common.type.Type;
 
 import java.util.List;
 
+/**
+ * 标准的函数解析
+ */
 public interface StandardFunctionResolution
 {
     FunctionHandle notFunction();

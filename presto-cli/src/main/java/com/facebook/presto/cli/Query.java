@@ -51,7 +51,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
 /**
- * 表示一条查询
+ * 查询，表示一条查询
  */
 public class Query
         implements Closeable
@@ -153,6 +153,7 @@ public class Query
         PrintStream errorChannel = interactive ? out : System.err;
         WarningsPrinter warningsPrinter = new PrintStreamWarningsPrinter(System.err);
 
+        // 如果是交互式的
         if (interactive) {
             statusPrinter = new StatusPrinter(client, out, debug);
             statusPrinter.printInitialStatusUpdates();
@@ -394,6 +395,9 @@ public class Query
         }
     }
 
+    /**
+     * PrintStream告警打印器
+     */
     private static class PrintStreamWarningsPrinter
             extends AbstractWarningsPrinter
     {

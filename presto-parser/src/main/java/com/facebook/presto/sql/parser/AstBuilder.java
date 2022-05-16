@@ -202,7 +202,10 @@ import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 
 /**
- * 语法分析，递归生成Node Tree
+ * 语法分析的核心类
+ * 该类继承了SqlBaseBaseVisitor，会调用visit()方法开始对整个tree进行遍历分析
+ *
+ * 递归生成Node Tree
  */
 class AstBuilder
         extends SqlBaseBaseVisitor<Node>
@@ -728,12 +731,19 @@ class AstBuilder
                 getTextIfPresent(context.limit));
     }
 
+    /**
+     * 访问查询规范
+     * @param context
+     * @return
+     */
     @Override
     public Node visitQuerySpecification(SqlBaseParser.QuerySpecificationContext context)
     {
         Optional<Relation> from = Optional.empty();
+        // 解析select
         List<SelectItem> selectItems = visit(context.selectItem(), SelectItem.class);
 
+        // 解析relation
         List<Relation> relations = visit(context.relation(), Relation.class);
         if (!relations.isEmpty()) {
             // synthesize implicit join nodes
@@ -758,6 +768,11 @@ class AstBuilder
                 Optional.empty());
     }
 
+    /**
+     * 访问group by语句
+     * @param context
+     * @return
+     */
     @Override
     public Node visitGroupBy(SqlBaseParser.GroupByContext context)
     {
@@ -1161,6 +1176,7 @@ class AstBuilder
     @Override
     public Node visitJoinRelation(SqlBaseParser.JoinRelationContext context)
     {
+        //
         Relation left = (Relation) visit(context.left);
         Relation right;
 
@@ -1586,6 +1602,11 @@ class AstBuilder
         return new WhenClause(getLocation(context), (Expression) visit(context.condition), (Expression) visit(context.result));
     }
 
+    /**
+     * 访问函数调用
+     * @param context
+     * @return
+     */
     @Override
     public Node visitFunctionCall(SqlBaseParser.FunctionCallContext context)
     {
@@ -1894,6 +1915,11 @@ class AstBuilder
         return new DoubleLiteral(getLocation(context), context.getText());
     }
 
+    /**
+     * bool类型的值，注意不是表达式
+     * @param context
+     * @return
+     */
     @Override
     public Node visitBooleanValue(SqlBaseParser.BooleanValueContext context)
     {
@@ -2530,6 +2556,11 @@ class AstBuilder
         return getLocation(parserRuleContext.getStart());
     }
 
+    /**
+     * 获取当前字符所在位置
+     * @param token
+     * @return
+     */
     public static NodeLocation getLocation(Token token)
     {
         requireNonNull(token, "token is null");

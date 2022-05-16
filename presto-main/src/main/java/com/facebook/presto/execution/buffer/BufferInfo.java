@@ -23,6 +23,9 @@ import static com.google.common.base.MoreObjects.toStringHelper;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 缓存信息
+ */
 public class BufferInfo
 {
     private final OutputBufferId bufferId;

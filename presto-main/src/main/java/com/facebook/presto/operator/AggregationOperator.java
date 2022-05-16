@@ -30,6 +30,7 @@ import static com.google.common.collect.ImmutableList.toImmutableList;
 import static java.util.Objects.requireNonNull;
 
 /**
+ * 对输入数据进行分组，并为每个相同值序列生成单个块。
  * Group input data and produce a single block for each sequence of identical values.
  */
 public class AggregationOperator
@@ -100,9 +101,12 @@ public class AggregationOperator
         requireNonNull(step, "step is null");
 
         // wrapper each function with an aggregator
+        // 用聚合器包装每个函数
         requireNonNull(accumulatorFactories, "accumulatorFactories is null");
         ImmutableList.Builder<Aggregator> builder = ImmutableList.builder();
+        // 遍历所有的累加器工厂
         for (AccumulatorFactory accumulatorFactory : accumulatorFactories) {
+            // 将累加器封装成Aggregator
             builder.add(new Aggregator(accumulatorFactory, step, this::updateMemory));
         }
         aggregates = builder.build();
@@ -147,6 +151,7 @@ public class AggregationOperator
         checkState(needsInput(), "Operator is already finishing");
         requireNonNull(page, "page is null");
 
+        //遍历所有的聚合器去处理Page
         for (Aggregator aggregate : aggregates) {
             aggregate.processPage(page);
         }
@@ -156,6 +161,7 @@ public class AggregationOperator
     @Override
     public Page getOutput()
     {
+        // 如果不等于有输出的状态，则返回null
         if (state != State.HAS_OUTPUT) {
             return null;
         }

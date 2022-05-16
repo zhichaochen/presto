@@ -16,13 +16,13 @@ package com.facebook.presto.execution.scheduler;
 import java.io.Closeable;
 
 /**
- * 阶段调度器
+ * 阶段调度器。不同阶段有不同的调度器
  */
 public interface StageScheduler
         extends Closeable
 {
     /**
-     * 调度
+     * 不阻塞地尽可能多地调度
      * Schedules as much work as possible without blocking.
      * The schedule results is a hint to the query scheduler if and
      * when the stage scheduler should be invoked again.  It is

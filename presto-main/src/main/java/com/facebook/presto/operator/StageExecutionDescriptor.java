@@ -30,6 +30,7 @@ import static java.util.Objects.requireNonNull;
 
 /**
  * 阶段执行描述器
+ * 描述一个阶段是如何执行的
  */
 public class StageExecutionDescriptor
 {
@@ -147,7 +148,7 @@ public class StageExecutionDescriptor
     public enum StageExecutionStrategy
     {
         UNGROUPED_EXECUTION, // 非分组执行
-        FIXED_LIFESPAN_SCHEDULE_GROUPED_EXECUTION, // 固定的\u寿命\u计划\u分组\u执行
+        FIXED_LIFESPAN_SCHEDULE_GROUPED_EXECUTION, // 固定的 寿命 计划 分组 执行
         DYNAMIC_LIFESPAN_SCHEDULE_GROUPED_EXECUTION, // 动态寿命计划分组执行
         RECOVERABLE_GROUPED_EXECUTION, // 可恢复分组执行
     }

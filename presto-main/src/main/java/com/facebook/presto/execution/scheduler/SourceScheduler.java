@@ -20,12 +20,18 @@ import com.facebook.presto.spi.plan.PlanNodeId;
 
 import java.util.List;
 
+/**
+ * 数据源调度器，其中Source不仅表示查询数据库，还包括从其他Stage查询
+ */
 public interface SourceScheduler
 {
+    // 调度
     ScheduleResult schedule();
 
+    // 关闭调度器
     void close();
 
+    //
     PlanNodeId getPlanNodeId();
 
     void startLifespan(Lifespan lifespan, ConnectorPartitionHandle partitionHandle);

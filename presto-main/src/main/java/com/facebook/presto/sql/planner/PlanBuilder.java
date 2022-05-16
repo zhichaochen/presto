@@ -28,10 +28,13 @@ import java.util.Map;
 import static com.facebook.presto.sql.relational.OriginalExpressionUtils.castToRowExpression;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 计划构建器
+ */
 class PlanBuilder
 {
     private final TranslationMap translations;
-    private final PlanNode root;
+    private final PlanNode root; // 根计划节点
 
     public PlanBuilder(TranslationMap translations, PlanNode root)
     {

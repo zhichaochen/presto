@@ -68,6 +68,7 @@ public abstract class PlanNode
 
     /**
      * 访问逻辑计划
+     * 默认是访问计划，某些节点实现该类之后就是访问某个具体的节点
      * A visitor pattern interface to operate on IR.
      */
     public <R, C> R accept(PlanVisitor<R, C> visitor, C context)

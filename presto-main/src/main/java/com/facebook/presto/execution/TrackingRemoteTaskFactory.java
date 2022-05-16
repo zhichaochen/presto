@@ -28,6 +28,9 @@ import static com.facebook.presto.execution.TaskState.PLANNED;
 import static com.facebook.presto.execution.TaskState.RUNNING;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 追踪远程任务工厂
+ */
 public class TrackingRemoteTaskFactory
         implements RemoteTaskFactory
 {

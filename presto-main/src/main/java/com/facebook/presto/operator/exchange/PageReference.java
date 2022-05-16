@@ -23,14 +23,17 @@ import static com.google.common.base.MoreObjects.toStringHelper;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * page引用
+ */
 @ThreadSafe
 final class PageReference
 {
     private static final AtomicIntegerFieldUpdater<PageReference> REFERENCE_COUNT_UPDATER = AtomicIntegerFieldUpdater.newUpdater(PageReference.class, "referenceCount");
 
-    private volatile int referenceCount;
-    private final Page page;
-    private final PageReleasedListener onPageReleased;
+    private volatile int referenceCount; // 引用计数
+    private final Page page; // page
+    private final PageReleasedListener onPageReleased; // 释放引用监听器
 
     public PageReference(Page page, int referenceCount, PageReleasedListener onPageReleased)
     {
@@ -45,6 +48,10 @@ final class PageReference
         return page.getRetainedSizeInBytes();
     }
 
+    /**
+     * 移除该page的引用
+     * @return
+     */
     public Page removePage()
     {
         int referenceCount = REFERENCE_COUNT_UPDATER.decrementAndGet(this);

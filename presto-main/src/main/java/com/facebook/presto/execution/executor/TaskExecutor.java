@@ -81,7 +81,9 @@ import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
 /**
- * 任务执行器，真正执行split
+ * 任务执行器
+ * 真正执行任务的地方
+ *
  * 通过Guice注入SqltaskManager，并且构造完成后即启动start
  */
 @ThreadSafe
@@ -109,7 +111,7 @@ public class TaskExecutor
     private final SortedSet<RunningSplitInfo> runningSplitInfos = new ConcurrentSkipListSet<>();
 
     @GuardedBy("this")
-    private final List<TaskHandle> tasks; // 任务列表
+    private final List<TaskHandle> tasks; // 待执行的任务列表
 
     /**
      * All splits registered with the task executor.
@@ -315,7 +317,8 @@ public class TaskExecutor
     }
 
     /**
-     * 添加任务
+     * 添加待执行的任务
+     *
      * @param taskId
      * @param utilizationSupplier
      * @param initialSplitConcurrency
@@ -337,6 +340,7 @@ public class TaskExecutor
 
         log.debug("Task scheduled " + taskId);
 
+        // 创建任务句柄
         TaskHandle taskHandle = new TaskHandle(
                 taskId,
                 taskPriorityTrackerFactory.apply(taskId.getQueryId()),
@@ -345,6 +349,7 @@ public class TaskExecutor
                 splitConcurrencyAdjustFrequency,
                 maxDriversPerTask);
 
+        // 添加任务至任务列表
         tasks.add(taskHandle);
         return taskHandle;
     }

@@ -46,6 +46,7 @@ import static java.util.Objects.requireNonNull;
  */
 public class SplitManager
 {
+    // Split集合，key：连接器ID，ConnectorSplitManager：不同的连接器管理器
     private final ConcurrentMap<ConnectorId, ConnectorSplitManager> splitManagers = new ConcurrentHashMap<>();
     private final int minScheduleSplitBatchSize;
     private final Metadata metadata;
@@ -90,6 +91,8 @@ public class SplitManager
         ConnectorSession connectorSession = session.toConnectorSession(connectorId);
         // Now we will fetch the layout handle if it's not presented in TableHandle.
         // In the future, ConnectorTableHandle will be used to fetch splits since it will contain layout information.
+        // 现在我们将获取布局句柄，如果它没有在TableHandle中呈现。
+        // 将来，ConnectorTableHandle将用于获取拆分，因为它将包含布局信息。
         ConnectorTableLayoutHandle layout;
         if (!table.getLayout().isPresent()) {
             TableLayoutResult result = metadata.getLayout(session, table, Constraint.alwaysTrue(), Optional.empty());

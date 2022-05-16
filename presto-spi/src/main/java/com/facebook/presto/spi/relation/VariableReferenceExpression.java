@@ -32,10 +32,8 @@ public final class VariableReferenceExpression
         extends RowExpression
         implements Comparable<VariableReferenceExpression>
 {
-    // 表达式内容
-    private final String name;
-    // 表达式的数据类型
-    private final Type type;
+    private final String name; // 这里记录的仅仅是变量的别名？
+    private final Type type; // 表达式的数据类型
 
     @JsonCreator
     public VariableReferenceExpression(

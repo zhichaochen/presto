@@ -20,6 +20,9 @@ import java.net.URI;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 任务所在位置
+ */
 public class Location
 {
     private final String location;

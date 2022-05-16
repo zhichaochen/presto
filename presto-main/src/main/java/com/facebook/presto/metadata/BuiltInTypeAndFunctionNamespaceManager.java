@@ -1013,6 +1013,11 @@ public class BuiltInTypeAndFunctionNamespaceManager
         }
     }
 
+    /**
+     * 通过函数句柄，查询具体的内置函数
+     * @param functionHandle
+     * @return
+     */
     public InternalAggregationFunction getAggregateFunctionImplementation(FunctionHandle functionHandle)
     {
         checkArgument(functionHandle instanceof BuiltInFunctionHandle, "Expect BuiltInFunctionHandle");

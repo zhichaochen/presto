@@ -76,6 +76,9 @@ import static com.google.common.collect.ImmutableList.toImmutableList;
 import static com.google.common.collect.ImmutableMap.toImmutableMap;
 import static java.lang.String.format;
 
+/**
+ * CursorProcessor编译器，生成CursorProcessor接口相关字节码
+ */
 public class CursorProcessorCompiler
         implements BodyCompiler
 {
@@ -92,11 +95,15 @@ public class CursorProcessorCompiler
         this.sessionFunctions = sessionFunctions;
     }
 
+    /**
+     * 生成方法
+     */
     @Override
     public void generateMethods(SqlFunctionProperties sqlFunctionProperties, ClassDefinition classDefinition, CallSiteBinder callSiteBinder, RowExpression filter, List<RowExpression> projections)
     {
         CachedInstanceBinder cachedInstanceBinder = new CachedInstanceBinder(classDefinition, callSiteBinder);
 
+        // 行表达式
         List<RowExpression> rowExpressions = ImmutableList.<RowExpression>builder()
                 .addAll(projections)
                 .add(filter)
@@ -148,13 +155,16 @@ public class CursorProcessorCompiler
 
         generateProcessMethod(classDefinition, projections.size(), cseFields);
 
+        // 生成filter方法
         generateFilterMethod(classDefinition, compiler, filter);
 
+        // 生成project方法
         for (int i = 0; i < projections.size(); i++) {
             String methodName = "project_" + i;
             generateProjectMethod(classDefinition, compiler, methodName, projections.get(i));
         }
 
+        // 定义一个构造方法
         MethodDefinition constructorDefinition = classDefinition.declareConstructor(a(PUBLIC));
         BytecodeBlock constructorBody = constructorDefinition.getBody();
         Variable thisVariable = constructorDefinition.getThis();
@@ -286,26 +296,40 @@ public class CursorProcessorCompiler
         return ifStatement;
     }
 
+    /**
+     * 生成filter方法
+     * @param classDefinition
+     * @param compiler
+     * @param filter
+     */
     private void generateFilterMethod(
             ClassDefinition classDefinition,
             RowExpressionCompiler compiler,
             RowExpression filter)
     {
+        // 获取SqlFunctionProperties中的properties参数
         Parameter properties = arg("properties", SqlFunctionProperties.class);
+        // 获取RecordCursor的cursor参数
         Parameter cursor = arg("cursor", RecordCursor.class);
+        // 声明filter方法
         MethodDefinition method = classDefinition.declareMethod(a(PUBLIC), "filter", type(boolean.class), properties, cursor);
 
+        // 方法注释
         method.comment("Filter: %s", filter);
 
+        //
         Scope scope = method.getScope();
         BytecodeBlock body = method.getBody();
 
+        // 是否为null变量
         Variable wasNullVariable = scope.declareVariable(type(boolean.class), "wasNull");
 
         LabelNode end = new LabelNode("end");
         body.comment("boolean wasNull = false;")
+                //
             .putVariable(wasNullVariable, false)
             .comment("evaluate filter: " + filter)
+                // 编译生成if条件
             .append(compiler.compile(filter, scope, Optional.empty()))
             .comment("if (wasNull) return false;")
             .getVariable(wasNullVariable)

@@ -19,14 +19,13 @@ import com.facebook.presto.spi.plan.PlanNode;
 import static java.util.Objects.requireNonNull;
 
 /**
- * 计划（表示逻辑计划）
+ * 表示整个逻辑计划
  */
 public class Plan
 {
-    // 根计划
-    private final PlanNode root;
-    private final TypeProvider types;
-    private final StatsAndCosts statsAndCosts;
+    private final PlanNode root; // 根计划节点
+    private final TypeProvider types; // 类型提供器
+    private final StatsAndCosts statsAndCosts; // 统计和耗时
 
     public Plan(PlanNode root, TypeProvider types, StatsAndCosts statsAndCosts)
     {

@@ -25,6 +25,9 @@ import java.util.function.Function;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 节点分配统计，用来存储节点分配信息
+ */
 public final class NodeAssignmentStats
 {
     private final NodeTaskMap nodeTaskMap;

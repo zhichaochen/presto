@@ -27,11 +27,12 @@ import static com.google.common.base.Preconditions.checkState;
 import static java.lang.Integer.parseInt;
 
 /**
- * 寿命
+ * 生命周期
  */
 @ThriftStruct
 public class Lifespan
 {
+    // 任务范围，注意：不分组、且分组ID为0，也就是只有一个组。
     private static final Lifespan TASK_WIDE = new Lifespan(false, 0);
 
     private final boolean grouped; // 是否分组

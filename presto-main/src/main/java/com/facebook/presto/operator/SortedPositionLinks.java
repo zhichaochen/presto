@@ -31,6 +31,10 @@ import static io.airlift.slice.SizeOf.sizeOf;
 import static java.util.Objects.requireNonNull;
 
 /**
+ * 按构建端表达式的排序顺序维护位置链接。
+ * 然后，位置链接上的迭代使用一组@{code searchFunctions}，这需要与用于排序的表达式兼容。
+ * 二进制搜索用于从连接条件中快速跳过与过滤函数不匹配的位置。
+ *
  * Maintains position links in sorted order by build side expression.
  * Then iteration over position links uses set of @{code searchFunctions} which needs to be compatible
  * with expression used for sorting.

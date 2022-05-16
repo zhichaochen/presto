@@ -121,7 +121,9 @@ public class QueryStateMachine
     private final AtomicLong peakTaskTotalMemory = new AtomicLong();
     private final AtomicLong peakNodeTotalMemory = new AtomicLong();
 
+    // 正在运行的任务数
     private final AtomicInteger currentRunningTaskCount = new AtomicInteger();
+    // 高峰期的任务数
     private final AtomicInteger peakRunningTaskCount = new AtomicInteger();
 
     private final QueryStateTimer queryStateTimer;
@@ -146,8 +148,11 @@ public class QueryStateMachine
 
     private final AtomicReference<ExecutionFailureInfo> failureCause = new AtomicReference<>();
 
+    // 输入
     private final AtomicReference<Set<Input>> inputs = new AtomicReference<>(ImmutableSet.of());
+    // 输出
     private final AtomicReference<Optional<Output>> output = new AtomicReference<>(Optional.empty());
+    // 最终的查询信息
     private final StateMachine<Optional<QueryInfo>> finalQueryInfo;
 
     private final Map<SqlFunctionId, SqlInvokedFunction> addedSessionFunctions = new ConcurrentHashMap<>();
@@ -344,6 +349,11 @@ public class QueryStateMachine
         peakNodeTotalMemory.accumulateAndGet(peakNodeTotalMemoryInBytes, Math::max);
     }
 
+    /**
+     * 查询基本的Query信息
+     * @param rootStage
+     * @return
+     */
     public BasicQueryInfo getBasicQueryInfo(Optional<BasicStageExecutionStats> rootStage)
     {
         // Query state must be captured first in order to provide a
@@ -891,8 +901,14 @@ public class QueryStateMachine
         return finalQueryInfo.get();
     }
 
+    /**
+     * 更新查询信息
+     * @param stageInfo
+     * @return
+     */
     public QueryInfo updateQueryInfo(Optional<StageInfo> stageInfo)
     {
+        // 如果查询信息是最后的信息，则更新finalQueryInfo
         QueryInfo queryInfo = getQueryInfo(stageInfo);
         if (queryInfo.isFinalQueryInfo()) {
             finalQueryInfo.compareAndSet(Optional.empty(), Optional.of(queryInfo));
@@ -1018,7 +1034,7 @@ public class QueryStateMachine
     }
 
     /**
-     * 查询输出
+     * 查询输出管理器
      */
     public static class QueryOutputManager
     {
@@ -1042,6 +1058,7 @@ public class QueryStateMachine
             this.executor = requireNonNull(executor, "executor is null");
         }
 
+        // 添加输出信息监听器
         public void addOutputInfoListener(Consumer<QueryOutputInfo> listener)
         {
             requireNonNull(listener, "listener is null");
@@ -1073,6 +1090,11 @@ public class QueryStateMachine
             queryOutputInfo.ifPresent(info -> fireStateChanged(info, outputInfoListeners));
         }
 
+        /**
+         * 更新缓存输出位置
+         * @param newExchangeLocations
+         * @param noMoreExchangeLocations
+         */
         public void updateOutputLocations(Map<URI, TaskId> newExchangeLocations, boolean noMoreExchangeLocations)
         {
             requireNonNull(newExchangeLocations, "newExchangeLocations is null");
@@ -1101,8 +1123,14 @@ public class QueryStateMachine
             return Optional.of(new QueryOutputInfo(columnNames, columnTypes, exchangeLocations, noMoreExchangeLocations));
         }
 
+        /**
+         * 发出状态改变
+         * @param queryOutputInfo
+         * @param outputInfoListeners
+         */
         private void fireStateChanged(QueryOutputInfo queryOutputInfo, List<Consumer<QueryOutputInfo>> outputInfoListeners)
         {
+            // 遍历QueryOutputInfo监听器
             for (Consumer<QueryOutputInfo> outputInfoListener : outputInfoListeners) {
                 executor.execute(() -> outputInfoListener.accept(queryOutputInfo));
             }

@@ -53,6 +53,9 @@ import static com.google.common.base.Preconditions.checkState;
 import static java.nio.file.StandardOpenOption.APPEND;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 写入磁盘
+ */
 @NotThreadSafe
 public class FileSingleStreamSpiller
         implements SingleStreamSpiller

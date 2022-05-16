@@ -27,6 +27,9 @@ import static com.google.common.base.Preconditions.checkState;
 import static java.lang.Math.max;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 算子计时器，记录算子运行的一些信息
+ */
 @NotThreadSafe
 class OperationTimer
 {

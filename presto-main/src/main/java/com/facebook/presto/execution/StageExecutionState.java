@@ -19,6 +19,9 @@ import java.util.stream.Stream;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.ImmutableSet.toImmutableSet;
 
+/**
+ * StageExecution状态枚举
+ */
 public enum StageExecutionState
 {
     /**

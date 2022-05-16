@@ -22,6 +22,13 @@ import java.util.function.ToIntFunction;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 桶和节点的映射
+ *
+ * 怎么理解么？
+ * Bucket：可以表示数据分区，split的数量
+ * Node：可以表示Worker节点，那么split如何和Worker进行映射呢？
+ */
 public abstract class BucketNodeMap
 {
     private final ToIntFunction<Split> splitToBucket;

@@ -110,7 +110,10 @@ public interface Metadata
 
     /**
      * alternative：可供替代的;
-     * 返回一个表句柄，其分区转换为提供的分区句柄，
+     * 返回一个表句柄，其分区转换为提供的分区句柄，但在其他方面与提供的表布局句柄相同。
+     * 提供的表布局句柄必须是连接器可以透明转换为的句柄，与提供的表布局句柄关联的原始分区句柄，
+     * 正如{@link#getCommonPartitioning}所承诺的那样
+     *
      * Return a table handle whose partitioning is converted to the provided partitioning handle,
      * but otherwise identical to the provided table layout handle.
      * The provided table layout handle must be one that the connector can transparently convert to from
@@ -215,9 +218,12 @@ public interface Metadata
     void createTable(Session session, String catalogName, ConnectorTableMetadata tableMetadata, boolean ignoreExisting);
 
     /**
+     * 创建临时表
+     * 创建具有可选分区要求的临时表。临时表可能具有不同的默认存储格式、压缩方案、复制因子等，并在事务结束时自动删除
+     *
      * Creates a temporary table with optional partitioning requirements.
      * Temporary table might have different default storage format, compression scheme, replication factor, etc,
-     * and gets automatically dropped when the transaction ends.
+     * and gets automatically dropped when the transaction   ends.
      */
     @Experimental
     TableHandle createTemporaryTable(Session session, String catalogName, List<ColumnMetadata> columns, Optional<PartitioningMetadata> partitioningMetadata);

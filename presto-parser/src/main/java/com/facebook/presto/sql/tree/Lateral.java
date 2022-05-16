@@ -22,6 +22,14 @@ import java.util.Optional;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 横向节点（Lateral：la te rou，横向的、侧面的）
+ * 可以将一行数据拆分成多行，比如：
+ * name:"张三，王五"
+ * 拆分成两行数据
+ * name ： 张三
+ * name ： 王五
+ */
 public final class Lateral
         extends Relation
 {

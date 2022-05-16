@@ -27,6 +27,9 @@ import java.util.List;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * Explain节点
+ */
 @Immutable
 public class ExplainAnalyzeNode
         extends InternalPlanNode

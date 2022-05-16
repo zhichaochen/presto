@@ -50,7 +50,7 @@ import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 
 /**
- * 分区
+ * 表示一个分区
  */
 @Immutable
 public final class Partitioning
@@ -66,6 +66,9 @@ public final class Partitioning
         this.arguments = ImmutableList.copyOf(requireNonNull(arguments, "arguments is null"));
     }
 
+    /**
+     * 创建分区
+     */
     public static <T extends RowExpression> Partitioning create(PartitioningHandle handle, Collection<T> columns)
     {
         return new Partitioning(handle, columns.stream()

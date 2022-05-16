@@ -30,13 +30,15 @@ import static com.google.common.base.Strings.nullToEmpty;
 import static java.util.Objects.requireNonNull;
 
 /**
- * 集群中可以处理查询的服务器。
+ * 表示一个服务节点
+ * 集群中可以处理查询的服务器。表示网路中的一个节点
  * A node is a server in a cluster than can process queries.
  */
 @ThriftStruct
 public class InternalNode
         implements Node
 {
+    // 节点状态
     public enum NodeStatus
     {
         ALIVE,

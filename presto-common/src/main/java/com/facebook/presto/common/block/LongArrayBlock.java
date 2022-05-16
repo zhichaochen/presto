@@ -32,19 +32,24 @@ import static io.airlift.slice.SizeOf.sizeOf;
 import static java.lang.Math.toIntExact;
 import static java.lang.String.format;
 
+/**
+ * long类型数据的Block
+ * 一堆long类型的数据
+ */
 public class LongArrayBlock
         implements Block
 {
+    // 当前实例占用内存的大小。
     private static final int INSTANCE_SIZE = ClassLayout.parseClass(LongArrayBlock.class).instanceSize();
 
-    private final int arrayOffset;
-    private final int positionCount;
+    private final int arrayOffset; // 在values中的偏移量
+    private final int positionCount; // block中value总数
     @Nullable
-    private final boolean[] valueIsNull;
-    private final long[] values;
+    private final boolean[] valueIsNull; // 对应位置的值是否为null
+    private final long[] values; // long值列表
 
-    private final long sizeInBytes;
-    private final long retainedSizeInBytes;
+    private final long sizeInBytes; // 真正数据的字节码大小
+    private final long retainedSizeInBytes; // block对象的整个字节码大小，INSTANCE_SIZE + sizeOf(valueIsNull) + sizeOf(values);
 
     public LongArrayBlock(int positionCount, Optional<boolean[]> valueIsNull, long[] values)
     {
@@ -294,6 +299,10 @@ public class LongArrayBlock
         return values[internalPosition];
     }
 
+    /**
+     * 拼接null
+     * @return
+     */
     @Override
     public Block appendNull()
     {

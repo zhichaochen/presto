@@ -41,7 +41,14 @@ import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 
 /**
+ * Source操作，会将Sql查询条件解析成TupleDomain，传递给Connector
+ * Connector如果能利用条件下推，则可以减少数据返回，加速查询。
+ *
+ * 该操作优先选择与分区数据(split)同一个Worker节点运行。如果节点不够，优先选择与Split同一个rack的worker节点
+ * 如果还不够，则随机选择rack节点。
+ *
  * 根据每个组成列上的约束定义一组有效元组
+ * TupleDomain 对象包含了完整的 SQL查询经过词法分析后的 WhereCondition 条件信息
  * Defines a set of valid tuples according to the constraints on each of its constituent columns
  */
 public final class TupleDomain<T>
@@ -417,6 +424,12 @@ public final class TupleDomain<T>
         return buffer.toString();
     }
 
+    /**
+     * 转换，
+     * @param function
+     * @param <U>
+     * @return
+     */
     public <U> TupleDomain<U> transform(Function<T, U> function)
     {
         if (isNone()) {

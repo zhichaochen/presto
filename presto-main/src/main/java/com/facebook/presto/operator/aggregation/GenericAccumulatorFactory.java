@@ -80,7 +80,7 @@ public class GenericAccumulatorFactory
 
     @Nullable
     private final Session session;
-    private final boolean distinct;
+    private final boolean distinct; // 是否去重
     private final boolean spillEnabled;
     private final PagesIndex.Factory pagesIndexFactory;
 
@@ -125,33 +125,45 @@ public class GenericAccumulatorFactory
         return inputChannels;
     }
 
+    /**
+     * 创建累加器
+     * @param updateMemory
+     * @return
+     */
     @Override
     public Accumulator createAccumulator(UpdateMemory updateMemory)
     {
         Accumulator accumulator;
 
+        // 是否有去重
         if (hasDistinct()) {
             // channel 0 will contain the distinct mask
+            // 实例化聚合器
             accumulator = instantiateAccumulator(
                     inputChannels.stream()
                             .map(value -> value + 1)
                             .collect(Collectors.toList()),
                     Optional.of(0));
 
+            // 参数类型列表
             List<Type> argumentTypes = inputChannels.stream()
                     .map(sourceTypes::get)
                     .collect(Collectors.toList());
 
+            // 创建去重聚合器
             accumulator = new DistinctingAccumulator(accumulator, argumentTypes, inputChannels, maskChannel, session, joinCompiler, updateMemory);
         }
         else {
+            // 实例化聚合器
             accumulator = instantiateAccumulator(inputChannels, maskChannel);
         }
 
+        // 如果没有排序，直接返回聚合器
         if (orderByChannels.isEmpty()) {
             return accumulator;
         }
 
+        // 如果有排序，则创建排序聚合器
         return new OrderingAccumulator(accumulator, sourceTypes, orderByChannels, orderings, pagesIndexFactory);
     }
 
@@ -364,12 +376,15 @@ public class GenericAccumulatorFactory
         return page.getPositions(ids, 0, next);
     }
 
+    /**
+     *
+     */
     private static class DistinctingGroupedAccumulator
             extends FinalOnlyGroupedAccumulator
     {
         private final GroupedAccumulator accumulator;
         private final MarkDistinctHash hash;
-        private final Optional<Integer> maskChannel;
+        private final Optional<Integer> maskChannel; //
 
         private DistinctingGroupedAccumulator(
                 GroupedAccumulator accumulator,
@@ -426,16 +441,19 @@ public class GenericAccumulatorFactory
             Page withGroup = page.prependColumn(groupIdsBlock);
 
             // 1. filter out positions based on mask, if present
+            // 基于掩码过滤
             Page filtered = maskChannel
                     .map(channel -> filter(withGroup, withGroup.getBlock(channel + 1))) // offset by one because of group id in column 0
                     .orElse(withGroup);
 
             // 2. compute a mask for the distinct rows (including the group id)
+            // 计算不同行的掩码（包括组id）
             Work<Block> work = hash.markDistinctRows(filtered);
             checkState(work.process());
             Block distinctMask = work.getResult();
 
             // 3. feed a Page with a new mask to the underlying aggregation
+            // 向基础聚合提供具有新掩码的page
             GroupByIdBlock groupIds = new GroupByIdBlock(groupIdsBlock.getGroupCount(), filtered.getBlock(0));
 
             // drop the group id column and prepend the distinct mask column
@@ -533,6 +551,9 @@ public class GenericAccumulatorFactory
         }
     }
 
+    /**
+     *
+     */
     private static class OrderingGroupedAccumulator
             extends FinalOnlyGroupedAccumulator
     {

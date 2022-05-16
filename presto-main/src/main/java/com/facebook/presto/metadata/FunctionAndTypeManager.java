@@ -104,6 +104,7 @@ import static java.util.Objects.requireNonNull;
 
 /**
  * 函数和类型管理器
+ * 每种不同类型的数据源都支持那些函数和数据类型
  */
 @ThreadSafe
 public class FunctionAndTypeManager

@@ -39,7 +39,7 @@ import static java.util.Objects.requireNonNull;
 public final class TableScanNode
         extends PlanNode
 {
-    // 表句柄，存储了表信息
+    // 表句柄，存储了数据表相关信息，也能获取到数据库连接信息
     private final TableHandle table;
     // 列表达式和列的映射关系，比如这个sum(b.a) : b.a
     private final Map<VariableReferenceExpression, ColumnHandle> assignments;

@@ -131,6 +131,7 @@ public class Console
             awaitUninterruptibly(exited, EXIT_DELAY.toMillis(), MILLISECONDS);
         }));
 
+        // 创建QueryRunner
         try (QueryRunner queryRunner = new QueryRunner(
                 session,
                 clientOptions.debug,
@@ -293,7 +294,9 @@ public class Console
     }
 
     /**
-     * 执行命令，会按照;切分sql
+     * 执行命令，
+     * 1、会按照;切分sql
+     * 2、
      * @param queryRunner
      * @param query
      * @param outputFormat
@@ -306,7 +309,9 @@ public class Console
         boolean success = true;
         StatementSplitter splitter = new StatementSplitter(query);
         for (Statement split : splitter.getCompleteStatements()) {
+            // 切分sql
             if (!isEmptyStatement(split.statement())) {
+                // 处理sql
                 if (!process(queryRunner, split.statement(), outputFormat, () -> {}, false)) {
                     if (!ignoreErrors) {
                         return false;
@@ -351,11 +356,14 @@ public class Console
 
         // 开始查询
         try (Query query = queryRunner.startQuery(finalSql)) {
+            // 渲染输出
             boolean success = query.renderOutput(System.out, outputFormat, interactive);
 
+            // 客户端Session
             ClientSession session = queryRunner.getSession();
 
             // update catalog and schema if present
+            // 更新catalog和schema
             if (query.getSetCatalog().isPresent() || query.getSetSchema().isPresent()) {
                 session = ClientSession.builder(session)
                         .withCatalog(query.getSetCatalog().orElse(session.getCatalog()))
@@ -365,10 +373,12 @@ public class Console
             }
 
             // update transaction ID if necessary
+            // 如果需要更新事务id
             if (query.isClearTransactionId()) {
                 session = stripTransactionId(session);
             }
 
+            // 构建新的session
             ClientSession.Builder builder = ClientSession.builder(session);
 
             if (query.getStartedTransactionId() != null) {
@@ -376,6 +386,7 @@ public class Console
             }
 
             // update session properties if present
+            // 更新会话属性（如果存在）
             if (!query.getSetSessionProperties().isEmpty() || !query.getResetSessionProperties().isEmpty()) {
                 Map<String, String> sessionProperties = new HashMap<>(session.getProperties());
                 sessionProperties.putAll(query.getSetSessionProperties());
@@ -384,6 +395,7 @@ public class Console
             }
 
             // update session roles
+            // 更新会话角色
             if (!query.getSetRoles().isEmpty()) {
                 Map<String, SelectedRole> roles = new HashMap<>(session.getRoles());
                 roles.putAll(query.getSetRoles());
@@ -391,6 +403,7 @@ public class Console
             }
 
             // update prepared statements if present
+            //
             if (!query.getAddedPreparedStatements().isEmpty() || !query.getDeallocatedPreparedStatements().isEmpty()) {
                 Map<String, String> preparedStatements = new HashMap<>(session.getPreparedStatements());
                 preparedStatements.putAll(query.getAddedPreparedStatements());
@@ -399,6 +412,7 @@ public class Console
             }
 
             // update session functions if present
+            // 更新session函数
             if (!query.getAddedSessionFunctions().isEmpty() || !query.getRemovedSessionFunctions().isEmpty()) {
                 Map<String, String> sessionFunctions = new HashMap<>(session.getSessionFunctions());
                 sessionFunctions.putAll(query.getAddedSessionFunctions());

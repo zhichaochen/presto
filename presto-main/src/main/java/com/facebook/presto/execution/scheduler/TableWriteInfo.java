@@ -52,6 +52,9 @@ import static com.google.common.graph.Traverser.forTree;
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 为啥查询的时候也要创建该对象呢？
+ */
 public class TableWriteInfo
 {
     private final Optional<ExecutionWriterTarget> writerTarget;
@@ -71,6 +74,13 @@ public class TableWriteInfo
         checkArgument(!deleteScanInfo.isPresent() || writerTarget.isPresent(), "deleteScanInfo is present, but writerTarget is not present");
     }
 
+    /**
+     * 创建
+     * @param plan
+     * @param metadata
+     * @param session
+     * @return
+     */
     public static TableWriteInfo createTableWriteInfo(StreamingSubPlan plan, Metadata metadata, Session session)
     {
         Optional<ExecutionWriterTarget> writerTarget = createWriterTarget(plan, metadata, session);
@@ -194,6 +204,9 @@ public class TableWriteInfo
         return deleteScanInfo;
     }
 
+    /**
+     *
+     */
     public static class DeleteScanInfo
     {
         private final PlanNodeId id;

@@ -65,6 +65,9 @@ import static com.google.common.collect.ImmutableList.toImmutableList;
 import static java.lang.Math.addExact;
 import static java.util.Collections.nCopies;
 
+/**
+ * concat 函数
+ */
 public final class ConcatFunction
         extends SqlScalarFunction
 {

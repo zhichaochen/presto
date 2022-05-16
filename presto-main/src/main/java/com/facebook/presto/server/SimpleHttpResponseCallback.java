@@ -13,6 +13,10 @@
  */
 package com.facebook.presto.server;
 
+/**
+ * http响应回调
+ * @param <T>
+ */
 public interface SimpleHttpResponseCallback<T>
 {
     void success(T value);

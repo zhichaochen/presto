@@ -26,6 +26,9 @@ import java.util.List;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 统计写节点，统计写入的一些信息，比如耗时啊等
+ */
 public class StatisticsWriterNode
         extends InternalPlanNode
 {

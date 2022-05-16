@@ -19,6 +19,9 @@ import com.facebook.presto.spi.relation.RowExpression;
 
 import java.util.List;
 
+/**
+ * Class body 生成器
+ */
 public interface BodyCompiler
 {
     void generateMethods(SqlFunctionProperties sqlFunctionProperties, ClassDefinition classDefinition, CallSiteBinder callSiteBinder, RowExpression filter, List<RowExpression> projections);

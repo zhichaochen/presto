@@ -64,7 +64,7 @@ public final class CompilerUtils
     }
 
     /**
-     * 构建类名
+     * 制作类名
      * @param baseName
      * @return
      */

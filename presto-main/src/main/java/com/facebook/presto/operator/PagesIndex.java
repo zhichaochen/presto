@@ -64,6 +64,40 @@ import static io.airlift.units.DataSize.Unit.BYTE;
 import static java.util.Objects.requireNonNull;
 
 /**
+ * 为Page建立的索引
+ *
+ * 通过ObjectArrayList<Block>[] channels;这个数据结构存储了多个page的信息，并提供了addPage，getPage方法。
+ * ObjectArrayList是一个轻量级的list，底层也是通过数组实现的。
+ *
+ * 一个ObjectArrayList表示一列数据，添加page时，对应的block会添加到ObjectArrayList中，
+ * 那么ObjectArrayList<Block>[]，就表示查询的多个page组成的所有数据。比如：
+ *
+ * 1、channel 讲解
+ * channel0 channel1
+ * -----------------
+ * name，     age
+ * ----------- page0    page index = 0
+ * 张三，      21
+ * 李四，      23
+ *
+ * ----------- page1   page index = 3
+ * 王五，      22
+ * 李留，      20
+ * ----------
+ * 2、positionCount、position
+ *  表示一个page中的行数据位置，block.getPositionCount
+ *  positionCount：表示总行数，在block中表示一个page中有多少行，在PagesIndex中表示总共有多少行。
+ *  position ： 表示某一行
+ *
+ * 3、slice 色来s
+ * 一个slice表示一片，表示查询数据中的一行
+ * pageIndex * positionCount） + position，就可以计算出sliceAddress，也就是某一行数据所在的位置
+ * 在记录当前值处于第几列，即可知道value所在位置
+ * 也就是，知道了第几行 + 第几列，就定位到某个值的位置了。
+ *
+ * addPage便实现了这种关系的转换，并能快速查找到某行、某个值得位置。
+ *
+ * PagesIndex是一种低级数据结构，包含每个通道的每个值位置的地址。此数据结构不是通用的，设计用于一些特定用途：
  * PagesIndex a low-level data structure which contains the address of every value position of every channel.
  * This data structure is not general purpose and is designed for a few specific uses:
  * <ul>
@@ -84,14 +118,16 @@ public class PagesIndex
     private final boolean groupByUsesEqualTo;
 
     private final List<Type> types;
+    // 记录一行数据中一个字段值所在位置，（pageIndex * positionCount） + position  即可计算出，一个值所在位置
     private final AdaptiveLongBigArray valueAddresses;
-    private final ObjectArrayList<Block>[] channels;
-    private final boolean eagerCompact;
+    // 这是一个包含多个数组的List，该list包含多个Block数组，用于
+    private final ObjectArrayList<Block>[] channels; // 表示多列数据，所有的page都会加入其中
+    private final boolean eagerCompact; // 是否压缩
+    private int nextBlockToCompact; //
 
-    private int nextBlockToCompact;
-    private int positionCount;
-    private long pagesMemorySize;
-    private long estimatedSize;
+    private int positionCount; // 记录总行数
+    private long pagesMemorySize; // pages共占有多少内存
+    private long estimatedSize; // 预计大小
 
     private PagesIndex(
             OrderingCompiler orderingCompiler,
@@ -112,6 +148,7 @@ public class PagesIndex
         this.eagerCompact = eagerCompact;
 
         //noinspection rawtypes
+        // 初始化block数组列表
         channels = (ObjectArrayList<Block>[]) new ObjectArrayList[types.size()];
         for (int i = 0; i < channels.length; i++) {
             channels[i] = ObjectArrayList.wrap(new Block[1024], 0);
@@ -205,29 +242,45 @@ public class PagesIndex
         estimatedSize = calculateEstimatedSize();
     }
 
+    /**
+     * 添加page
+     * @param page
+     */
     public void addPage(Page page)
     {
         // ignore empty pages
+        // 忽略空page
         if (page.getPositionCount() == 0) {
             return;
         }
 
+        // page索引，通过该索引，可以计算出page的位置
         int pageIndex = (channels.length > 0) ? channels[0].size() : 0;
+        // 遍历一个page中的所有列，并将其加入到对应的channel中
         for (int i = 0; i < channels.length; i++) {
+            // 当前page的一列数组
             Block block = page.getBlock(i);
+            // 期望压缩
             if (eagerCompact) {
                 block = block.copyRegion(0, block.getPositionCount());
             }
+            // 添加一个block
             channels[i].add(block);
+            // 更新内存的使用情况
             pagesMemorySize += block.getRetainedSizeInBytes();
         }
 
+        // 确保容量够用，不够的话会自动扩容
         valueAddresses.ensureCapacity(positionCount + page.getPositionCount());
+        // 遍历page的多行数据，记录
         for (int position = 0; position < page.getPositionCount(); position++) {
+            // slice地址，记录一行数组所在位置
             long sliceAddress = encodeSyntheticAddress(pageIndex, position);
+            // 记录一行数据所在地址
             valueAddresses.set(positionCount, sliceAddress);
             positionCount++;
         }
+        // 计算预计字节码
         estimatedSize = calculateEstimatedSize();
     }
 
@@ -257,11 +310,19 @@ public class PagesIndex
         estimatedSize = calculateEstimatedSize();
     }
 
+    /**
+     * 计算预计大小
+     * @return
+     */
     private long calculateEstimatedSize()
     {
+        // 元素大小
         long elementsSize = (channels.length > 0) ? sizeOf(channels[0].elements()) : 0;
+        // 通道数组大小
         long channelsArraySize = elementsSize * channels.length;
+        //
         long addressesArraySize = valueAddresses.getRetainedSizeInBytes();
+        // 当前类的实例大小 + page的大小 +
         return INSTANCE_SIZE + pagesMemorySize + channelsArraySize + addressesArraySize;
     }
 
@@ -276,6 +337,13 @@ public class PagesIndex
         valueAddresses.swap(a, b);
     }
 
+    /**
+     * 插入一个page数据
+     * @param position
+     * @param outputChannels
+     * @param pageBuilder
+     * @return
+     */
     public int buildPage(int position, int[] outputChannels, PageBuilder pageBuilder)
     {
         while (!pageBuilder.isFull() && position < positionCount) {
@@ -470,6 +538,9 @@ public class PagesIndex
         return new PagesSpatialIndexSupplier(session, valueAddresses, positionCount, types, outputChannels, channels, geometryChannel, radiusChannel, partitionChannel, spatialRelationshipTest, filterFunctionFactory, partitions, localUserMemoryContext);
     }
 
+    /**
+     * 创建LookupSourceSupplier
+     */
     public LookupSourceSupplier createLookupSourceSupplier(
             Session session,
             List<Integer> joinChannels,
@@ -479,12 +550,13 @@ public class PagesIndex
             List<JoinFilterFunctionFactory> searchFunctionFactories,
             Optional<List<Integer>> outputChannels)
     {
+        // 多列数据
         List<List<Block>> channels = ImmutableList.copyOf(this.channels);
         if (!joinChannels.isEmpty()) {
             // todo compiled implementation of lookup join does not support when we are joining with empty join channels.
             // This code path will trigger only for OUTER joins. To fix that we need to add support for
             //        OUTER joins into NestedLoopsJoin and remove "type == INNER" condition in LocalExecutionPlanner.visitJoin()
-
+            // 这段代码，仅仅被OUTER joins所触发。要解决这个问题，我们需要添加对的支持
             try {
                 LookupSourceSupplierFactory lookupSourceFactory = joinCompiler.compileLookupSourceFactory(types, joinChannels, sortChannel, outputChannels);
                 return lookupSourceFactory.createLookupSourceSupplier(
@@ -503,6 +575,7 @@ public class PagesIndex
         }
 
         // if compilation fails
+        // 如果编译失败
         PagesHashStrategy hashStrategy = new SimplePagesHashStrategy(
                 types,
                 outputChannels.orElse(rangeList(types.size())),
@@ -541,23 +614,33 @@ public class PagesIndex
                 .toString();
     }
 
+    /**
+     * 获取page，返回的是一个迭代器
+     * @return
+     */
     public Iterator<Page> getPages()
     {
         return new AbstractIterator<Page>()
         {
+            // page计数器
             private int pageCounter;
 
+            // 计算下一个page
             @Override
             protected Page computeNext()
             {
+                // 如果计数器和
                 if (pageCounter == channels[0].size()) {
                     return endOfData();
                 }
 
+                // 从channels中获取一个block
                 Block[] blocks = Stream.of(channels)
                         .map(channel -> channel.get(pageCounter))
                         .toArray(Block[]::new);
+                // page计数+1
                 pageCounter++;
+                // 返回一个page
                 return new Page(blocks);
             }
         };

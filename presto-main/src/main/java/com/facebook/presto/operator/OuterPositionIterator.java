@@ -15,6 +15,11 @@ package com.facebook.presto.operator;
 
 import com.facebook.presto.common.PageBuilder;
 
+/**
+ * 外部位置迭代器
+ *
+ * 是做什么的呢？
+ */
 public interface OuterPositionIterator
 {
     boolean appendToNext(PageBuilder pageBuilder, int outputChannelOffset);

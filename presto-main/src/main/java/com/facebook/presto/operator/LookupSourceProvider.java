@@ -16,6 +16,9 @@ package com.facebook.presto.operator;
 import java.util.function.Function;
 import java.util.function.IntPredicate;
 
+/**
+ * Lookup需要的数据源提供器
+ */
 public interface LookupSourceProvider
         extends AutoCloseable
 {
@@ -24,6 +27,10 @@ public interface LookupSourceProvider
     @Override
     void close();
 
+    /**
+     * LookupSource 租户
+     * 是一种维护分布式一致性的方式，在有效的期限内，给予一定的权限
+     */
     interface LookupSourceLease
     {
         LookupSource getLookupSource();

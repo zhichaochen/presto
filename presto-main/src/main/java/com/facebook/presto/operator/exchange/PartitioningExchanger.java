@@ -28,12 +28,15 @@ import java.util.function.Consumer;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 分区交换器
+ */
 class PartitioningExchanger
         implements LocalExchanger
 {
     private final List<Consumer<PageReference>> buffers;
     private final LocalExchangeMemoryManager memoryManager;
-    private final PartitionFunction partitionFunction;
+    private final PartitionFunction partitionFunction; // 分区函数
     private final int[] partitioningChannels;
     private final Optional<Integer> hashChannel;
     private final IntArrayList[] partitionAssignments;
@@ -68,6 +71,7 @@ class PartitioningExchanger
         }
 
         // assign each row to a partition
+        // 提取分区通道的page
         Page partitioningChannelsPage = extractPartitioningChannels(page);
         for (int position = 0; position < partitioningChannelsPage.getPositionCount(); position++) {
             int partition = partitionFunction.getPartition(partitioningChannelsPage, position);

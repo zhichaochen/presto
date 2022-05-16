@@ -231,6 +231,7 @@ public class PickTableLayout
     }
 
     /**
+     * 可以是行表达式或原始表达式。该方法将处理这两种情况。将表达式迁移到PickTableLayout中的RowExpression后，该方法应仅支持RowExpression。
      * @param predicate can be a RowExpression or an OriginalExpression. The method will handle both cases.
      * Once Expression is migrated to RowExpression in PickTableLayout, the method should only support RowExpression.
      */
@@ -251,6 +252,7 @@ public class PickTableLayout
     }
 
     /**
+     * 下推Predicate到table scan
      * For RowExpression {@param predicate}
      */
     private static PlanNode pushPredicateIntoTableScan(

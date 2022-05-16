@@ -19,6 +19,9 @@ import java.util.Objects;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
 
+/**
+ * hive分区句柄，保存了hive的分区信息
+ */
 public class HivePartitionHandle
         extends ConnectorPartitionHandle
 {

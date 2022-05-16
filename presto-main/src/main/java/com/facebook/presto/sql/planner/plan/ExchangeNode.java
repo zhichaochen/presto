@@ -51,16 +51,16 @@ public class ExchangeNode
 {
     public enum Type
     {
-        GATHER,
-        REPARTITION,
-        REPLICATE
+        GATHER, // 聚集，是否说明是单节点呢？
+        REPARTITION, // 重分区
+        REPLICATE // 复制，说明是broadcast
     }
 
     public enum Scope
     {
-        LOCAL(false),
-        REMOTE_STREAMING(true),
-        REMOTE_MATERIALIZED(true),
+        LOCAL(false), // 表示访问本地
+        REMOTE_STREAMING(true), // 访问远程，发生在worker 和 worker节点间，stage间的数据交换
+        REMOTE_MATERIALIZED(true),// 访问远程，发生在worker节点和Database间，Scan table查询数据
         /**/;
 
         private boolean remote;
@@ -166,6 +166,7 @@ public class ExchangeNode
 
     public static ExchangeNode partitionedExchange(PlanNodeId id, Scope scope, PlanNode child, Partitioning partitioning, Optional<VariableReferenceExpression> hashColumn, boolean replicateNullsAndAny)
     {
+        // 分区交换
         return partitionedExchange(
                 id,
                 scope,
@@ -178,11 +179,20 @@ public class ExchangeNode
                         Optional.empty()));
     }
 
+    /**
+     * 创建分区后的ExchangeNode
+     * @param id 当前计划节点ID
+     * @param scope 数据交换范围
+     * @param child 子节点
+     * @param partitioningScheme 分区方案
+     * @return
+     */
     public static ExchangeNode partitionedExchange(PlanNodeId id, Scope scope, PlanNode child, PartitioningScheme partitioningScheme)
     {
         if (partitioningScheme.getPartitioning().getHandle().isSingleNode()) {
             return gatheringExchange(id, scope, child);
         }
+        // 创建ExchangeNode
         return new ExchangeNode(
                 id,
                 REPARTITION,
@@ -194,6 +204,13 @@ public class ExchangeNode
                 Optional.empty());
     }
 
+    /**
+     * 复制Exchange
+     * @param id
+     * @param scope
+     * @param child
+     * @return
+     */
     public static ExchangeNode replicatedExchange(PlanNodeId id, Scope scope, PlanNode child)
     {
         return new ExchangeNode(

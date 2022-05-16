@@ -25,6 +25,9 @@ import static java.util.Collections.unmodifiableMap;
 import static java.util.Locale.ENGLISH;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 列的元信息
+ */
 public class ColumnMetadata
 {
     private final String name;

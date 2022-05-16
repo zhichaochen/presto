@@ -1,0 +1,13 @@
+参考文章: https://blog.csdn.net/qq_27639777/article/details/119978955
+1、概述
+    向Presto集群提交的所有查询最终都会转化成为一个个单独的Task，然后通过调度分配在不同的worker节点
+    任务在Worker节点上执行。
+    task 会处理一个或者多个spilt，然后将处理结果加入OutputBuffer，下游stage的task会拉取上游state的task数据进行处理。
+
+2、相关类
+    TaskResource： 处理task相关的http请求
+    TaskSource： 代表任务要处理的数据，
+    SqlTaskExecution: 处理Task 任务
+    TaskManager ： 管理task任务
+    SqlTask ： 表示一个Sql任务
+    ScheduledSplit： 可调度的Split，可调度的最小单元

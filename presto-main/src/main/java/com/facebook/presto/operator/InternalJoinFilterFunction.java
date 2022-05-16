@@ -15,6 +15,10 @@ package com.facebook.presto.operator;
 
 import com.facebook.presto.common.Page;
 
+/**
+ * 内部的JoinFilterFunction
+ * 该接口没有实现，估计是动态生成的代码
+ */
 public interface InternalJoinFilterFunction
 {
     boolean filter(int leftPosition, Page leftPage, int rightPosition, Page rightPage);

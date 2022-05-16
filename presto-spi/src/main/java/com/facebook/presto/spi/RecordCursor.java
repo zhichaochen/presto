@@ -18,6 +18,9 @@ import io.airlift.slice.Slice;
 
 import java.io.Closeable;
 
+/**
+ * 记录游标
+ */
 public interface RecordCursor
         extends Closeable
 {

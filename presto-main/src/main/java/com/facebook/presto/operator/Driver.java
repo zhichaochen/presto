@@ -63,7 +63,10 @@ import static java.util.Objects.requireNonNull;
 /**
  * 驱动
  * 驱动管道里的算子列表执行
+ * 在这里processFor()方法会驱动算子的执行
  *
+ * 封装了对split的所有操作，每次执行Split计算的时候，我们都会依次遍历作用于该Split上的所有operator，取出当前operator的output page，
+ * 然后将该output page作为下一个operator的input page，交给下一个operator进行处理。直到将该Driver封装的所有Operator遍历完毕。
  */
 // taskSource会最终会通过Driver#updateSource，交给驱动管理
 // TaskRunner线程最终也会通过Driver#processFor，处理split（taskSource）
@@ -87,18 +90,23 @@ public class Driver
     @SuppressWarnings("unused")
     // 所有算子列表
     private final List<Operator> allOperators;
-    // source 算子
+    // Source算子，表示要进行数据库操作的算子
     private final Optional<SourceOperator> sourceOperator;
-    //
+    // delete算子，要删除数据的算子
     private final Optional<DeleteOperator> deleteOperator;
 
     // This variable acts as a staging area. When new splits (encapsulated in TaskSource) are
     // provided to a Driver, the Driver will not process them right away. Instead, the splits are
     // added to this staging area. This staging area will be drained asynchronously. That's when
     // the new splits get processed.
+    //此变量用作暂存区域。创建新拆分（封装在TaskSource中）时
+    //如果提供给驱动程序，驱动程序将不会立即处理它们。相反，分裂是
+    //已添加到此暂存区域。此暂存区域将异步排空。那时新的拆分将得到处理。
     private final AtomicReference<TaskSource> pendingTaskSourceUpdates = new AtomicReference<>();
+    // 回收的算子
     private final Map<Operator, ListenableFuture<?>> revokingOperators = new HashMap<>();
 
+    // 驱动的状态
     private final AtomicReference<State> state = new AtomicReference<>(State.ALIVE);
 
     private final DriverLock exclusiveLock = new DriverLock();
@@ -118,11 +126,19 @@ public class Driver
         ALIVE, NEED_DESTRUCTION, DESTROYED
     }
 
+    /**
+     * 创建驱动
+     * @param driverContext
+     * @param operators
+     * @return
+     */
     public static Driver createDriver(DriverContext driverContext, List<Operator> operators)
     {
         requireNonNull(driverContext, "driverContext is null");
         requireNonNull(operators, "operators is null");
+        // 创建驱动
         Driver driver = new Driver(driverContext, operators);
+        // 做一些初始化
         driver.initialize();
         return driver;
     }
@@ -227,7 +243,7 @@ public class Driver
     }
 
     /**
-     *
+     * 更新驱动中的TaskSource
      * @param sourceUpdate
      */
     public void updateSource(TaskSource sourceUpdate)
@@ -245,6 +261,11 @@ public class Driver
         tryWithLock(() -> TRUE);
     }
 
+    /**
+     * 处理新的数据源。
+     * TODO 这里的source，不仅代表数据库的一个连接，也可能是一个远程Worker节点，可以从远程节点拉取数据。
+     *  为啥会加新的source呢？因为在调度新的stage中，可能会产生新的source
+     */
     @GuardedBy("exclusiveLock")
     private void processNewSources()
     {
@@ -261,21 +282,28 @@ public class Driver
         }
 
         // merge the current source and the specified source update
+        // 更新task source
         TaskSource newSource = currentTaskSource.update(sourceUpdate);
 
         // if the update contains no new data, just return
+        // 没有新的数据，则返回
         if (newSource == currentTaskSource) {
             return;
         }
 
         // determine new splits to add
+        // 如果不相同则加入
         Set<ScheduledSplit> newSplits = Sets.difference(newSource.getSplits(), currentTaskSource.getSplits());
 
         // add new splits
+        // 数据源算子
         SourceOperator sourceOperator = this.sourceOperator.orElseThrow(VerifyException::new);
+        // 新的分片列表
         for (ScheduledSplit newSplit : newSplits) {
+            // 分片
             Split split = newSplit.getSplit();
 
+            // 更新一些缓存
             if (fragmentResultCacheContext.get().isPresent() && !(split.getConnectorSplit() instanceof RemoteSplit)) {
                 checkState(!this.cachedResult.get().isPresent());
                 this.fragmentResultCacheContext.set(this.fragmentResultCacheContext.get().map(context -> context.updateRuntimeInformation(split.getConnectorSplit())));
@@ -283,11 +311,13 @@ public class Driver
                 this.split.set(split);
             }
 
+            // 添加分片，比如ExchangeOperator会创建连接，并开始拉取远程的page数据
             Supplier<Optional<UpdatablePageSource>> pageSource = sourceOperator.addSplit(split);
             deleteOperator.ifPresent(deleteOperator -> deleteOperator.setPageSource(pageSource));
         }
 
         // set no more splits
+        // 设置没有更难多分片
         if (newSource.isNoMoreSplits()) {
             sourceOperator.noMoreSplits();
         }
@@ -394,27 +424,37 @@ public class Driver
         return fragmentResultCacheContext.get().isPresent() && split.get() != null && split.get().getConnectorSplit().getNodeSelectionStrategy() != NO_PREFERENCE;
     }
 
+    /**
+     * 内部处理
+     * @param operationTimer
+     * @return
+     */
     @GuardedBy("exclusiveLock")
     private ListenableFuture<?> processInternal(OperationTimer operationTimer)
     {
         checkLockHeld("Lock must be held to call processInternal");
 
+        // 处理内存回收
         handleMemoryRevoke();
 
         try {
-            // 合并新的source，同时将合并后的source加入sourceOperator
+            // 对于处于SourceStage的Task，若尚有未处理读取的Split，将未读取的Split加入到SourceOperator中
             processNewSources();
 
             // If there is only one operator, finish it
             // Some operators (LookupJoinOperator and HashBuildOperator) are broken and requires finish to be called continuously
             // TODO remove the second part of the if statement, when these operators are fixed
             // Note: finish should not be called on the natural source of the pipeline as this could cause the task to finish early
+            // 如果只有一个运算符，请完成它。一些算子（LookupJoinOperator和HashBuildOperator）被破坏，需要连续调用finish
+            // 在修复这些运算符后删除if语句的第二部分
+            // 注意：不应该对管道的自然源调用finish，因为这可能会导致任务提前完成
             if (!activeOperators.isEmpty() && activeOperators.size() != allOperators.size()) {
                 Operator rootOperator = activeOperators.get(0);
                 rootOperator.finish();
                 rootOperator.getOperatorContext().recordFinish(operationTimer);
             }
 
+            // Page是否在pipeline中发生移动
             boolean movedPage = false;
             if (cachedResult.get().isPresent()) {
                 Iterator<Page> remainingPages = cachedResult.get().get();
@@ -431,6 +471,7 @@ public class Driver
             }
             else {
                 // 遍历所有算子，然后处理他
+                // TODO 总之来说，这个遍历实现了算子的数据传递
                 for (int i = 0; i < activeOperators.size() - 1 && !driverContext.isDone(); i++) {
                     // 当前算子
                     Operator current = activeOperators.get(i);
@@ -438,32 +479,38 @@ public class Driver
                     Operator next = activeOperators.get(i + 1);
 
                     // skip blocked operator
-                    // 跳过被阻塞的算子
+                    // 跳过被阻塞的算子，：比如算子正在等待分配内存，或者算子本身正在阻塞中
                     if (getBlockedFuture(current).isPresent()) {
                         continue;
                     }
 
                     // if the current operator is not finished and next operator isn't blocked and needs input...
                     // 如果当前未完成结束，后者需要输入
+                    // 如果下游算子需要上游算子的输出
                     if (!current.isFinished() && !getBlockedFuture(next).isPresent() && next.needsInput()) {
                         // get an output page from current operator
-                        // 从当前获取输出数据page
+                        // 当前算子获取一个page
                         Page page = current.getOutput();
+                        // 记录耗时等一些操作
                         current.getOperatorContext().recordGetOutput(operationTimer, page);
 
                         // For the last non-output operator, we keep the pages for caching purpose.
+                        // 对最后一个无输出的operator，我们以缓存为目的保存pages
                         if (shouldUseFragmentResultCache() && i == activeOperators.size() - 2 && page != null) {
                             outputPages.add(page);
                         }
 
                         // if we got an output page, add it to the next operator
-                        // 将前者的输出作为后者的输入
+                        // 将获得的output page交给下一个operator进行处理
                         if (page != null && page.getPositionCount() != 0) {
+                            // 下游算出
                             next.addInput(page);
                             next.getOperatorContext().recordAddInput(operationTimer, page);
+                            // 表示page在算子间发生了移动
                             movedPage = true;
                         }
 
+                        //
                         if (current instanceof SourceOperator) {
                             movedPage = true;
                         }
@@ -473,12 +520,14 @@ public class Driver
                     // 如果当前已经完成结束，告知后者已经没有数据了
                     if (current.isFinished()) {
                         // let next operator know there will be no more data
+                        // 让下一个算子知道没有数据了
                         next.finish();
                         next.getOperatorContext().recordFinish(operationTimer);
                     }
                 }
             }
 
+            // 从后往前检查每个operator是否已执行完成
             for (int index = activeOperators.size() - 1; index >= 0; index--) {
                 if (activeOperators.get(index).isFinished()) {
                     boolean outputOperatorFinished = index == activeOperators.size() - 1;
@@ -509,10 +558,13 @@ public class Driver
 
             // if we did not move any pages, check if we are blocked
             // 如果遍历一圈后没有发生过移动，检查是否堵塞了
+            // 若所有的operator都已经循环完毕了，但是没有发生Page的移动，我们需要检查是否有operator被block住了
             if (!movedPage) {
                 List<Operator> blockedOperators = new ArrayList<>();
                 List<ListenableFuture<?>> blockedFutures = new ArrayList<>();
+                // 循环所有的operator，并获得每个operator的ListenableFuture对象，isBlocked方法会进行判断：若当前operator已经执行结束，则会返回其是否在等待额外的内存
                 for (Operator operator : activeOperators) {
+                    // 判断当前算子是否被阻塞了
                     Optional<ListenableFuture<?>> blocked = getBlockedFuture(operator);
                     if (blocked.isPresent()) {
                         blockedOperators.add(operator);
@@ -520,13 +572,16 @@ public class Driver
                     }
                 }
 
+                // 若确实有operator被阻塞住了
                 if (!blockedFutures.isEmpty()) {
                     // unblock when the first future is complete
+                    // 任意一个ListenableFuture完成，就会解除当前Driver的阻塞状态
                     ListenableFuture<?> blocked = firstFinishedFuture(blockedFutures);
                     // driver records serial blocked time
                     driverContext.recordBlocked(blocked);
                     // each blocked operator is responsible for blocking the execution
                     // until one of the operators can continue
+                    // 当前Driver添加monitor实时监听是否已经解除阻塞状态
                     for (Operator operator : blockedOperators) {
                         operator.getOperatorContext().recordBlocked(blocked);
                     }
@@ -554,6 +609,9 @@ public class Driver
         }
     }
 
+    /**
+     * 处理内存回收
+     */
     @GuardedBy("exclusiveLock")
     private void handleMemoryRevoke()
     {
@@ -668,21 +726,30 @@ public class Driver
         return inFlightException;
     }
 
+    /**
+     * 检查算子是否被阻塞了
+     * @param operator
+     * @return
+     */
     private Optional<ListenableFuture<?>> getBlockedFuture(Operator operator)
     {
+        // 当前算子是否正在回收
         ListenableFuture<?> blocked = revokingOperators.get(operator);
         if (blocked != null) {
             // We mark operator as blocked regardless of blocked.isDone(), because finishMemoryRevoke has not been called yet.
             return Optional.of(blocked);
         }
+        // 是否阻塞
         blocked = operator.isBlocked();
         if (!blocked.isDone()) {
             return Optional.of(blocked);
         }
+        // 是否正在等待分配内存
         blocked = operator.getOperatorContext().isWaitingForMemory();
         if (!blocked.isDone()) {
             return Optional.of(blocked);
         }
+        // 是否正在等待回收内存
         blocked = operator.getOperatorContext().isWaitingForRevocableMemory();
         if (!blocked.isDone()) {
             return Optional.of(blocked);

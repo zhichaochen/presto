@@ -21,6 +21,10 @@ import static io.airlift.slice.SizeOf.sizeOf;
 import static io.airlift.slice.SizeOf.sizeOfLongArray;
 
 /**
+ * 可扩容的LongBigArray
+ * BigArray的这种变体旨在将段扩展到合理的范围，并在达到最大段容量时添加更多段。
+ * 这种实现允许将重定向表保持在较小的范围内，以便它适合一级CPU缓存
+ *
  * This variation of BigArray is designed to expand segments up to some reasonable extend
  * and add more segments if the maximum segment capacity is reached
  * This implementation allows to keep the redirection table small so it does fit into L1 CPU cache
@@ -31,21 +35,24 @@ public class AdaptiveLongBigArray
     static final int INSTANCE_SIZE = ClassLayout.parseClass(AdaptiveLongBigArray.class).instanceSize();
 
     // settings are constants due to efficiency considerations
-    static final int INITIAL_SEGMENT_LENGTH = 16 * 1024; // 128KB
-    static final int MAX_SEGMENT_LENGTH = 32 * 1024 * 1024; // 256MB
-    static final long MAX_SEGMENT_SIZE_IN_BYTES = sizeOfLongArray(MAX_SEGMENT_LENGTH);
-    static final int INITIAL_SEGMENTS = 10;
-    static final int SEGMENT_SHIFT = 25;
-    static final int SEGMENT_MASK = MAX_SEGMENT_LENGTH - 1;
+    static final int INITIAL_SEGMENT_LENGTH = 16 * 1024; // 128KB 一个段多长
+    static final int MAX_SEGMENT_LENGTH = 32 * 1024 * 1024; // 256MB 段的最大长度
+    static final long MAX_SEGMENT_SIZE_IN_BYTES = sizeOfLongArray(MAX_SEGMENT_LENGTH); // 最大段时，数组占用的字节数
+    static final int INITIAL_SEGMENTS = 10; // 初始段的个数
+    static final int SEGMENT_SHIFT = 25; // 段位移位数
+    static final int SEGMENT_MASK = MAX_SEGMENT_LENGTH - 1; // 段掩码
 
     // segments are allocated lazily in ensureCapacity
     // The first segment is allocated initially with INITIAL_SEGMENT_LENGTH
     // and then gradually expanded until it reaches MAX_SEGMENT_LENGTH
     // Second and subsequent segments are directly allocated with MAX_SEGMENT_LENGTH
+    // 在ensureCapacity中懒分配段，第一段可以初始分配为INITIAL_SEGMENT_LENGTH，然后逐渐膨胀，直到达到最大长度, 第二段和后续段直接分配最大段长度
     private long[][] array;
     // number of allocated segments
+    // 分配的段数
     private int segments;
     // number of elements that currently can be stored in the container
+    // 当前可存储在容器中的元素数
     private int capacity;
 
     public AdaptiveLongBigArray()
@@ -135,11 +142,21 @@ public class AdaptiveLongBigArray
         capacity = segments == 1 ? array[0].length : MAX_SEGMENT_LENGTH * segments;
     }
 
+    /**
+     * 计算放在那个段
+     * @param index
+     * @return
+     */
     private static int segment(int index)
     {
         return index >>> SEGMENT_SHIFT;
     }
 
+    /**
+     * 计算偏移量
+     * @param index
+     * @return
+     */
     private static int offset(int index)
     {
         return index & SEGMENT_MASK;

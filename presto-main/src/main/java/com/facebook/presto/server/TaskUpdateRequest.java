@@ -32,6 +32,7 @@ import static java.util.Objects.requireNonNull;
 
 /**
  * 任务更新请求
+ * 创建任务后，将该对象发送至Worker
  */
 public class TaskUpdateRequest
 {
@@ -43,6 +44,7 @@ public class TaskUpdateRequest
     private final Optional<byte[]> fragment;
     // 任务资源列表
     private final List<TaskSource> sources;
+    // 输出缓存
     private final OutputBuffers outputIds;
     private final Optional<TableWriteInfo> tableWriteInfo;
 

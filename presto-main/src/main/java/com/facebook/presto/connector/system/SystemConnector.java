@@ -32,6 +32,9 @@ import java.util.function.Function;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 系统连接器
+ */
 public class SystemConnector
         implements InternalConnector
 {

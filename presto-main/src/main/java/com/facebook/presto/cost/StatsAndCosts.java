@@ -25,10 +25,14 @@ import java.util.Map;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 统计和耗时（统计每个节点的）
+ */
 public class StatsAndCosts
 {
     private static final StatsAndCosts EMPTY = new StatsAndCosts(ImmutableMap.of(), ImmutableMap.of());
 
+    //
     private final Map<PlanNodeId, PlanNodeStatsEstimate> stats;
     private final Map<PlanNodeId, PlanCostEstimate> costs;
 

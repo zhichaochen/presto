@@ -24,6 +24,8 @@ public interface OperatorFactory
     Operator createOperator(DriverContext driverContext);
 
     /**
+     * 声明不再调用createOperator，并释放与此工厂关联的任何资源。
+     *
      * Declare that createOperator will not be called any more and release
      * any resources associated with this factory.
      * <p>
@@ -36,6 +38,8 @@ public interface OperatorFactory
     void noMoreOperators();
 
     /**
+     * 声明在【指定的生命周期内】不再调用createOperator，并释放与此工厂关联的任何资源
+     *
      * Declare that createOperator will not be called any more for the specified Lifespan,
      * and release any resources associated with this factory.
      * <p>
@@ -50,5 +54,6 @@ public interface OperatorFactory
         // do nothing
     }
 
+    // 复制当前算子
     OperatorFactory duplicate();
 }

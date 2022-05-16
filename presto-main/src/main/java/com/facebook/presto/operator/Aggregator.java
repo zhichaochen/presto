@@ -22,6 +22,9 @@ import com.facebook.presto.spi.plan.AggregationNode;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+/**
+ * 聚合器
+ */
 class Aggregator
 {
     private final Accumulator aggregation;
@@ -52,6 +55,10 @@ class Aggregator
         }
     }
 
+    /**
+     * 处理page
+     * @param page
+     */
     public void processPage(Page page)
     {
         if (step.isInputRaw()) {
@@ -62,6 +69,10 @@ class Aggregator
         }
     }
 
+    /**
+     * 估计
+     * @param blockBuilder
+     */
     public void evaluate(BlockBuilder blockBuilder)
     {
         if (step.isOutputPartial()) {

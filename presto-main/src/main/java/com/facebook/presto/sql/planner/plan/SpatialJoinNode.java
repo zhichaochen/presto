@@ -32,7 +32,9 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 
 /**
- * 空间连接节点
+ * 空间连接
+ * 普通join通过字符串或数值的比较进行关联，
+ * 但是SpatialJoin是通过一些地理位置关系进行关联的，并不是通过普通数值能够完成的
  */
 @Immutable
 public class SpatialJoinNode

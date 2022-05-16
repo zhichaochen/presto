@@ -40,6 +40,9 @@ import static it.unimi.dsi.fastutil.HashCommon.murmurHash3;
 import static java.lang.Math.toIntExact;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 只有一个分组字段，且类型是Bigint，使用BigintGroupByHash，否则就是使用MultiChannelGroupByHash
+ */
 public class BigintGroupByHash
         implements GroupByHash
 {

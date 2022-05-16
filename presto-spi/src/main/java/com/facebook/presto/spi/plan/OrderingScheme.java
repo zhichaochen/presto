@@ -35,6 +35,9 @@ import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 
+/**
+ * 排序方案
+ */
 public class OrderingScheme
 {
     private final List<Ordering> orderBy;

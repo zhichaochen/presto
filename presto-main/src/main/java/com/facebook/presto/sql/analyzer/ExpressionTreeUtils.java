@@ -45,6 +45,9 @@ import static java.lang.String.format;
 import static java.util.Locale.ENGLISH;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 表达式树工具类
+ */
 public final class ExpressionTreeUtils
 {
     private ExpressionTreeUtils() {}

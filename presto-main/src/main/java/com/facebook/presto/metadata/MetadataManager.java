@@ -474,14 +474,19 @@ public class MetadataManager
         return metadata.isRefinedPartitioningOver(session.toConnectorSession(connectorId), left.getConnectorHandle(), right.getConnectorHandle());
     }
 
+    /**
+     * 获取分区句柄
+     */
     @Override
     public PartitioningHandle getPartitioningHandleForExchange(Session session, String catalogName, int partitionCount, List<Type> partitionTypes)
     {
         CatalogMetadata catalogMetadata = getOptionalCatalogMetadata(session, catalogName)
                 .orElseThrow(() -> new PrestoException(NOT_FOUND, format("Catalog '%s' does not exist", catalogName)));
         ConnectorId connectorId = catalogMetadata.getConnectorId();
+        // 连接器的元数据
         ConnectorMetadata metadata = catalogMetadata.getMetadataFor(connectorId);
         ConnectorPartitioningHandle connectorPartitioningHandle = metadata.getPartitioningHandleForExchange(session.toConnectorSession(connectorId), partitionCount, partitionTypes);
+        // 分区事务句柄
         ConnectorTransactionHandle transaction = catalogMetadata.getTransactionHandleFor(connectorId);
         return new PartitioningHandle(Optional.of(connectorId), Optional.of(transaction), connectorPartitioningHandle);
     }
@@ -658,6 +663,14 @@ public class MetadataManager
         metadata.createTable(session.toConnectorSession(connectorId), tableMetadata, ignoreExisting);
     }
 
+    /**
+     * 创建临时表
+     * @param session
+     * @param catalogName
+     * @param columns
+     * @param partitioningMetadata
+     * @return
+     */
     @Override
     public TableHandle createTemporaryTable(Session session, String catalogName, List<ColumnMetadata> columns, Optional<PartitioningMetadata> partitioningMetadata)
     {

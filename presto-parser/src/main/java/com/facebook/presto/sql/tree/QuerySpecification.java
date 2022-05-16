@@ -23,12 +23,14 @@ import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
 /**
- * 查询规范，我理解就是一
+ * 查询规范
+ * 解析sql之后生成sql的各个部分
+ * 有optional的表示可能为空的
  */
 public class QuerySpecification
         extends QueryBody
 {
-    private final Select select;
+    private final Select select; //
     private final Optional<Relation> from;
     private final Optional<Expression> where;
     private final Optional<GroupBy> groupBy;
@@ -128,6 +130,14 @@ public class QuerySpecification
         return limit;
     }
 
+    /**
+     * 访问生成
+     * @param visitor
+     * @param context
+     * @param <R>
+     * @param <C>
+     * @return
+     */
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context)
     {

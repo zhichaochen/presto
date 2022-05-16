@@ -23,6 +23,10 @@ import com.facebook.presto.spi.SplitContext;
 import java.util.List;
 
 /**
+ * presto通过 ConnectorPageSourceProvider 或者 ConnectorRecordSetProvider 来获取数据
+ * 两者可任选其一，其中ConnectorRecordSetProvider 适合数据量不大的查询
+ * 实际上，Presto Core 也是通过 RecordPageSource 代理 RecordSet 的方式，把 ResourceSet数据集转为 Page的。
+ *
  * page提供器，其中source表示
  * 会返回一个ConnectorPageSource对象，通过该对象可以从数据库中查询数据
  *

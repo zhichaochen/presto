@@ -29,16 +29,19 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.Iterables.getOnlyElement;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 内置的聚合函数信息
+ */
 public final class InternalAggregationFunction
 {
-    private final String name;
-    private final List<Type> parameterTypes;
-    private final List<Type> intermediateType;
-    private final Type finalType;
-    private final List<Class> lambdaInterfaces;
-    private final boolean decomposable;
-    private final boolean orderSensitive;
-    private final AccumulatorFactoryBinder factory;
+    private final String name; // 函数名称
+    private final List<Type> parameterTypes; // 函数的参数类型
+    private final List<Type> intermediateType; // 中间类型
+    private final Type finalType; // 最终类型
+    private final List<Class> lambdaInterfaces; // lambda接口
+    private final boolean decomposable; // 是否可分解
+    private final boolean orderSensitive; // 是否顺序敏感
+    private final AccumulatorFactoryBinder factory; // 聚合工厂绑定器
 
     public InternalAggregationFunction(
             String name,

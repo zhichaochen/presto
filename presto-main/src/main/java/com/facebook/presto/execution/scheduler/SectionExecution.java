@@ -24,17 +24,14 @@ import static com.facebook.presto.execution.StageExecutionState.PLANNED;
 import static java.util.Objects.requireNonNull;
 
 /**
- * 分段执行
+ * 分段执行对象
  */
 public class SectionExecution
 {
-    // 根阶段
-    private final StageExecutionAndScheduler rootStage;
-    // 所有阶段
-    private final List<StageExecutionAndScheduler> allStages;
-
+    private final StageExecutionAndScheduler rootStage; // 根阶段
+    private final List<StageExecutionAndScheduler> allStages; // 所有阶段
     @GuardedBy("this")
-    private volatile boolean aborted;
+    private volatile boolean aborted; // 是否已经终止
 
     public SectionExecution(StageExecutionAndScheduler rootStage, List<StageExecutionAndScheduler> allStages)
     {

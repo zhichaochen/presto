@@ -66,6 +66,9 @@ import static com.google.common.collect.ImmutableSet.toImmutableSet;
 import static java.util.Objects.requireNonNull;
 import static java.util.function.Function.identity;
 
+/**
+ * 用户将JOIN 优化为index join
+ */
 public class IndexJoinOptimizer
         implements PlanOptimizer
 {

@@ -23,8 +23,16 @@ import static com.facebook.presto.operator.Operator.NOT_BLOCKED;
 import static com.facebook.presto.operator.exchange.LocalExchanger.FINISHED;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 每个Source创建一个LocalExchangeSink
+ * 作用是调用LocalExchanger#accept方法，本质上是将page，添加到LocalExchangeSource中，以便，LocalExchangeSourceOperator使用
+ */
 public class LocalExchangeSink
 {
+    /**
+     * 当所有source都完成后，创建一个已完成的LocalExchangeSink
+     * @return
+     */
     public static LocalExchangeSink finishedLocalExchangeSink()
     {
         LocalExchangeSink finishedSink = new LocalExchangeSink(FINISHED, sink -> {});
@@ -32,8 +40,8 @@ public class LocalExchangeSink
         return finishedSink;
     }
 
-    private final LocalExchanger exchanger;
-    private final Consumer<LocalExchangeSink> onFinish;
+    private final LocalExchanger exchanger; // 交换器，比如：BroadcastExchanger
+    private final Consumer<LocalExchangeSink> onFinish; // 当完成后做什么
 
     private final AtomicBoolean finished = new AtomicBoolean();
 
@@ -71,6 +79,7 @@ public class LocalExchangeSink
 
         // there can be a race where finished is set between the check above and here
         // it is expected that the exchanger ignores pages after finish
+        // 调用交换器的消费逻辑，本质来说会调用到LocalExchangeSource#addPage方法。
         exchanger.accept(page);
     }
 

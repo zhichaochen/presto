@@ -41,6 +41,9 @@ import static com.facebook.presto.spi.SystemTable.Distribution.SINGLE_COORDINATO
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 系统分片管理器
+ */
 public class SystemSplitManager
         implements ConnectorSplitManager
 {

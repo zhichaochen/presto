@@ -36,6 +36,9 @@ import static io.airlift.units.DataSize.Unit.BYTE;
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.Executors.newFixedThreadPool;
 
+/**
+ * ExchangeClient工厂
+ */
 public class ExchangeClientFactory
         implements ExchangeClientSupplier
 {

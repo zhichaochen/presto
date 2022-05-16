@@ -26,6 +26,9 @@ import java.util.Queue;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 
+/**
+ * 算子查询到数据之后会放入PageBuffer，等待上游stage进行拉取。
+ */
 @ThreadSafe
 public class PageBuffer
 {

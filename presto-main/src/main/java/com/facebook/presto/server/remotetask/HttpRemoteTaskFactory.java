@@ -175,6 +175,7 @@ public class HttpRemoteTaskFactory
         errorScheduledExecutor.shutdownNow();
     }
 
+    // 创建远程任务
     @Override
     public RemoteTask createRemoteTask(
             Session session,
@@ -187,6 +188,7 @@ public class HttpRemoteTaskFactory
             boolean summarizeTaskInfo,
             TableWriteInfo tableWriteInfo)
     {
+        // 创建HttpRemoteTask
         return new HttpRemoteTask(
                 session,
                 taskId,

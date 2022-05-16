@@ -17,6 +17,9 @@ import com.facebook.presto.spi.plan.PlanNode;
 import com.facebook.presto.spi.plan.PlanNodeIdAllocator;
 
 /**
+ * 连接器计划优化器
+ * 给定一个PlanNode，返回一个转换后的的PlanNode
+ *
  * Given a PlanNode, return a transformed PlanNode.
  * <p/>
  * The given {@param maxSubplan} is a highest PlanNode in the query plan, such that
@@ -29,8 +32,16 @@ import com.facebook.presto.spi.plan.PlanNodeIdAllocator;
  */
 public interface ConnectorPlanOptimizer
 {
+    /**
+     * 返回的是下推后的执行计划树
+     * @param maxSubplan
+     * @param session
+     * @param variableAllocator
+     * @param idAllocator
+     * @return
+     */
     PlanNode optimize(
-            PlanNode maxSubplan,
+            PlanNode maxSubplan, //  maxSubplan // 可能是：除了output之外的其他计划
             ConnectorSession session,
             VariableAllocator variableAllocator,
             PlanNodeIdAllocator idAllocator);

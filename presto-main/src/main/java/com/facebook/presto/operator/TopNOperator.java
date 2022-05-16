@@ -30,6 +30,9 @@ import static java.util.Collections.emptyIterator;
 import static java.util.Objects.requireNonNull;
 
 /**
+ * limit算子
+ * presto支持limit操作，但是不支持limit n,m操作，limit操作就是使用TopNOperotor操作符完成的
+ *
  * Returns the top N rows from the source sorted according to the specified ordering in the keyChannelIndex channel.
  */
 public class TopNOperator
@@ -149,6 +152,8 @@ public class TopNOperator
     public void addInput(Page page)
     {
         checkState(!finishing, "Operator is already finishing");
+        // 把page添加到一个全局的优先级队列中，该队列的大小为limit的个数，在队列内部的数据就是当前最大或者最小的n个数据，
+        // 一旦发现有比这n个数据大或者小的数据，就放到队列中来，把不符合要求的踢出队列
         boolean done = topNBuilder.processPage(requireNonNull(page, "page is null")).process();
         // there is no grouping so work will always be done
         verify(done);

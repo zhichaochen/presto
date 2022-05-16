@@ -33,6 +33,9 @@ import static com.google.common.base.Preconditions.checkState;
 import static java.util.Comparator.comparing;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * Work处理器工具类
+ */
 public final class WorkProcessorUtils
 {
     private WorkProcessorUtils() {}

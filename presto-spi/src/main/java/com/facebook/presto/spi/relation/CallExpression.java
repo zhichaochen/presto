@@ -28,14 +28,17 @@ import java.util.stream.Collectors;
 import static java.util.Collections.unmodifiableList;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 估计是涉及到函数的表达式
+ */
 @Immutable
 public final class CallExpression
         extends RowExpression
 {
-    private final String displayName;
-    private final FunctionHandle functionHandle;
-    private final Type returnType;
-    private final List<RowExpression> arguments;
+    private final String displayName; // 字段展示的名称
+    private final FunctionHandle functionHandle; // 函数句柄
+    private final Type returnType; // 返回数据类型
+    private final List<RowExpression> arguments; // 函数参数，比如 IF(expr1,expr2,expr3)
 
     @JsonCreator
     public CallExpression(

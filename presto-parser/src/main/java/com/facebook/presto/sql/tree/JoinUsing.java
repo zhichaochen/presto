@@ -22,6 +22,15 @@ import static com.google.common.base.MoreObjects.toStringHelper;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * join using 语句
+ * 当左右表要关联的字段名称相同时，就可以使用using替换on语法，格式为：USING(column_name)。
+ * 比如：订单表中的订单号列名order_code, 交付单表中的订单号列名也是order_code则可以使用Using
+ *
+ * INNER JOIN Order o ON f.order_code = o.order_code
+ * 等价于
+ * INNER JOIN Order o USING(order_code)
+ */
 public class JoinUsing
         extends JoinCriteria
 {

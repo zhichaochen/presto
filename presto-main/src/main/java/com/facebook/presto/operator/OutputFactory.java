@@ -23,6 +23,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 
+/**
+ * 算子段的输出工厂
+ */
 public interface OutputFactory
 {
     OperatorFactory createOutputOperator(

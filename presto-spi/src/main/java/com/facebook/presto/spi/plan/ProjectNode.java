@@ -27,6 +27,8 @@ import static java.util.Collections.singletonList;
 import static java.util.Objects.requireNonNull;
 
 /**
+ * Project：投影，映射的意思
+ *
  * 用于进行映射的节点
  * 将下层的节点输出列映射成上层节点 例如：select a + 1 from b将TableScanNode的a列 + 1 映射到OutputNode
  *
@@ -131,10 +133,13 @@ public final class ProjectNode
         return Objects.hash(source, assignments, locality);
     }
 
+    /**
+     * 位置
+     */
     public enum Locality
     {
-        UNKNOWN,
-        LOCAL,
-        REMOTE,
+        UNKNOWN, // 位置
+        LOCAL, // 本地
+        REMOTE, // 远程
     }
 }

@@ -25,12 +25,15 @@ import static java.lang.String.format;
 import static java.util.Collections.unmodifiableMap;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 表统计
+ */
 public final class TableStatistics
 {
     private static final TableStatistics EMPTY = TableStatistics.builder().build();
 
-    private final Estimate rowCount;
-    private final Estimate totalSize;
+    private final Estimate rowCount; // 数据表中的行数
+    private final Estimate totalSize; // 总条数
     private final Map<ColumnHandle, ColumnStatistics> columnStatistics;
 
     public static TableStatistics empty()

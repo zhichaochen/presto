@@ -24,6 +24,7 @@ public class ChildReplacer
     }
 
     /**
+     * 返回给定节点的相同副本，并替换其子节点
      * Return an identical copy of the given node with its children replaced
      */
     public static PlanNode replaceChildren(PlanNode node, List<PlanNode> children)

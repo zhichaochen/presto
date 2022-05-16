@@ -27,6 +27,9 @@ import static java.util.Collections.unmodifiableList;
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
+/**
+ * 输出处理器
+ */
 public final class OutputHandler
         implements Closeable
 {

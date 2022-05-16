@@ -43,6 +43,9 @@ import static io.airlift.slice.SizeOf.sizeOf;
 import static java.util.Objects.requireNonNull;
 
 /**
+ * TOP N 构建器
+ * 把page添加到一个全局的优先级队列中，该队列的大小为limit的个数，在队列内部的数据就是当前最大或者最小的n个数据，
+ * 一旦发现有比这n个数据大或者小的数据，就放到队列中来，把不符合要求的踢出队列
  * This class finds the top N rows defined by {@param comparator} for each group specified by {@param groupByHash}.
  */
 public class GroupedTopNBuilder

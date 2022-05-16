@@ -24,6 +24,9 @@ import java.util.Objects;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 每个ordering对象都表示一个排序字段
+ */
 @Immutable
 public class Ordering
 {

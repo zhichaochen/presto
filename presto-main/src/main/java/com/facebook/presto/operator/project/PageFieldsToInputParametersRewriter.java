@@ -33,6 +33,8 @@ import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.ImmutableList.toImmutableList;
 
 /**
+ * 重写输入页面中列的输入引用（到过滤器/项目节点） 放入可用于方法参数的压缩列表中。
+ *
  * Rewrite input references from columns in the input page (to the filter/project node)
  * into a compact list that can be used for method parameters.
  */
@@ -56,7 +58,9 @@ public final class PageFieldsToInputParametersRewriter
     private static class Visitor
             implements RowExpressionVisitor<RowExpression, Void>
     {
+        // 字段和参数的映射，key：
         private final Map<Integer, Integer> fieldToParameter = new HashMap<>();
+        //
         private final List<Integer> inputChannels = new ArrayList<>();
         private int nextParameter;
 

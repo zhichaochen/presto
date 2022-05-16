@@ -54,11 +54,17 @@ import static com.google.common.collect.ImmutableList.toImmutableList;
 import static com.google.common.collect.ImmutableMap.toImmutableMap;
 import static java.util.function.Function.identity;
 
+/**
+ * 分阶段执行调度
+ * 遍历整个 sub plan 树, 根据一定规则切分为多个 plan fragment 的集合, 分为多个阶段去调度
+ */
 @NotThreadSafe
 public class PhasedExecutionSchedule
         implements ExecutionSchedule
 {
+    // 要调度的阶段列表
     private final List<Set<StageExecutionAndScheduler>> schedulePhases;
+    // 待执行的资源
     private final Set<StageExecutionAndScheduler> activeSources = new HashSet<>();
 
     public PhasedExecutionSchedule(Collection<StageExecutionAndScheduler> stages)
@@ -82,7 +88,9 @@ public class PhasedExecutionSchedule
     @Override
     public Set<StageExecutionAndScheduler> getStagesToSchedule()
     {
+        // 移除已完成的阶段
         removeCompletedStages();
+        //
         addPhasesIfNecessary();
         if (isFinished()) {
             return ImmutableSet.of();
@@ -103,6 +111,7 @@ public class PhasedExecutionSchedule
     private void addPhasesIfNecessary()
     {
         // we want at least one source distributed phase in the active sources
+        // 我们希望在活跃的source中至少有一个source分布阶段
         if (hasSourceDistributedStage(activeSources)) {
             return;
         }
@@ -127,15 +136,24 @@ public class PhasedExecutionSchedule
         return activeSources.isEmpty() && schedulePhases.isEmpty();
     }
 
+    /**
+     * 提取阶段
+     * @param fragments
+     * @return
+     */
     @VisibleForTesting
     static List<Set<PlanFragmentId>> extractPhases(Collection<PlanFragment> fragments)
     {
         // Build a graph where the plan fragments are vertexes and the edges represent
         // a before -> after relationship.  For example, a join hash build has an edge
         // to the join probe.
+        // 构建一个图，其中平面片段是顶点，边代表一个before->after关系。例如，连接哈希构建有一个连接到连接探测的边缘。
+        // 有向图
         DirectedGraph<PlanFragmentId, DefaultEdge> graph = new DefaultDirectedGraph<>(DefaultEdge.class);
+        // 遍历所有fragments，将fragmentID加入graph，作为一个顶点
         fragments.forEach(fragment -> graph.addVertex(fragment.getId()));
 
+        // 处理所有fragment
         Visitor visitor = new Visitor(fragments, graph);
         for (PlanFragment fragment : fragments) {
             visitor.processFragment(fragment.getId());
@@ -144,6 +162,7 @@ public class PhasedExecutionSchedule
         // Computes all the strongly connected components of the directed graph.
         // These are the "phases" which hold the set of fragments that must be started
         // at the same time to avoid deadlock.
+        // 计算有向图的所有强连通分量。这些是“阶段”，包含必须同时启动的片段集，以避免死锁。
         List<Set<PlanFragmentId>> components = new StrongConnectivityInspector<>(graph).stronglyConnectedSets();
 
         Map<PlanFragmentId, Set<PlanFragmentId>> componentMembership = new HashMap<>();

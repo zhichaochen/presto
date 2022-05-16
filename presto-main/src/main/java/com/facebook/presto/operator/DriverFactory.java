@@ -32,15 +32,16 @@ import static com.google.common.collect.ImmutableList.toImmutableList;
 import static java.util.Objects.requireNonNull;
 
 /**
- * 驱动工厂，为了创建启动
+ * 驱动工厂
+ * 可以创建驱动
+ * 那么创建多少个驱动呢？由什么条件决定呢？
  */
 public class DriverFactory
 {
     private final int pipelineId;
     private final boolean inputDriver;
     private final boolean outputDriver;
-    // 算子工厂
-    private final List<OperatorFactory> operatorFactories;
+    private final List<OperatorFactory> operatorFactories; // 算子工厂，可以生成当前逻辑计划的算子
     private final Optional<PlanNodeId> sourceId;
     private final OptionalInt driverInstances;
     private final PipelineExecutionStrategy pipelineExecutionStrategy;
@@ -154,6 +155,9 @@ public class DriverFactory
         }
     }
 
+    /**
+     * 清空当前驱动
+     */
     public synchronized void noMoreDrivers()
     {
         if (closed) {
@@ -164,6 +168,7 @@ public class DriverFactory
             verify(encounteredLifespans.size() == closedLifespans.size());
         }
         closed = true;
+        // 遍历算子工厂
         for (OperatorFactory operatorFactory : operatorFactories) {
             operatorFactory.noMoreOperators();
         }

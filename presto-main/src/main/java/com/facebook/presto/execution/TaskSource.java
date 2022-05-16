@@ -25,7 +25,11 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 
 /**
- * 任务资源，会将该数据从协调节点发送到worker节点，两边都会用到
+ * 任务来源，表示一个任务执行的数据源
+ * 其中：planNodeId：决定了那个计划节点的任务， splits ： 表示该任务执行的数据分片， noMoreSplits ： 表示是否还有更多的任务分片需要调度
+ *
+ * 协调器Coordinator创建TaskSource， Worker使用TaskSource
+ * 会将该对象从协调节点发送到worker节点，协调器Coordinator 和 Worker两边都会用到
  *
  * 参考：https://zhuanlan.zhihu.com/p/57866550
  */
@@ -35,9 +39,9 @@ public class TaskSource
     private final PlanNodeId planNodeId;
     // 切片集合，本次任务要处理的所有切片
     private final Set<ScheduledSplit> splits;
-    //
+    // splits的生命周期
     private final Set<Lifespan> noMoreSplitsForLifespan;
-    //
+    // true : 表示没有splits了
     private final boolean noMoreSplits;
 
     @JsonCreator
@@ -82,11 +86,16 @@ public class TaskSource
         return noMoreSplits;
     }
 
+    /**
+     * 更新TaskSource
+     * @param source
+     * @return
+     */
     public TaskSource update(TaskSource source)
     {
         checkArgument(planNodeId.equals(source.getPlanNodeId()), "Expected source %s, but got source %s", planNodeId, source.getPlanNodeId());
 
-        // 是否是新创建任务
+        // 是否需要创建新的TaskSource
         if (isNewer(source)) {
             // assure the new source is properly formed
             // we know that either the new source one has new splits and/or it is marking the source as closed

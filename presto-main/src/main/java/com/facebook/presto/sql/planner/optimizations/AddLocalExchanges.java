@@ -102,6 +102,9 @@ import static com.google.common.collect.ImmutableSet.toImmutableSet;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 
+/**
+ * AddLocalExchanges 和 AddExchanges有什么区别？
+ */
 public class AddLocalExchanges
         implements PlanOptimizer
 {

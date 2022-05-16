@@ -31,6 +31,10 @@ import static java.util.Objects.requireNonNull;
 
 /**
  * 用于在【分布式】执行计划中，不同的stage之间交换数据
+ * 在逻辑计划分段，会将ExchangeNode替换为RemoteSourceNode
+ *
+ * remote source 会生成 RemoteSourceNode
+ * split source 会生成 TableScanNode
  */
 @Immutable
 public class RemoteSourceNode

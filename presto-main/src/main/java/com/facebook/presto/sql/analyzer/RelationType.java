@@ -33,6 +33,7 @@ import static com.google.common.collect.ImmutableList.toImmutableList;
 import static java.util.Objects.requireNonNull;
 
 /**
+ * 关系类型
  * TODO: this needs to be merged with RowType at some point (when the type system is unified)
  */
 @Immutable

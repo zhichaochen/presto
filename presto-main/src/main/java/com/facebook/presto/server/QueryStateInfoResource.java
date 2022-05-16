@@ -43,6 +43,9 @@ import static com.google.common.collect.ImmutableList.toImmutableList;
 import static java.util.Objects.requireNonNull;
 import static javax.ws.rs.core.Response.Status.NOT_FOUND;
 
+/**
+ * 查询状态信息
+ */
 @Path("/v1/queryState")
 @RolesAllowed({ADMIN, USER})
 public class QueryStateInfoResource
@@ -59,6 +62,11 @@ public class QueryStateInfoResource
         this.resourceGroupManager = requireNonNull(resourceGroupManager, "resourceGroupManager is null");
     }
 
+    /**
+     * 查询某个用户的信息
+     * @param user
+     * @return
+     */
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     public List<QueryStateInfo> getQueryStateInfos(@QueryParam("user") String user)
@@ -89,6 +97,12 @@ public class QueryStateInfoResource
         return createQueryStateInfo(queryInfo, groupId);
     }
 
+    /**
+     * 查询某条sql的状态信息
+     * @param queryId
+     * @return
+     * @throws WebApplicationException
+     */
     @GET
     @Path("{queryId}")
     @Produces(MediaType.APPLICATION_JSON)

@@ -38,6 +38,13 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.ImmutableList.toImmutableList;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * 窗口节点
+ *
+ * 获取Partition By 和 Order By 表达式，并构造ProjectNode
+ * 分析上述语句和窗口函数
+ * 生成WindowNode
+ */
 @Immutable
 public class WindowNode
         extends InternalPlanNode

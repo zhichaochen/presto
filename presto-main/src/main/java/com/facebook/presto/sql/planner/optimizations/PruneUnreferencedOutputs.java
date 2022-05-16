@@ -96,6 +96,7 @@ import static java.util.Objects.requireNonNull;
 import static java.util.function.Function.identity;
 
 /**
+ * 从计划根中删除所有不可传递引用的计算
  * Removes all computation that does is not referenced transitively from the root of the plan
  * <p>
  * E.g.,

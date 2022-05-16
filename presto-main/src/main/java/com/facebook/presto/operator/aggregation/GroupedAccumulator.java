@@ -19,6 +19,9 @@ import com.facebook.presto.common.block.BlockBuilder;
 import com.facebook.presto.common.type.Type;
 import com.facebook.presto.operator.GroupByIdBlock;
 
+/**
+ * 分组累加器
+ */
 public interface GroupedAccumulator
 {
     long getEstimatedSize();
@@ -33,7 +36,10 @@ public interface GroupedAccumulator
 
     void evaluateIntermediate(int groupId, BlockBuilder output);
 
+    // 根据Aggregation Function不同，可能并不是最终的聚合结果，例如求average，需要汇总某个group key的所有的sum值和count值，
+    // 最后sum除以count才是最终的平均值，所以这里的Final聚合结果计算就是要完成这样的工作：
     void evaluateFinal(int groupId, BlockBuilder output);
 
+    //
     void prepareFinal();
 }

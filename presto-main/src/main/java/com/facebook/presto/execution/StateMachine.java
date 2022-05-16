@@ -301,7 +301,7 @@ public class StateMachine<T>
     }
 
     /**
-     * 查询状态监听器
+     * 状态监听器（可能是查询或任务的）
      * @param <T>
      */
     public interface StateChangeListener<T>

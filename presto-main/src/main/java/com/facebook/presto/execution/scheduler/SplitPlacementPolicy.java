@@ -19,11 +19,17 @@ import com.facebook.presto.metadata.Split;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * Split安置策略，给Split分配节点
+ */
 public interface SplitPlacementPolicy
 {
+    // TODO 为split分配节点
     SplitPlacementResult computeAssignments(Set<Split> splits);
 
+    // 锁定下游节点
     void lockDownNodes();
 
+    // 获取活跃的节点
     List<InternalNode> getActiveNodes();
 }

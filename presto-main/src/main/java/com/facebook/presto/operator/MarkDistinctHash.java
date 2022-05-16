@@ -28,10 +28,13 @@ import static com.facebook.presto.SystemSessionProperties.isDictionaryAggregatio
 import static com.facebook.presto.common.type.BooleanType.BOOLEAN;
 import static com.facebook.presto.operator.GroupByHash.createGroupByHash;
 
+/**
+ *
+ */
 public class MarkDistinctHash
 {
     private final GroupByHash groupByHash;
-    private long nextDistinctId;
+    private long nextDistinctId; //
 
     public MarkDistinctHash(Session session, List<Type> types, int[] channels, Optional<Integer> hashChannel, JoinCompiler joinCompiler, UpdateMemory updateMemory)
     {

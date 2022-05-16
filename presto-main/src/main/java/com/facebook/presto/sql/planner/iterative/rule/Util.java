@@ -109,6 +109,8 @@ class Util
     }
 
     /**
+     * 限制子输出
+     * 原始节点，可能在节点和每个子节点之间插入标识投影，将列限制为允许的列。返回至少重写了一个子项的当前可选iff。
      * @return The original node, with identity projections possibly inserted between node and each child, limiting the columns to those permitted.
      * Returns a present Optional iff at least one child was rewritten.
      */

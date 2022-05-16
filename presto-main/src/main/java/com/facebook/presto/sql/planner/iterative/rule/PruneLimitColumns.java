@@ -25,6 +25,9 @@ import java.util.Set;
 import static com.facebook.presto.sql.planner.iterative.rule.Util.restrictChildOutputs;
 import static com.facebook.presto.sql.planner.plan.Patterns.limit;
 
+/**
+ * 修剪limit的列
+ */
 public class PruneLimitColumns
         extends ProjectOffPushDownRule<LimitNode>
 {

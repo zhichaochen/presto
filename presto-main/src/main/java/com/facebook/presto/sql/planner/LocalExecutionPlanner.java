@@ -328,10 +328,12 @@ import static java.util.Objects.requireNonNull;
 import static java.util.stream.IntStream.range;
 
 /**
- * 本地执行计划：
- * 会生成物理执行计划，物理执行计划是一个个算子组成的列表；
- * 多个算子组成一条pipeline。
+ * 本地执行计划生成器（物理执行计划，对应的单位是算子）
+ * 本地执行计划是相对于分布式执行计划的，分布式执行计划会在多个Worker节点执行，但是本地执行计划，只会在当前的Worker节点上执行。
  *
+ * 生成Worker本地的物理执行计划
+ *
+ * 会生成物理执行计划，物理执行计划是一个个算子组成的列表；多个算子组成一条pipeline。
  * 有些物理计划会生成字节码。
  */
 public class LocalExecutionPlanner
@@ -428,6 +430,9 @@ public class LocalExecutionPlanner
         this.objectMapper = requireNonNull(objectMapper, "objectMapper is null");
     }
 
+    /**
+     * 生成本地物理执行计划
+     */
     public LocalExecutionPlan plan(
             TaskContext taskContext,
             PlanNode plan,
@@ -551,11 +556,14 @@ public class LocalExecutionPlanner
         return Optional.of(new OutputPartitioning(partitionFunction, partitionChannels, partitionConstants, partitioningScheme.isReplicateNullsAndAny(), nullChannel));
     }
 
+    /**
+     * 生成物理执行计划
+     */
     @VisibleForTesting
     public LocalExecutionPlan plan(
             TaskContext taskContext,
             StageExecutionDescriptor stageExecutionDescriptor,
-            PlanNode plan,
+            PlanNode plan, // 逻辑计划节点
             PartitioningScheme partitioningScheme,
             List<PlanNodeId> partitionedSourceOrder,
             OutputFactory outputOperatorFactory,
@@ -564,16 +572,20 @@ public class LocalExecutionPlanner
             TableWriteInfo tableWriteInfo,
             boolean pageSinkCommitRequired)
     {
-        // 输出的内容
+        // 输出布局
         List<VariableReferenceExpression> outputLayout = partitioningScheme.getOutputLayout();
+        // 查询session
         Session session = taskContext.getSession();
+        // 本地执行计划上下文
         LocalExecutionPlanContext context = new LocalExecutionPlanContext(taskContext, tableWriteInfo);
+        // 物理算子对象，通过访问逻辑计划，生成物理计划
+        // TODO 本质上是访问对应节点生成一个或者多个算子工厂，执行任务的时候，会调用其算子工厂列表生成多个算子，在管道中执行。
         PhysicalOperation physicalOperation = plan.accept(new Visitor(session, stageExecutionDescriptor, remoteSourceFactory, pageSinkCommitRequired), context);
 
-        //
+        // Page的预处理器
         Function<Page, Page> pagePreprocessor = enforceLayoutProcessor(outputLayout, physicalOperation.getLayout());
 
-        //
+        // 输出类型列表
         List<Type> outputTypes = outputLayout.stream()
                 .map(VariableReferenceExpression::getType)
                 .collect(toImmutableList());
@@ -583,12 +595,14 @@ public class LocalExecutionPlanner
                 context.isInputDriver(),
                 true,
                 ImmutableList.<OperatorFactory>builder()
+                            // 创建输出算子
                           .add(outputOperatorFactory.createOutputOperator(
                                 context.getNextOperatorId(),
                                 plan.getId(),
                                 outputTypes,
                                 pagePreprocessor,
                                 outputPartitioning,
+                                // 创建Page编解码工厂
                                 new PagesSerdeFactory(blockEncodingSerde, isExchangeCompressionEnabled(session), isExchangeChecksumEnabled(session))))
                         .build(),
                 context.getDriverInstanceCount(),
@@ -599,6 +613,8 @@ public class LocalExecutionPlanner
         addLookupOuterDrivers(context);
 
         // notify operator factories that planning has completed
+        // 通知算子工厂，计划已经完成
+        // 这里会遍历LocalPlannerAware调用其LocalPlannerAware以通知物理计划已经完成
         context.getDriverFactories().stream()
                 .map(DriverFactory::getOperatorFactories)
                 .flatMap(List::stream)
@@ -639,10 +655,16 @@ public class LocalExecutionPlanner
         }
     }
 
+    /**
+     * 本地执行计划上下文
+     */
     private static class LocalExecutionPlanContext
     {
+        // 任务上下文
         private final TaskContext taskContext;
+        // 驱动工厂
         private final List<DriverFactory> driverFactories;
+        //
         private final Optional<IndexSourceContext> indexSourceContext;
 
         // the collector is shared with all subContexts to allow local dynamic filtering
@@ -678,6 +700,15 @@ public class LocalExecutionPlanner
             this.tableWriteInfo = tableWriteInfo;
         }
 
+        /**
+         * 添加驱动工厂
+         * @param inputDriver
+         * @param outputDriver
+         * @param operatorFactories
+         * @param driverInstances
+         * @param pipelineExecutionStrategy
+         * @param fragmentResultCacheContext
+         */
         public void addDriverFactory(
                 boolean inputDriver,
                 boolean outputDriver,
@@ -695,6 +726,7 @@ public class LocalExecutionPlanner
                     checkArgument(firstOperatorFactory instanceof LocalExchangeSourceOperatorFactory || firstOperatorFactory instanceof LookupOuterOperatorFactory);
                 }
             }
+            // 创建驱动工厂，并将其加入驱动工厂列表
             driverFactories.add(new DriverFactory(getNextPipelineId(), inputDriver, outputDriver, operatorFactories, driverInstances, pipelineExecutionStrategy, fragmentResultCacheContext));
         }
 
@@ -794,10 +826,16 @@ public class LocalExecutionPlanner
         }
     }
 
+    /**
+     * 本地执行计划（Worker端的物理计划）
+     */
     public static class LocalExecutionPlan
     {
+        // 驱动工厂列表
         private final List<DriverFactory> driverFactories;
+        // 有序的表扫描数据源
         private final List<PlanNodeId> tableScanSourceOrder;
+        // 阶段执行描述器
         private final StageExecutionDescriptor stageExecutionDescriptor;
 
         public LocalExecutionPlan(List<DriverFactory> driverFactories, List<PlanNodeId> tableScanSourceOrder, StageExecutionDescriptor stageExecutionDescriptor)
@@ -824,7 +862,7 @@ public class LocalExecutionPlanner
     }
 
     /**
-     * 访问器
+     * 本地执行计划的访问器
      */
     private class Visitor
             extends InternalPlanVisitor<PhysicalOperation, LocalExecutionPlanContext>
@@ -914,6 +952,7 @@ public class LocalExecutionPlanner
             return new PhysicalOperation(operatorFactory, makeLayout(node), context, source);
         }
 
+        // 访问output
         @Override
         public PhysicalOperation visitOutput(OutputNode node, LocalExecutionPlanContext context)
         {
@@ -1238,18 +1277,27 @@ public class LocalExecutionPlanner
             return new PhysicalOperation(groupIdOperatorFactory, newLayout, context, source);
         }
 
+        /**
+         * 访问聚合
+         * @param node
+         * @param context
+         * @return
+         */
         @Override
         public PhysicalOperation visitAggregation(AggregationNode node, LocalExecutionPlanContext context)
         {
+            // 生成物理算子
             PhysicalOperation source = node.getSource().accept(this, context);
 
             if (node.getGroupingKeys().isEmpty()) {
                 return planGlobalAggregation(node, source, context);
             }
 
+            // 是否当内存不够的时候，写入磁盘
             boolean spillEnabled = isSpillEnabled(context.getSession());
             DataSize unspillMemoryLimit = getAggregationOperatorUnspillMemoryLimit(context.getSession());
 
+            // 创建聚合算子
             return planGroupByAggregation(node, source, spillEnabled, unspillMemoryLimit, context);
         }
 
@@ -1275,12 +1323,21 @@ public class LocalExecutionPlanner
             throw new UnsupportedOperationException("not yet implemented: " + node);
         }
 
+        /**
+         * 访问过滤器
+         * @param node
+         * @param context
+         * @return
+         */
         @Override
         public PhysicalOperation visitFilter(FilterNode node, LocalExecutionPlanContext context)
         {
+            // 数据源节点
             PlanNode sourceNode = node.getSource();
 
+            // 谓词表达式
             RowExpression filterExpression = node.getPredicate();
+            // 输出变量列表
             List<VariableReferenceExpression> outputVariables = node.getOutputVariables();
 
             return visitScanFilterAndProject(context, node.getId(), sourceNode, Optional.of(filterExpression), identityAssignments(outputVariables), outputVariables, LOCAL);
@@ -1304,17 +1361,10 @@ public class LocalExecutionPlanner
         }
 
         /**
-         * Filter 和 project 共有的
-         * @param context
-         * @param planNodeId
-         * @param sourceNode
-         * @param filterExpression
-         * @param assignments
-         * @param outputVariables
-         * @param locality
-         * @return
+         * scan、filter、project三种操作的算子
          */
         // TODO: This should be refactored, so that there's an optimizer that merges scan-filter-project into a single PlanNode
+        // 应该被重构，应该将filter和project合并成一个PlanNode
         private PhysicalOperation visitScanFilterAndProject(
                 LocalExecutionPlanContext context,
                 PlanNodeId planNodeId,
@@ -1326,10 +1376,12 @@ public class LocalExecutionPlanner
         {
             // if source is a table scan and project is local we fold it directly into the filter and project
             // otherwise we plan it as a normal operator
+            // 如果source是一个table scan，project是本地的，我们将其直接折叠到filter和project中，否则我们将其作为一个普通操作符进行规划
             Map<VariableReferenceExpression, Integer> sourceLayout;
             TableHandle table = null;
             List<ColumnHandle> columns = null;
             PhysicalOperation source = null;
+            // TODO　如果是TableScanNode
             if (sourceNode instanceof TableScanNode && locality.equals(LOCAL)) {
                 TableScanNode tableScanNode = (TableScanNode) sourceNode;
                 Optional<DeleteScanInfo> deleteScanInfo = context.getTableWriteInfo().getDeleteScanInfo();
@@ -1353,6 +1405,7 @@ public class LocalExecutionPlanner
                     channel++;
                 }
             }
+            // filter 或者 project
             else {
                 // plan source
                 source = sourceNode.accept(this, context);
@@ -1393,6 +1446,7 @@ public class LocalExecutionPlanner
             }
 
             // compiler uses inputs instead of variables, so rewrite the expressions first
+            // 编译器使用输入而不是变量，所以先重写表达式
             List<RowExpression> projections = outputVariables.stream()
                     .map(assignments::get)
                     .map(expression -> bindChannels(expression, sourceLayout))
@@ -1401,6 +1455,7 @@ public class LocalExecutionPlanner
             //
             try {
                 if (columns != null) {
+                    // 动态生成CursorProcessor
                     Supplier<CursorProcessor> cursorProcessor = expressionCompiler.compileCursorProcessor(
                             session.getSqlFunctionProperties(),
                             filterExpression,
@@ -1408,6 +1463,7 @@ public class LocalExecutionPlanner
                             sourceNode.getId(),
                             isOptimizeCommonSubExpressions(session),
                             session.getSessionFunctions());
+                    // 动态生成PageProcessor
                     Supplier<PageProcessor> pageProcessor = expressionCompiler.compilePageProcessor(
                             session.getSqlFunctionProperties(),
                             filterExpression,
@@ -1416,6 +1472,7 @@ public class LocalExecutionPlanner
                             session.getSessionFunctions(),
                             Optional.of(context.getStageExecutionId() + "_" + planNodeId));
 
+                    // 创建ScanFilterAndProjectOperatorFactory
                     SourceOperatorFactory operatorFactory = new ScanFilterAndProjectOperatorFactory(
                             context.getNextOperatorId(),
                             planNodeId,
@@ -1430,9 +1487,11 @@ public class LocalExecutionPlanner
                             getFilterAndProjectMinOutputPageSize(session),
                             getFilterAndProjectMinOutputPageRowCount(session));
 
+                    // 包装成一个物理算子
                     return new PhysicalOperation(operatorFactory, outputMappings, context, stageExecutionDescriptor.isScanGroupedExecution(sourceNode.getId()) ? GROUPED_EXECUTION : UNGROUPED_EXECUTION);
                 }
                 else if (locality.equals(LOCAL)) {
+                    // 编译生成PageProcessor
                     Supplier<PageProcessor> pageProcessor = expressionCompiler.compilePageProcessor(
                             session.getSqlFunctionProperties(),
                             filterExpression,
@@ -1485,12 +1544,7 @@ public class LocalExecutionPlanner
             return expression;
         }
 
-        /**
-         * 访问
-         * @param node
-         * @param context
-         * @return
-         */
+       // 扫描表
         @Override
         public PhysicalOperation visitTableScan(TableScanNode node, LocalExecutionPlanContext context)
         {
@@ -1500,7 +1554,7 @@ public class LocalExecutionPlanner
                 columns.add(node.getAssignments().get(variable));
             }
 
-            // 表句柄，
+            // 表句柄
             TableHandle tableHandle;
             Optional<DeleteScanInfo> deleteScanInfo = context.getTableWriteInfo().getDeleteScanInfo();
             // 优先使用部分字段的表句柄
@@ -1511,8 +1565,9 @@ public class LocalExecutionPlanner
                 // 包含所有字段的句柄
                 tableHandle = node.getTable();
             }
-            // 创建算子工厂
+            // 创建TableScanOperator算子工厂
             OperatorFactory operatorFactory = new TableScanOperatorFactory(context.getNextOperatorId(), node.getId(), pageSourceProvider, tableHandle, columns);
+            // 将其封装到PhysicalOperation中
             return new PhysicalOperation(operatorFactory, makeLayout(node), context, stageExecutionDescriptor.isScanGroupedExecution(node.getId()) ? GROUPED_EXECUTION : UNGROUPED_EXECUTION);
         }
 
@@ -1684,6 +1739,12 @@ public class LocalExecutionPlanner
             return builder.build();
         }
 
+        /**
+         * 通过索引进行关联
+         * @param node
+         * @param context
+         * @return
+         */
         @Override
         public PhysicalOperation visitIndexJoin(IndexJoinNode node, LocalExecutionPlanContext context)
         {
@@ -1805,22 +1866,34 @@ public class LocalExecutionPlanner
             return new PhysicalOperation(lookupJoinOperatorFactory, outputMappings.build(), context, probeSource);
         }
 
+        /**
+         * 访问join
+         * @param node
+         * @param context
+         * @return
+         */
         @Override
         public PhysicalOperation visitJoin(JoinNode node, LocalExecutionPlanContext context)
         {
+            // 是否是cross join
             if (node.isCrossJoin()) {
                 return createNestedLoopJoin(node, context);
             }
 
+            // 优化后的，具有相同语义的JOIN字句
             List<JoinNode.EquiJoinClause> clauses = node.getCriteria();
+            // 左连接变量集合
             List<VariableReferenceExpression> leftVariables = Lists.transform(clauses, JoinNode.EquiJoinClause::getLeft);
+            // 右连接变量集合
             List<VariableReferenceExpression> rightVariables = Lists.transform(clauses, JoinNode.EquiJoinClause::getRight);
 
+            // 根据关联条件不同，创建不同类型的建LookupJoinOperatorFactory
             switch (node.getType()) {
                 case INNER:
                 case LEFT:
                 case RIGHT:
                 case FULL:
+                    // 创建look up join，使用hash join的方式进行join
                     return createLookupJoin(node, node.getLeft(), leftVariables, node.getLeftHashVariable(), node.getRight(), rightVariables, node.getRightHashVariable(), context);
                 default:
                     throw new UnsupportedOperationException("Unsupported join type: " + node.getType());
@@ -2008,6 +2081,7 @@ public class LocalExecutionPlanner
             return variables.stream().map(VariableReferenceExpression::getName).map(SymbolReference::new).collect(toImmutableSet());
         }
 
+        // 创建了NestedLoopJoinOperatorFactory工厂
         private PhysicalOperation createNestedLoopJoin(JoinNode node, LocalExecutionPlanContext context)
         {
             PhysicalOperation probeSource = node.getLeft().accept(this, context);
@@ -2179,66 +2253,91 @@ public class LocalExecutionPlanner
             return builderOperatorFactory.getPagesSpatialIndexFactory();
         }
 
-        private PhysicalOperation createLookupJoin(JoinNode node,
-                PlanNode probeNode,
-                List<VariableReferenceExpression> probeVariables,
-                Optional<VariableReferenceExpression> probeHashVariable,
-                PlanNode buildNode,
-                List<VariableReferenceExpression> buildVariables,
+        /**
+         * 创建look up join
+         */
+        private PhysicalOperation createLookupJoin(JoinNode node, // join 节点
+                PlanNode probeNode, // join左表的节点（探测表，小表）
+                List<VariableReferenceExpression> probeVariables, // join左表变量表达式
+                Optional<VariableReferenceExpression> probeHashVariable, // join左表Hash变量
+                PlanNode buildNode, // join右表的节点（构建表，大表）
+                List<VariableReferenceExpression> buildVariables, // join右表变量表达式
                 Optional<VariableReferenceExpression> buildHashVariable,
                 LocalExecutionPlanContext context)
         {
             // Plan probe
+            // 创建探测端算子
             PhysicalOperation probeSource = probeNode.accept(this, context);
 
-            // Plan build
+            // Plan build 计划构建端
+            // 创建LookupSourceFactory，真正创建的是PartitionedLookupSourceFactory
+            // 返回一个JoinBridgeManager，表示探测端和构建端沟通的一座桥
             JoinBridgeManager<PartitionedLookupSourceFactory> lookupSourceFactory =
                     createLookupSourceFactory(node, buildNode, buildVariables, buildHashVariable, probeSource, context);
 
+            // 创建LookupJoinOperatorFactory
             OperatorFactory operator = createLookupJoin(node, probeSource, probeVariables, probeHashVariable, lookupSourceFactory, context);
 
+            // 输出变量集合, key:表达式，value：表达式的下标，也就是第几个字段。
+            // TODO 这个比较重要，后面会拿变量去获取其对应value，化名曰channel
             ImmutableMap.Builder<VariableReferenceExpression, Integer> outputMappings = ImmutableMap.builder();
             List<VariableReferenceExpression> outputVariables = node.getOutputVariables();
             for (int i = 0; i < outputVariables.size(); i++) {
                 outputMappings.put(outputVariables.get(i), i);
             }
 
+            // 将创建的LookupJoinOperator包装成一个物理算子
             return new PhysicalOperation(operator, outputMappings.build(), context, probeSource);
         }
 
+        /**
+         * 创建LookupSourceFactory -》PartitionedLookupSourceFactory
+         * @return
+         */
         private JoinBridgeManager<PartitionedLookupSourceFactory> createLookupSourceFactory(
-                JoinNode node,
-                PlanNode buildNode,
-                List<VariableReferenceExpression> buildVariables,
+                JoinNode node, //
+                PlanNode buildNode, //
+                List<VariableReferenceExpression> buildVariables, //
                 Optional<VariableReferenceExpression> buildHashVariable,
                 PhysicalOperation probeSource,
                 LocalExecutionPlanContext context)
         {
             // Determine if planning broadcast join
+            // 获取分区类型，决定是否计划成广播join
             Optional<JoinNode.DistributionType> distributionType = node.getDistributionType();
+            // 如果分区类型是复制，则是广播JOIN
             boolean isBroadcastJoin = distributionType.isPresent() && distributionType.get() == REPLICATED;
 
+            // 创建一个子上下文
             LocalExecutionPlanContext buildContext = context.createSubContext();
+            // 创建构建算子
             PhysicalOperation buildSource = buildNode.accept(this, buildContext);
 
+            // 分组执行，构建端是分组执行，交付端也必须是分组执行。
             if (buildSource.getPipelineExecutionStrategy() == GROUPED_EXECUTION) {
                 checkState(
                         probeSource.getPipelineExecutionStrategy() == GROUPED_EXECUTION,
                         "Build execution is GROUPED_EXECUTION. Probe execution is expected be GROUPED_EXECUTION, but is UNGROUPED_EXECUTION.");
             }
 
+            // 构建端输出变量
             List<VariableReferenceExpression> buildOutputVariables = node.getOutputVariables().stream()
                     .filter(node.getRight().getOutputVariables()::contains)
                     .collect(toImmutableList());
+            // 构建端输出通道
             List<Integer> buildOutputChannels = ImmutableList.copyOf(getChannelsForVariables(buildOutputVariables, buildSource.getLayout()));
             List<Integer> buildChannels = ImmutableList.copyOf(getChannelsForVariables(buildVariables, buildSource.getLayout()));
             OptionalInt buildHashChannel = buildHashVariable.map(variableChannelGetter(buildSource))
                     .map(OptionalInt::of).orElse(OptionalInt.empty());
 
+            // 是否能够溢出到磁盘
             boolean spillEnabled = isSpillEnabled(context.getSession()) && isJoinSpillingEnabled(context.getSession());
+            // 是否有
             boolean buildOuter = node.getType() == RIGHT || node.getType() == FULL;
+            // 分区总数，和驱动实例数相关
             int partitionCount = buildContext.getDriverInstanceCount().orElse(1);
 
+            //
             Optional<JoinFilterFunctionFactory> filterFunctionFactory = node.getFilter()
                     .map(filterExpression -> compileJoinFilterFunction(
                             session.getSqlFunctionProperties(),
@@ -2249,6 +2348,7 @@ public class LocalExecutionPlanner
 
             Optional<SortExpressionContext> sortExpressionContext = node.getSortExpressionContext(metadata.getFunctionAndTypeManager());
 
+            //
             Optional<Integer> sortChannel = sortExpressionContext
                     .map(SortExpressionContext::getSortExpression)
                     .map(sortExpression -> sortExpressionAsSortChannel(
@@ -2268,13 +2368,16 @@ public class LocalExecutionPlanner
                             .collect(toImmutableList()))
                     .orElse(ImmutableList.of());
 
+            // 输出类型
             ImmutableList<Type> buildOutputTypes = buildOutputChannels.stream()
                     .map(buildSource.getTypes()::get)
                     .collect(toImmutableList());
+            // 创建JoinBridge管理器
             JoinBridgeManager<PartitionedLookupSourceFactory> lookupSourceFactoryManager = new JoinBridgeManager<>(
                     buildOuter,
                     probeSource.getPipelineExecutionStrategy(),
                     buildSource.getPipelineExecutionStrategy(),
+                    // 创建PartitionedLookupSourceFactory
                     () -> new PartitionedLookupSourceFactory(
                             buildSource.getTypes(),
                             buildOutputTypes,
@@ -2286,15 +2389,20 @@ public class LocalExecutionPlanner
                             buildOuter),
                     buildOutputTypes);
 
+            // Hash构建器算子工厂列表
             ImmutableList.Builder<OperatorFactory> factoriesBuilder = new ImmutableList.Builder<>();
+            // 首先加入上游的构建器列表
             factoriesBuilder.addAll(buildSource.getOperatorFactories());
 
+            // 创建动态过滤器，是干嘛的呢？
             createDynamicFilter(buildSource, node, context, partitionCount).ifPresent(
                     filter -> factoriesBuilder.add(createDynamicFilterSourceOperatorFactory(filter, node.getId(), buildSource, buildContext)));
 
             // spill does not work for probe only grouped execution because PartitionedLookupSourceFactory.finishProbe() expects a defined number of probe operators
+            // 溢出不适用于仅探测分组执行，因为PartitionedLookupSourceFactory。finishProbe()需要定义数量的探测运算符
             boolean isProbeOnlyGroupedExecution = probeSource.getPipelineExecutionStrategy() == GROUPED_EXECUTION && buildSource.getPipelineExecutionStrategy() != GROUPED_EXECUTION;
 
+            // 创建HashBuilderOperator工厂
             HashBuilderOperatorFactory hashBuilderOperatorFactory = new HashBuilderOperatorFactory(
                     buildContext.getNextOperatorId(),
                     node.getId(),
@@ -2391,6 +2499,9 @@ public class LocalExecutionPlanner
             return ((InputReferenceExpression) rewrittenSortExpression).getField();
         }
 
+        /**
+         * 创建LookupJoinOperatorFactory
+         */
         private OperatorFactory createLookupJoin(
                 JoinNode node,
                 PhysicalOperation probeSource,
@@ -2399,14 +2510,20 @@ public class LocalExecutionPlanner
                 JoinBridgeManager<? extends LookupSourceFactory> lookupSourceFactoryManager,
                 LocalExecutionPlanContext context)
         {
+            // 探测端返回数据类型
             List<Type> probeTypes = probeSource.getTypes();
+            // 数据变量
             List<VariableReferenceExpression> probeOutputVariables = node.getOutputVariables().stream()
                     .filter(node.getLeft().getOutputVariables()::contains)
                     .collect(toImmutableList());
+            // 探测端输出字段所在下标
             List<Integer> probeOutputChannels = ImmutableList.copyOf(getChannelsForVariables(probeOutputVariables, probeSource.getLayout()));
+            // 探测端关联字段所在下标
             List<Integer> probeJoinChannels = ImmutableList.copyOf(getChannelsForVariables(probeVariables, probeSource.getLayout()));
+            // 要hash的字段所在下标
             OptionalInt probeHashChannel = probeHashVariable.map(variableChannelGetter(probeSource))
                     .map(OptionalInt::of).orElse(OptionalInt.empty());
+            //
             OptionalInt totalOperatorsCount = getJoinOperatorsCountForSpill(context, session);
 
             switch (node.getType()) {
@@ -2422,10 +2539,18 @@ public class LocalExecutionPlanner
                     throw new UnsupportedOperationException("Unsupported join type: " + node.getType());
             }
         }
+        /**
 
+         *
+         * @param context
+         * @param session
+         * @return
+         */
         private OptionalInt getJoinOperatorsCountForSpill(LocalExecutionPlanContext context, Session session)
         {
+            // 驱动实例数量
             OptionalInt driverInstanceCount = context.getDriverInstanceCount();
+            //
             if (isSpillEnabled(session) && isJoinSpillingEnabled(session)) {
                 checkState(driverInstanceCount.isPresent(), "A fixed distribution is required for JOIN when spilling is enabled");
             }
@@ -2776,11 +2901,18 @@ public class LocalExecutionPlanner
             return new PhysicalOperation(operatorFactory, makeLayout(node), context, source);
         }
 
+        /**
+         * 访问ExchangeNode
+         * @param node
+         * @param context
+         * @return
+         */
         @Override
         public PhysicalOperation visitExchange(ExchangeNode node, LocalExecutionPlanContext context)
         {
             checkArgument(node.getScope().isLocal(), "Only local exchanges are supported in the local planner");
 
+            // 判断是否存在排序，我理解啊，如果存在条件，且返回数据中没有这个条件，就可以去掉排序这个条件，这便是merge
             if (node.getOrderingScheme().isPresent()) {
                 return createLocalMerge(node, context);
             }
@@ -2847,21 +2979,31 @@ public class LocalExecutionPlanner
             return new PhysicalOperation(operatorFactory, layout, context, UNGROUPED_EXECUTION);
         }
 
+        /**
+         * 创建LocalExchange
+         * @param node
+         * @param context
+         * @return
+         */
         private PhysicalOperation createLocalExchange(ExchangeNode node, LocalExecutionPlanContext context)
         {
             int driverInstanceCount;
+            // 如果是聚集类型的，只需要一个Driver，因为要聚集嘛
             if (node.getType() == ExchangeNode.Type.GATHER) {
                 driverInstanceCount = 1;
                 context.setDriverInstanceCount(1);
             }
+            // 如果存在实例数量，则使用该实例数量
             else if (context.getDriverInstanceCount().isPresent()) {
                 driverInstanceCount = context.getDriverInstanceCount().getAsInt();
             }
+            // 从session中获取driver实例并行数，设置为驱动并行数
             else {
                 driverInstanceCount = getTaskConcurrency(session);
                 context.setDriverInstanceCount(driverInstanceCount);
             }
 
+            //
             List<Type> types = getSourceOperatorTypes(node);
             List<Integer> channels = node.getPartitioningScheme().getPartitioning().getArguments().stream()
                     .map(argument -> {
@@ -2872,9 +3014,13 @@ public class LocalExecutionPlanner
             Optional<Integer> hashChannel = node.getPartitioningScheme().getHashColumn()
                     .map(variable -> node.getOutputVariables().indexOf(variable));
 
+            // 设置为分组执行
             PipelineExecutionStrategy exchangeSourcePipelineExecutionStrategy = GROUPED_EXECUTION;
+            // 驱动工厂参数列表
             List<DriverFactoryParameters> driverFactoryParametersList = new ArrayList<>();
+            // 遍历当前节点所有的数据源
             for (int i = 0; i < node.getSources().size(); i++) {
+                //
                 PlanNode sourceNode = node.getSources().get(i);
 
                 LocalExecutionPlanContext subContext = context.createSubContext();
@@ -2886,6 +3032,7 @@ public class LocalExecutionPlanner
                 }
             }
 
+            // 创建localExchangeFactory，用于从区分
             LocalExchangeFactory localExchangeFactory = new LocalExchangeFactory(
                     partitioningProviderManager,
                     session,
@@ -2896,15 +3043,18 @@ public class LocalExecutionPlanner
                     hashChannel,
                     exchangeSourcePipelineExecutionStrategy,
                     maxLocalExchangeBufferSize);
+            // 遍历源头，有多少个源头，则创建多少个LocalExchangeSinkOperatorFactory
             for (int i = 0; i < node.getSources().size(); i++) {
                 DriverFactoryParameters driverFactoryParameters = driverFactoryParametersList.get(i);
                 PhysicalOperation source = driverFactoryParameters.getSource();
                 LocalExecutionPlanContext subContext = driverFactoryParameters.getSubContext();
 
                 List<VariableReferenceExpression> expectedLayout = node.getInputs().get(i);
+                // TODO pagePreprocessor：LocalExchangeSinkOperator会使用该函数进行预处理
                 Function<Page, Page> pagePreprocessor = enforceLayoutProcessor(expectedLayout, source.getLayout());
                 List<OperatorFactory> operatorFactories = new ArrayList<>(source.getOperatorFactories());
 
+                // 创建 LocalExchangeSinkOperator 算子,用于接受exchange消息，并重新
                 operatorFactories.add(new LocalExchangeSinkOperatorFactory(
                         localExchangeFactory,
                         subContext.getNextOperatorId(),
@@ -2927,6 +3077,7 @@ public class LocalExecutionPlanner
             verify(context.getDriverInstanceCount().getAsInt() == localExchangeFactory.getBufferCount(),
                     "driver instance count must match the number of exchange partitions");
 
+            // 创建 LocalExchangeSourceOperator
             return new PhysicalOperation(new LocalExchangeSourceOperatorFactory(context.getNextOperatorId(), node.getId(), localExchangeFactory), makeLayout(node), context, exchangeSourcePipelineExecutionStrategy);
         }
 
@@ -2948,14 +3099,24 @@ public class LocalExecutionPlanner
                     .collect(toImmutableList());
         }
 
+        /**
+         * 构建累加器工厂
+         * @param source
+         * @param aggregation
+         * @param spillEnabled
+         * @return
+         */
         private AccumulatorFactory buildAccumulatorFactory(
                 PhysicalOperation source,
                 Aggregation aggregation,
                 boolean spillEnabled)
         {
+            // 查询元数据的函数类型管理器
             FunctionAndTypeManager functionAndTypeManager = metadata.getFunctionAndTypeManager();
+            // 查询内置的聚合函数信息：我们知道了函数句柄，也就知道了使用了哪个聚合函数，从函数管理器中，查询到具体的函数即可。
             InternalAggregationFunction internalAggregationFunction = functionAndTypeManager.getAggregateFunctionImplementation(aggregation.getFunctionHandle());
 
+            // 所有的参数列表
             List<Integer> valueChannels = new ArrayList<>();
             for (RowExpression argument : aggregation.getArguments()) {
                 if (!(argument instanceof LambdaDefinitionExpression)) {
@@ -2988,12 +3149,16 @@ public class LocalExecutionPlanner
             Optional<Integer> maskChannel = aggregation.getMask().map(value -> source.getLayout().get(value));
             List<SortOrder> sortOrders = ImmutableList.of();
             List<VariableReferenceExpression> sortKeys = ImmutableList.of();
+            // 如果有orderBy，先聚合后排序
             if (aggregation.getOrderBy().isPresent()) {
+                // 排序方案
                 OrderingScheme orderBy = aggregation.getOrderBy().get();
                 sortKeys = orderBy.getOrderByVariables();
                 sortOrders = getOrderingList(orderBy);
             }
 
+            // 我们知道了函数的元信息，知道了对应的参数
+            // 函数元信息与参数一绑定就可以实例化新的函数了。
             return internalAggregationFunction.bind(
                     valueChannels,
                     maskChannel,
@@ -3008,6 +3173,13 @@ public class LocalExecutionPlanner
                     session);
         }
 
+        /**
+         * 全局聚合
+         * @param node
+         * @param source
+         * @param context
+         * @return
+         */
         private PhysicalOperation planGlobalAggregation(AggregationNode node, PhysicalOperation source, LocalExecutionPlanContext context)
         {
             ImmutableMap.Builder<VariableReferenceExpression, Integer> outputMappings = ImmutableMap.builder();
@@ -3023,6 +3195,7 @@ public class LocalExecutionPlanner
             return new PhysicalOperation(operatorFactory, outputMappings.build(), context, source);
         }
 
+        // 创建聚合算子工厂
         private AggregationOperatorFactory createAggregationOperatorFactory(
                 PlanNodeId planNodeId,
                 Map<VariableReferenceExpression, Aggregation> aggregations,
@@ -3034,10 +3207,12 @@ public class LocalExecutionPlanner
                 boolean useSystemMemory)
         {
             int outputChannel = startOutputChannel;
+            // 聚合器工厂列表
             ImmutableList.Builder<AccumulatorFactory> accumulatorFactories = ImmutableList.builder();
             for (Map.Entry<VariableReferenceExpression, Aggregation> entry : aggregations.entrySet()) {
                 VariableReferenceExpression variable = entry.getKey();
                 Aggregation aggregation = entry.getValue();
+                // 通过聚合对象构建累加器工厂
                 accumulatorFactories.add(buildAccumulatorFactory(source, aggregation, false));
                 outputMappings.put(variable, outputChannel); // one aggregation per channel
                 outputChannel++;
@@ -3045,6 +3220,9 @@ public class LocalExecutionPlanner
             return new AggregationOperatorFactory(context.getNextOperatorId(), planNodeId, step, accumulatorFactories.build(), useSystemMemory);
         }
 
+        /**
+         * 分组聚合
+         */
         private PhysicalOperation planGroupByAggregation(
                 AggregationNode node,
                 PhysicalOperation source,
@@ -3053,6 +3231,7 @@ public class LocalExecutionPlanner
                 LocalExecutionPlanContext context)
         {
             ImmutableMap.Builder<VariableReferenceExpression, Integer> mappings = ImmutableMap.builder();
+            // 创建HashAggregationOperator工厂
             OperatorFactory operatorFactory = createHashAggregationOperatorFactory(
                     node.getId(),
                     node.getAggregations(),
@@ -3075,6 +3254,10 @@ public class LocalExecutionPlanner
             return new PhysicalOperation(operatorFactory, mappings.build(), context, source);
         }
 
+        /**
+         * 创建HashAggregationOperatorFactory，用于Hash聚合
+         * @return
+         */
         private OperatorFactory createHashAggregationOperatorFactory(
                 PlanNodeId planNodeId,
                 Map<VariableReferenceExpression, Aggregation> aggregations,
@@ -3095,12 +3278,14 @@ public class LocalExecutionPlanner
                 Optional<DataSize> maxPartialAggregationMemorySize,
                 boolean useSystemMemory)
         {
+            // 遍历聚合信息（Aggregation）列表
             List<VariableReferenceExpression> aggregationOutputVariables = new ArrayList<>();
             List<AccumulatorFactory> accumulatorFactories = new ArrayList<>();
             for (Map.Entry<VariableReferenceExpression, Aggregation> entry : aggregations.entrySet()) {
                 VariableReferenceExpression variable = entry.getKey();
                 Aggregation aggregation = entry.getValue();
 
+                // 构建累加器工厂
                 accumulatorFactories.add(buildAccumulatorFactory(source, aggregation, !isStreamable && spillEnabled));
                 aggregationOutputVariables.add(variable);
             }
@@ -3201,18 +3386,29 @@ public class LocalExecutionPlanner
         };
     }
 
+    /**
+     * 强制布局处理器
+     * 每个计划需要那些列，比如filter的字段没必要向后传递，仅仅用于过滤数据，那么无需向后传递了。
+     * 那么如果规范需要那些字段呢？由计划指定，通过该函数进行提取。
+     * expectedLayout：表示真正的
+     */
     private static Function<Page, Page> enforceLayoutProcessor(List<VariableReferenceExpression> expectedLayout, Map<VariableReferenceExpression, Integer> inputLayout)
     {
+        // 要输出那些字段的集合
         int[] channels = expectedLayout.stream()
+                // 对流中每个算子做这个操作
                 .peek(variable -> checkArgument(inputLayout.containsKey(variable), "channel not found for variable: %s", variable))
                 .mapToInt(inputLayout::get)
                 .toArray();
 
+        // 如果输出的和输入的相同，则返回函数的参数
         if (Arrays.equals(channels, range(0, inputLayout.size()).toArray())) {
             // this is an identity mapping
+            // 这是一个identity映射
             return Function.identity();
         }
 
+        // 返回包含这些列的一个page。
         return new PageChannelSelector(channels);
     }
 
@@ -3244,15 +3440,22 @@ public class LocalExecutionPlanner
     }
 
     /**
+     * 物理算子
+     * 表示一个物理算子，持有了算子工厂列表，就可以调用工厂生成不同类型的算子。
+     *
      * 封装物理运算符以及逻辑变量到通道/字段的映射
      * Encapsulates an physical operator plus the mapping of logical variables to channel/field
      */
     private static class PhysicalOperation
     {
+        // 算子工厂，创建算子的时候，一个PhysicalOperation对应一个OperatorFactory
+        // 但是如果传入了另外的PhysicalOperation，source，表示当前算子，依赖多个数据源
         private final List<OperatorFactory> operatorFactories;
+        // 输出布局
         private final Map<VariableReferenceExpression, Integer> layout;
+        // 输出的数据类型
         private final List<Type> types;
-
+        // pipeline执行策略
         private final PipelineExecutionStrategy pipelineExecutionStrategy;
 
         public PhysicalOperation(OperatorFactory operatorFactory, Map<VariableReferenceExpression, Integer> layout, LocalExecutionPlanContext context, PipelineExecutionStrategy pipelineExecutionStrategy)

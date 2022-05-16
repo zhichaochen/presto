@@ -27,6 +27,10 @@ import java.util.stream.IntStream;
 
 import static com.google.common.collect.ImmutableList.toImmutableList;
 
+/**
+ * LookupJoinOperator工具类
+ * 主要用于创建不同种类的算子
+ */
 public class LookupJoinOperators
 {
     public enum JoinType

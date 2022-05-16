@@ -33,8 +33,8 @@ import static java.util.Collections.unmodifiableList;
 public final class FilterNode
         extends PlanNode
 {
-    private final PlanNode source;
-    private final RowExpression predicate;
+    private final PlanNode source; // 优化后的节点
+    private final RowExpression predicate; // 谓词
 
     @JsonCreator
     public FilterNode(@JsonProperty("id") PlanNodeId id,

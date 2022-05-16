@@ -42,6 +42,8 @@ import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 
 /**
+ * JoinGraph表示联接序列，其中图中的节点是要连接的平面节点，并且所有边都是相等连接的一对节点之间的条件
+ *
  * JoinGraph represents sequence of Joins, where nodes in the graph
  * are PlanNodes that are being joined and edges are all equality join
  * conditions between pair of nodes.

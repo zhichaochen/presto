@@ -39,6 +39,10 @@ import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toSet;
 
 /**
+ * 此运算符充当简单的“直通”管道，同时保存其输入页面。
+ * 收集的页面的值用于创建运行时筛选约束（用于内部联接中的探测端表扫描）。
+ * 我们只支持小的构建侧页（在使用“广播”连接时应该是这样）
+ *
  * This operator acts as a simple "pass-through" pipe, while saving its input pages.
  * The collected pages' value are used for creating a run-time filtering constraint (for probe-side table scan in an inner join).
  * We support only small build-side pages (which should be the case when using "broadcast" join).
@@ -207,6 +211,7 @@ public class DynamicFilterSourceOperator
         long filterSizeInBytes = 0;
         int filterPositionsCount = 0;
         // Collect only the columns which are relevant for the JOIN.
+        // 仅仅收集与JOIN相关的列
         for (int channelIndex = 0; channelIndex < channels.size(); ++channelIndex) {
             Block block = page.getBlock(channels.get(channelIndex).getIndex());
             TypedSet valueSet = valueSets[channelIndex];

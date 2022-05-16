@@ -191,18 +191,11 @@ public class PlanFragmenter
     }
 
     /**
-     * 执行计划分段
-     * @param session
-     * @param plan
-     * @param forceSingleNode
-     * @param idAllocator
-     * @param variableAllocator
-     * @param warningCollector
-     * @return
+     * 创建子计划
      */
     public SubPlan createSubPlans(Session session, Plan plan, boolean forceSingleNode, PlanNodeIdAllocator idAllocator, PlanVariableAllocator variableAllocator, WarningCollector warningCollector)
     {
-        // 创建一个段
+        // 创建段生成器
         Fragmenter fragmenter = new Fragmenter(
                 session,
                 metadata,
@@ -212,25 +205,28 @@ public class PlanFragmenter
                 sqlParser,
                 idAllocator,
                 variableAllocator,
-                // 查询表写入节点ID
+                // 查询TableWriterNode ID
                 getTableWriterNodeIds(plan.getRoot()));
 
-        // 片段配置对象
+        // 段属性，可以理解为Fragment的上下文
         FragmentProperties properties = new FragmentProperties(new PartitioningScheme(
                 Partitioning.create(SINGLE_DISTRIBUTION, ImmutableList.of()),
                 plan.getRoot().getOutputVariables()));
-        // 如果强制单个节点，则设置为单节点分布式
+        // 如果强制单个节点，则设置为单节点分布
         if (forceSingleNode || isForceSingleNodeOutput(session)) {
             properties = properties.setSingleNodeDistribution();
         }
 
-        // 重写计划，这里的重写是为了什么呢?
+        // 这里会visit plan node，其中：fragmenter是visitor，Plan是计划，properties是context
+        // TODO 重写计划段，目的就是为了给每个节点设置分区方式，方便调度。其中visitExchangeNode中会递归查找ExchangeNode节点，并处理
         PlanNode root = SimplePlanRewriter.rewriteWith(fragmenter, plan.getRoot(), properties);
-        // 构建段
+        // TODO 构建【root段】，上面的段会查找ExchangeNode，并生成多个子Fragmented，这里【还需要一个Root Fragmente】，比如：OutputNode应该属于root Fragmenter
         SubPlan subPlan = fragmenter.buildRootFragment(root, properties);
-        // 如果需要重新分配分区句柄，在这里形成了一个递归，形成了一个阶段的嵌套结构
+        // 如果需要重新设置分区，则重新设置
+        // 为啥要重新分配呢？
+        // TODO 在这里会生成递归生成段，每个SubPlan会生成一个段，每个
         subPlan = reassignPartitioningHandleIfNecessary(session, subPlan);
-        // 如果不是强制单节点，则分析分组
+        // 如果不是强制单节点，则分析分组执行
         if (!forceSingleNode) {
             // grouped execution is not supported for SINGLE_DISTRIBUTION
             // 分析分组执行 ： SINGLE_DISTRIBUTION 不支持分组执行
@@ -363,19 +359,18 @@ public class PlanFragmenter
      */
     private SubPlan reassignPartitioningHandleIfNecessaryHelper(Session session, SubPlan subPlan, PartitioningHandle newOutputPartitioningHandle)
     {
-        // 上层的
+        // root段
         PlanFragment fragment = subPlan.getFragment();
         // 逻辑计划根节点
         PlanNode newRoot = fragment.getRoot();
         // If the fragment's partitioning is SINGLE or COORDINATOR_ONLY, leave the sources as is (this is for single-node execution)
-
         // 如果片段的分区是SINGLE或COORDINATOR_ONLY，则保持源的原样（这是用于单节点执行）
+        // 如果不是单节点，则替换TableScanNode的TableHandle
         if (!fragment.getPartitioning().isSingleNode()) {
-            // 使用PartitioningHandleReassigner为该节点重新分配分区句柄
             PartitioningHandleReassigner partitioningHandleReassigner = new PartitioningHandleReassigner(fragment.getPartitioning(), metadata, session);
             newRoot = SimplePlanRewriter.rewriteWith(partitioningHandleReassigner, newRoot);
         }
-        // 分区方案
+        // 替换output分区句柄
         PartitioningScheme outputPartitioningScheme = fragment.getPartitioningScheme();
         Partitioning newOutputPartitioning = outputPartitioningScheme.getPartitioning();
         if (outputPartitioningScheme.getPartitioning().getHandle().getConnectorId().isPresent()) {
@@ -402,9 +397,10 @@ public class PlanFragmenter
                 fragment.getStatsAndCosts(),
                 fragment.getJsonRepresentation());
 
+        // 对其子节点做相同的操作，并创建新的SubPlan替换老的SubPlan
         ImmutableList.Builder<SubPlan> childrenBuilder = ImmutableList.builder();
-        // 遍历当前计划的所有子计划
         for (SubPlan child : subPlan.getChildren()) {
+            // TODO 这里会递归，每个子计划生成一个PlanFragment
             childrenBuilder.add(reassignPartitioningHandleIfNecessaryHelper(session, child, fragment.getPartitioning()));
         }
         return new SubPlan(newFragment, childrenBuilder.build());
@@ -460,6 +456,12 @@ public class PlanFragmenter
             this.statisticsAggregationPlanner = new StatisticsAggregationPlanner(variableAllocator, metadata);
         }
 
+        /**
+         * 构建根Fragment
+         * @param root
+         * @param properties
+         * @return
+         */
         public SubPlan buildRootFragment(PlanNode root, FragmentProperties properties)
         {
             return buildFragment(root, properties, new PlanFragmentId(ROOT_FRAGMENT_ID));
@@ -471,7 +473,7 @@ public class PlanFragmenter
         }
 
         /**
-         * 构建段
+         * 构建计划段
          * @param root
          * @param properties
          * @param fragmentId
@@ -479,7 +481,7 @@ public class PlanFragmenter
          */
         private SubPlan buildFragment(PlanNode root, FragmentProperties properties, PlanFragmentId fragmentId)
         {
-            // 生成一个有序的计划节点列表
+            // 从根节点开始，生成一个有序的计划节点列表，比如join，先调度right join
             List<PlanNodeId> schedulingOrder = scheduleOrder(root);
             checkArgument(
                     properties.getPartitionedSources().equals(ImmutableSet.copyOf(schedulingOrder)),
@@ -489,11 +491,14 @@ public class PlanFragmenter
 
             // 提取所有输出变量，比如 t.name, t.age
             Set<VariableReferenceExpression> fragmentVariableTypes = extractOutputVariables(root);
+            // 校验计划段
             planChecker.validatePlanFragment(root, session, metadata, sqlParser, TypeProvider.fromVariables(fragmentVariableTypes), warningCollector);
 
-            // 查找写节点
+            // 查找TableWriter节点的ID列表，TODO 这里为啥要TableWriter呢？
             Set<PlanNodeId> tableWriterNodeIds = getTableWriterNodeIds(root);
+            // tableWriterNodeIds中是否包含WriterNodeIds
             boolean outputTableWriterFragment = tableWriterNodeIds.stream().anyMatch(outputTableWriterNodeIds::contains);
+            // 如果是写表，必须要包含TableWriter节点
             if (outputTableWriterFragment) {
                 verify(
                         outputTableWriterNodeIds.containsAll(tableWriterNodeIds),
@@ -502,7 +507,7 @@ public class PlanFragmenter
                         tableWriterNodeIds);
             }
 
-            // 计划段
+            // 创建计划段
             PlanFragment fragment = new PlanFragment(
                     fragmentId,
                     root,
@@ -518,9 +523,11 @@ public class PlanFragmenter
             return new SubPlan(fragment, properties.getChildren());
         }
 
+        // TODO 对于查询语句来说，root节点就是OutputNode
         @Override
         public PlanNode visitOutput(OutputNode node, RewriteContext<FragmentProperties> context)
         {
+            // 如果强制在单节点上，则设置为单节点。
             if (isForceSingleNodeOutput(session)) {
                 context.get().setSingleNodeDistribution();
             }
@@ -528,6 +535,7 @@ public class PlanFragmenter
             return context.defaultRewrite(node, context.get());
         }
 
+        // 对于Explain操作而言，一定是在协调器上执行的，所以直接设置为CoordinatorOnly
         @Override
         public PlanNode visitExplainAnalyze(ExplainAnalyzeNode node, RewriteContext<FragmentProperties> context)
         {
@@ -535,6 +543,7 @@ public class PlanFragmenter
             return context.defaultRewrite(node, context.get());
         }
 
+        // 对于统计操作来说，只在协调器上处理即可，所以StatisticsWriterNode设置为协调器
         @Override
         public PlanNode visitStatisticsWriterNode(StatisticsWriterNode node, RewriteContext<FragmentProperties> context)
         {
@@ -542,6 +551,7 @@ public class PlanFragmenter
             return context.defaultRewrite(node, context.get());
         }
 
+        // 对于TableFinishNode完成节点来说，必须在协调器上完成，所以设置
         @Override
         public PlanNode visitTableFinish(TableFinishNode node, RewriteContext<FragmentProperties> context)
         {
@@ -549,6 +559,7 @@ public class PlanFragmenter
             return context.defaultRewrite(node, context.get());
         }
 
+        // 元数据删除，也是在协调节点上进行的
         @Override
         public PlanNode visitMetadataDelete(MetadataDeleteNode node, RewriteContext<FragmentProperties> context)
         {
@@ -556,14 +567,18 @@ public class PlanFragmenter
             return context.defaultRewrite(node, context.get());
         }
 
+        // TODO tableScan 这个节点就特殊了，TableScanNode会查询表数据
         @Override
         public PlanNode visitTableScan(TableScanNode node, RewriteContext<FragmentProperties> context)
         {
+            // 获取分区句柄，默认SOURCE_DISTRIBUTION
             PartitioningHandle partitioning = metadata.getLayout(session, node.getTable())
                     .getTablePartitioning()
                     .map(TablePartitioning::getPartitioningHandle)
                     .orElse(SOURCE_DISTRIBUTION);
+            // 添加source分布
             context.get().addSourceDistribution(node.getId(), partitioning, metadata, session);
+            // 访问TableScanNode的子节点
             return context.defaultRewrite(node, context.get());
         }
 
@@ -579,6 +594,7 @@ public class PlanFragmenter
             return context.defaultRewrite(node, context.get());
         }
 
+        // ValuesNode : 查询最终数据，只能在某个节点上进行，所有使用SingleNode
         @Override
         public PlanNode visitValues(ValuesNode node, RewriteContext<FragmentProperties> context)
         {
@@ -587,7 +603,8 @@ public class PlanFragmenter
         }
 
         /**
-         * 访问数据狡猾
+         * 访问数据交换，核心在这个节点
+         * 怎么分段是以产生网络IO为条件，进行分段的
          * @param exchange
          * @param context
          * @return
@@ -599,52 +616,81 @@ public class PlanFragmenter
                 case LOCAL:
                     return context.defaultRewrite(exchange, context.get());
                 case REMOTE_STREAMING:
+                    // 创建StreamingExchange, 会创建RemoteSourceNode节点
                     return createRemoteStreamingExchange(exchange, context);
                 case REMOTE_MATERIALIZED:
+                    // 创建物化Exchange，会创建TableScanNode节点
                     return createRemoteMaterializedExchange(exchange, context);
                 default:
                     throw new IllegalArgumentException("Unexpected exchange scope: " + exchange.getScope());
             }
         }
 
+        /**
+         * 创建拉取其他任务的计划节点
+         * @param exchange
+         * @param context
+         * @return
+         */
         private PlanNode createRemoteStreamingExchange(ExchangeNode exchange, RewriteContext<FragmentProperties> context)
         {
             checkArgument(exchange.getScope() == REMOTE_STREAMING, "Unexpected exchange scope: %s", exchange.getScope());
 
+            // 分区方案
             PartitioningScheme partitioningScheme = exchange.getPartitioningScheme();
 
+            // 如果是GATHER类型（聚集），聚集只能在单个节点上进行操作，所以设置为Single
             if (exchange.getType() == ExchangeNode.Type.GATHER) {
                 context.get().setSingleNodeDistribution();
             }
+            // 如果是重分区类型，通过分区方案进行分区
             else if (exchange.getType() == ExchangeNode.Type.REPARTITION) {
                 context.get().setDistribution(partitioningScheme.getPartitioning().getHandle(), metadata, session);
             }
 
+            // 遍历exchange下面的子节点
             ImmutableList.Builder<SubPlan> builder = ImmutableList.builder();
             for (int sourceIndex = 0; sourceIndex < exchange.getSources().size(); sourceIndex++) {
+                // 分段是以是否产生网络交互为基准进行分段的，所以在这里会重新创建一个段
+                // 创建段的上下文对象
                 FragmentProperties childProperties = new FragmentProperties(partitioningScheme.translateOutputLayout(exchange.getInputs().get(sourceIndex)));
+                // 创建新的段并构建新的SubPlan
+                // TODO 这里是重点，会调用ExchangeNode的子节点，继续递归查找ExchangeNode
                 builder.add(buildSubPlan(exchange.getSources().get(sourceIndex), childProperties, context));
             }
 
+            // 设置FragmentProperties的子SubPlan
             List<SubPlan> children = builder.build();
+            // TODO 这里是特别重要的，后期会根据这个生成Fragment，每个SubPlan生成一个段
             context.get().addChildren(children);
 
+            // 返回子PlanFragmentId
             List<PlanFragmentId> childrenIds = children.stream()
                     .map(SubPlan::getFragment)
                     .map(PlanFragment::getId)
                     .collect(toImmutableList());
 
+            // 创建RemoteSourceNode
             return new RemoteSourceNode(exchange.getId(), childrenIds, exchange.getOutputVariables(), exchange.isEnsureSourceOrdering(), exchange.getOrderingScheme(), exchange.getType());
         }
 
+        /**
+         * 创建远程物化节点
+         * @param exchange
+         * @param context
+         * @return
+         */
         private PlanNode createRemoteMaterializedExchange(ExchangeNode exchange, RewriteContext<FragmentProperties> context)
         {
             checkArgument(exchange.getType() == REPARTITION, "Unexpected exchange type: %s", exchange.getType());
             checkArgument(exchange.getScope() == REMOTE_MATERIALIZED, "Unexpected exchange scope: %s", exchange.getScope());
 
+            // 分区视图
             PartitioningScheme partitioningScheme = exchange.getPartitioningScheme();
 
+            // 分区句柄
             PartitioningHandle partitioningHandle = partitioningScheme.getPartitioning().getHandle();
+            // 连接器ID
             ConnectorId connectorId = partitioningHandle.getConnectorId()
                     .orElseThrow(() -> new PrestoException(
                             NOT_SUPPORTED,
@@ -652,16 +698,23 @@ public class PlanFragmenter
                                     "The catalog must support providing a custom partitioning and storing temporary tables."));
 
             Partitioning partitioning = partitioningScheme.getPartitioning();
+            // 分配分区变量
             PartitioningVariableAssignments partitioningVariableAssignments = assignPartitioningVariables(partitioning);
+            // 分配临时表列名
             Map<VariableReferenceExpression, ColumnMetadata> variableToColumnMap = assignTemporaryTableColumnNames(exchange.getOutputVariables(), partitioningVariableAssignments.getConstants().keySet());
+            // 分区变量列表
             List<VariableReferenceExpression> partitioningVariables = partitioningVariableAssignments.getVariables();
+            // 分区变量列名列表
             List<String> partitionColumns = partitioningVariables.stream()
                     .map(variable -> variableToColumnMap.get(variable).getName())
                     .collect(toImmutableList());
+            // 分区元数据
             PartitioningMetadata partitioningMetadata = new PartitioningMetadata(partitioningHandle, partitionColumns);
 
             TableHandle temporaryTableHandle;
 
+            // 创建临时表句柄
+            // TODO 为啥需要临时表呢？因为Presto在计算过程中，可能会导致内存不足，那就需要创建临时表，将中间数据写入
             try {
                 temporaryTableHandle = metadata.createTemporaryTable(
                         session,
@@ -679,6 +732,7 @@ public class PlanFragmenter
                 throw e;
             }
 
+            // 创建【临时表】的TableScanNode
             TableScanNode scan = createTemporaryTableScan(
                     temporaryTableHandle,
                     exchange.getOutputVariables(),
@@ -688,6 +742,8 @@ public class PlanFragmenter
             checkArgument(
                     !exchange.getPartitioningScheme().isReplicateNullsAndAny(),
                     "materialized remote exchange is not supported when replicateNullsAndAny is needed");
+            // 创建临时表之后肯定要向其中写数据，所以在这里会创建TableWriteNode
+            // ExchangeNode，TableFinishNode
             TableFinishNode write = createTemporaryTableWrite(
                     temporaryTableHandle,
                     variableToColumnMap,
@@ -697,17 +753,26 @@ public class PlanFragmenter
                     partitioningVariableAssignments.getConstants(),
                     partitioningMetadata);
 
+            // 创建段属性
             FragmentProperties writeProperties = new FragmentProperties(new PartitioningScheme(
                     Partitioning.create(SINGLE_DISTRIBUTION, ImmutableList.of()),
                     write.getOutputVariables()));
             writeProperties.setCoordinatorOnlyDistribution();
 
+            // 构建子计划
+            // TODO 这里会形成递归
             List<SubPlan> children = ImmutableList.of(buildSubPlan(write, writeProperties, context));
             context.get().addChildren(children);
 
+            // 访问TableScanNode
             return visitTableScan(scan, context);
         }
 
+        /**
+         * 分配分区变量
+         * @param partitioning
+         * @return
+         */
         private PartitioningVariableAssignments assignPartitioningVariables(Partitioning partitioning)
         {
             ImmutableList.Builder<VariableReferenceExpression> variables = ImmutableList.builder();
@@ -784,7 +849,9 @@ public class PlanFragmenter
                 Map<VariableReferenceExpression, RowExpression> constantExpressions,
                 PartitioningMetadata partitioningMetadata)
         {
+            // 如果常量表达式不为空
             if (!constantExpressions.isEmpty()) {
+                // 常量变量列表
                 List<VariableReferenceExpression> constantVariables = ImmutableList.copyOf(constantExpressions.keySet());
 
                 // update outputs
@@ -933,24 +1000,39 @@ public class PlanFragmenter
                     enableStatsCollectionForTemporaryTable ? Optional.of(statisticsResult.getDescriptor()) : Optional.empty());
         }
 
+        /**
+         * 构建子计划，每个子计划生成一个PlanFragment
+         * @param node
+         * @param properties
+         * @param context
+         * @return
+         */
         private SubPlan buildSubPlan(PlanNode node, FragmentProperties properties, RewriteContext<FragmentProperties> context)
         {
+            // 创建planFragmentId
             PlanFragmentId planFragmentId = nextFragmentId();
+            // 重写节点，遇到exchange node还会继续回到这个方法。
             PlanNode child = context.rewrite(node, properties);
             return buildFragment(child, properties, planFragmentId);
         }
     }
 
     /**
-     * 段属性
+     * 记录段的一些属性，也就是段的上下文
+     *
+     * 段属性。该对象也是构建Fragment的rewrite的上下文。
      */
     private static class FragmentProperties
     {
+        // 当前SubPlan的子SubPlan
         private final List<SubPlan> children = new ArrayList<>();
 
+        // 分区方案 : SINGLE_DISTRIBUTION
         private final PartitioningScheme partitioningScheme;
 
+        // 分区句柄
         private Optional<PartitioningHandle> partitioningHandle = Optional.empty();
+        // 当前阶段的sources
         private final Set<PlanNodeId> partitionedSources = new HashSet<>();
 
         public FragmentProperties(PartitioningScheme partitioningScheme)
@@ -965,6 +1047,7 @@ public class PlanFragmenter
 
         public FragmentProperties setSingleNodeDistribution()
         {
+            // 已经是Single节点则直接返回
             if (partitioningHandle.isPresent() && partitioningHandle.get().isSingleNode()) {
                 // already single node distribution
                 return this;
@@ -975,34 +1058,48 @@ public class PlanFragmenter
                     SINGLE_DISTRIBUTION,
                     partitioningHandle);
 
+            // 设置SINGLE_DISTRIBUTION
             partitioningHandle = Optional.of(SINGLE_DISTRIBUTION);
 
             return this;
         }
 
+        /**
+         * 设置分布式
+         * @param distribution
+         * @param metadata
+         * @param session
+         * @return
+         */
         public FragmentProperties setDistribution(PartitioningHandle distribution, Metadata metadata, Session session)
         {
+            // 分区句柄不存在，则设置为空
             if (!partitioningHandle.isPresent()) {
                 partitioningHandle = Optional.of(distribution);
                 return this;
             }
 
+            // 当前分区句柄
             PartitioningHandle currentPartitioning = this.partitioningHandle.get();
 
+            // 判断当前分区句柄和传入的分区句柄是否相同，相同则返回
             if (isCompatibleSystemPartitioning(currentPartitioning, distribution)) {
                 return this;
             }
 
+            // 如果当前分区是SOURCE_DISTRIBUTION，则修改分区句柄为传入的分区句柄
             if (currentPartitioning.equals(SOURCE_DISTRIBUTION)) {
                 this.partitioningHandle = Optional.of(distribution);
                 return this;
             }
 
             // If already system SINGLE or COORDINATOR_ONLY, leave it as is (this is for single-node execution)
+            // 如果已经是单系统或仅协调器，则保持原样（这是用于单节点执行）
             if (currentPartitioning.isSingleNode()) {
                 return this;
             }
 
+            // 分区句柄是否相同
             if (currentPartitioning.equals(distribution)) {
                 return this;
             }
@@ -1023,24 +1120,41 @@ public class PlanFragmenter
                     this.partitioningHandle));
         }
 
+        /**
+         * 设置CoordinatorOnly分布
+         *
+         * @return
+         */
         public FragmentProperties setCoordinatorOnlyDistribution()
         {
+            // 如果已经是CoordinatorOnly则返回
             if (partitioningHandle.isPresent() && partitioningHandle.get().isCoordinatorOnly()) {
                 // already single node distribution
                 return this;
             }
 
             // only system SINGLE can be upgraded to COORDINATOR_ONLY
+            // 只能将SINGLE系统升级为COORDINATOR_ONLY
             checkState(!partitioningHandle.isPresent() || partitioningHandle.get().equals(SINGLE_DISTRIBUTION),
                     "Cannot overwrite partitioning with %s (currently set to %s)",
                     COORDINATOR_DISTRIBUTION,
                     partitioningHandle);
 
+            // 设置分区句柄
             partitioningHandle = Optional.of(COORDINATOR_DISTRIBUTION);
 
             return this;
         }
 
+        /**
+         * 添加source分布
+         *
+         * @param source
+         * @param distribution
+         * @param metadata
+         * @param session
+         * @return
+         */
         public FragmentProperties addSourceDistribution(PlanNodeId source, PartitioningHandle distribution, Metadata metadata, Session session)
         {
             requireNonNull(source, "source is null");
@@ -1374,6 +1488,7 @@ public class PlanFragmenter
 
     /**
      * 分区句柄重分配器
+     * 仅仅处理TableScanNode
      */
     private static final class PartitioningHandleReassigner
             extends SimplePlanRewriter<Void>
@@ -1390,7 +1505,8 @@ public class PlanFragmenter
         }
 
         /**
-         * 访问TableScanNode，重写主要做了的操作是，将原来的分区句柄，换成了新的分区句柄
+         * 访问TableScanNode
+         * 仅仅是将替代的表句柄，替换为原来的表句柄
          *
          * @param node
          * @param context
@@ -1399,17 +1515,20 @@ public class PlanFragmenter
         @Override
         public PlanNode visitTableScan(TableScanNode node, RewriteContext<Void> context)
         {
-            // 查询分区句柄
+            // 从元数据中获取分区句柄
             PartitioningHandle partitioning = metadata.getLayout(session, node.getTable())
+                    // 表分区
                     .getTablePartitioning()
                     .map(TablePartitioning::getPartitioningHandle)
                     .orElse(SOURCE_DISTRIBUTION);
 
+            // 如果分区句柄相同，则直接返回
             if (partitioning.equals(fragmentPartitioningHandle)) {
                 // do nothing if the current scan node's partitioning matches the fragment's
                 return node;
             }
 
+            // 获取替代表句柄
             TableHandle newTableHandle = metadata.getAlternativeTableHandle(session, node.getTable(), fragmentPartitioningHandle);
             return new TableScanNode(
                     node.getId(),
@@ -1421,6 +1540,9 @@ public class PlanFragmenter
         }
     }
 
+    /**
+     * 分区变量分配信息
+     */
     private static class PartitioningVariableAssignments
     {
         private final List<VariableReferenceExpression> variables;

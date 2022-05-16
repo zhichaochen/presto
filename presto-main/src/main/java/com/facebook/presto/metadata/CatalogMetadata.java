@@ -29,6 +29,9 @@ import static com.google.common.base.MoreObjects.toStringHelper;
 import static com.google.common.collect.Sets.immutableEnumSet;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * catalog 元数据
+ */
 public class CatalogMetadata
 {
     private static final String INFORMATION_SCHEMA_NAME = "information_schema";

@@ -376,6 +376,11 @@ public class ElasticsearchClient
         return nodes.get();
     }
 
+    /**
+     * ES的分片信息
+     * @param index
+     * @return
+     */
     public List<Shard> getSearchShards(String index)
     {
         Map<String, ElasticsearchNode> nodeById = getNodes().stream()

@@ -27,14 +27,14 @@ import static java.util.Objects.requireNonNull;
 /**
  * 表句柄
  *
- * 存储了与数据库表交互的一些信息
+ * 存储了与数据库表交互的一些信息，通过该信息能获取到表的信息。
  */
 public final class TableHandle
 {
     // 连接ID
     private final ConnectorId connectorId;
     // 表连接句柄
-    private final ConnectorTableHandle connectorHandle;
+    private final ConnectorTableHandle connectorHandle; // 连接器表句柄
     // 事务句柄
     private final ConnectorTransactionHandle transaction;
 

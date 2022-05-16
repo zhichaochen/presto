@@ -22,8 +22,13 @@ import static com.facebook.presto.common.block.BlockUtil.checkArrayRange;
 import static com.facebook.presto.common.block.DictionaryId.randomDictionaryId;
 
 /**
+ * 一列数据
  * 块：每个Block对应一个字段，也就是一列数据
  * presto是以page进行数据处理的，page中有多个列的数据，每一列就是一个block
+ *
+ * 其中：position怎么理解呢？
+ * 在一个page中包含多个block，position表示当前block是第几个，也就是表示当前block的位置，
+ * 通过position * block type，就可知道占用多少字节。
  */
 public interface Block
         extends UncheckedBlock
@@ -178,6 +183,7 @@ public interface Block
     Block getSingleValueBlock(int position);
 
     /**
+     * 返回此块中的位置计数
      * Returns the number of positions in this block.
      */
     int getPositionCount();
@@ -300,6 +306,8 @@ public interface Block
     Block getRegion(int positionOffset, int length);
 
     /**
+     * 返回从指定位置开始并延伸到指定位置的块指定长度。指定的区域必须完全包含在此块中。
+     *
      * Returns a block starting at the specified position and extends for the
      * specified length.  The specified region must be entirely contained
      * within this block.

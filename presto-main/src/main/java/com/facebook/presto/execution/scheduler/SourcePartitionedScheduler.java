@@ -58,7 +58,10 @@ import static com.google.common.util.concurrent.Futures.nonCancellationPropagati
 import static java.util.Objects.requireNonNull;
 
 /**
- * 主要处理 Source task
+ * SOURCE_DISTRIBUTION的调度器
+ * 主要是调度不分区、不分组的情况。默认会使用SOURCE_DISTRIBUTION，所以默认会使用该调度器进行调度。
+ * 怎么理解呢？看其名字，SourcePartitioned，表示Source已经分区了，
+ * 向ES这种，已经自动将数据分成多个部分了，每个split就是一个部分，所以不需要分区了。
  */
 public class SourcePartitionedScheduler
         implements SourceScheduler
@@ -88,8 +91,8 @@ public class SourcePartitionedScheduler
         FINISHED
     }
 
-    private final SqlStageExecution stage;
-    private final SplitSource splitSource;
+    private final SqlStageExecution stage; //
+    private final SplitSource splitSource; // 切分资源
     private final SplitPlacementPolicy splitPlacementPolicy;
     private final int splitBatchSize;
     private final PlanNodeId partitionedNode;
@@ -102,6 +105,11 @@ public class SourcePartitionedScheduler
     private State state = State.INITIALIZED;
 
     private SettableFuture<?> whenFinishedOrNewLifespanAdded = SettableFuture.create();
+
+    public PlanNodeId getPlanNodeId()
+    {
+        return partitionedNode;
+    }
 
     private SourcePartitionedScheduler(
             SqlStageExecution stage,
@@ -121,12 +129,8 @@ public class SourcePartitionedScheduler
         this.groupedExecution = groupedExecution;
     }
 
-    public PlanNodeId getPlanNodeId()
-    {
-        return partitionedNode;
-    }
-
     /**
+     * 创建SourcePartitionedScheduler作为StageScheduler（阶段调度器）
      * Obtains an instance of {@code SourcePartitionedScheduler} suitable for use as a
      * stage scheduler.
      * <p>
@@ -141,12 +145,15 @@ public class SourcePartitionedScheduler
             int splitBatchSize)
     {
         SourcePartitionedScheduler sourcePartitionedScheduler = new SourcePartitionedScheduler(stage, partitionedNode, splitSource, splitPlacementPolicy, splitBatchSize, false);
+        // 不分组不分区
         sourcePartitionedScheduler.startLifespan(Lifespan.taskWide(), NOT_PARTITIONED);
 
+        // 创建SOURCE_DISTRIBUTION的调度器，在调度方法中本质上使用了sourcePartitionedScheduler进行调度
         return new StageScheduler() {
             @Override
             public ScheduleResult schedule()
             {
+                // TODO 在调度的时候本质上是调用了 SourcePartitionedScheduler 去调度。
                 ScheduleResult scheduleResult = sourcePartitionedScheduler.schedule();
                 sourcePartitionedScheduler.drainCompletelyScheduledLifespans();
                 return scheduleResult;
@@ -161,6 +168,7 @@ public class SourcePartitionedScheduler
     }
 
     /**
+     *
      * Obtains a {@code SourceScheduler} suitable for use in FixedSourcePartitionedScheduler.
      * <p>
      * This returns a {@code SourceScheduler} that can be used for a pipeline
@@ -182,6 +190,11 @@ public class SourcePartitionedScheduler
         return new SourcePartitionedScheduler(stage, partitionedNode, splitSource, splitPlacementPolicy, splitBatchSize, groupedExecution);
     }
 
+    /**
+     * 开始生命周期
+     * @param lifespan
+     * @param partitionHandle ：很多情况可能未分区
+     */
     @Override
     public synchronized void startLifespan(Lifespan lifespan, ConnectorPartitionHandle partitionHandle)
     {
@@ -192,6 +205,11 @@ public class SourcePartitionedScheduler
         whenFinishedOrNewLifespanAdded = SettableFuture.create();
     }
 
+    /**
+     * 倒回Lifespan
+     * @param lifespan
+     * @param partitionHandle
+     */
     @Override
     public synchronized void rewindLifespan(Lifespan lifespan, ConnectorPartitionHandle partitionHandle)
     {
@@ -201,38 +219,53 @@ public class SourcePartitionedScheduler
         splitSource.rewind(partitionHandle);
     }
 
+    /**
+     * 调度source task
+     * @return
+     */
     @Override
     public synchronized ScheduleResult schedule()
     {
         dropListenersFromWhenFinishedOrNewLifespansAdded();
 
+        // 记录所有已分配的Split的数量
         int overallSplitAssignmentCount = 0;
+        // 全部的新任务
         ImmutableSet.Builder<RemoteTask> overallNewTasks = ImmutableSet.builder();
+        // 获取split时阻塞的集合
         List<ListenableFuture<?>> overallBlockedFutures = new ArrayList<>();
         boolean anyBlockedOnPlacements = false;
         boolean anyBlockedOnNextSplitBatch = false;
         boolean anyNotBlocked = false;
 
+        // 遍历调度组
         for (Entry<Lifespan, ScheduleGroup> entry : scheduleGroups.entrySet()) {
+            // 生命周期
             Lifespan lifespan = entry.getKey();
             ScheduleGroup scheduleGroup = entry.getValue();
 
+            // 如果没有分片了，确认是否为空
             if (scheduleGroup.state == ScheduleGroupState.NO_MORE_SPLITS || scheduleGroup.state == ScheduleGroupState.DONE) {
                 verify(scheduleGroup.nextSplitBatchFuture == null);
             }
+            // 如果没有待处理的spilit，则拉取
             else if (scheduleGroup.pendingSplits.isEmpty()) {
                 // try to get the next batch
+                // 尝试获取下一批次
                 if (scheduleGroup.nextSplitBatchFuture == null) {
                     scheduleGroup.nextSplitBatchFuture = splitSource.getNextBatch(scheduleGroup.partitionHandle, lifespan, splitBatchSize);
 
+                    // 添加回调
                     long start = System.nanoTime();
                     addSuccessCallback(scheduleGroup.nextSplitBatchFuture, () -> stage.recordGetSplitTime(start));
                 }
 
+                // 获取下一批split完成
                 if (scheduleGroup.nextSplitBatchFuture.isDone()) {
                     SplitBatch nextSplits = getFutureValue(scheduleGroup.nextSplitBatchFuture);
                     scheduleGroup.nextSplitBatchFuture = null;
                     scheduleGroup.pendingSplits = new HashSet<>(nextSplits.getSplits());
+                    // 如果是最后一批，设置成NO_MORE_SPLITS状态
                     if (nextSplits.isLastBatch()) {
                         if (scheduleGroup.state == ScheduleGroupState.INITIALIZED && scheduleGroup.pendingSplits.isEmpty()) {
                             // Add an empty split in case no splits have been produced for the source.
@@ -241,6 +274,7 @@ public class SourcePartitionedScheduler
                             // However, there are certain non-source operators that may produce output without any input,
                             // for example, 1) an AggregationOperator, 2) a HashAggregationOperator where one of the grouping sets is ().
                             // Scheduling an empty split kicks off necessary driver instantiation to make this work.
+                            // 创建一个split
                             scheduleGroup.pendingSplits.add(new Split(
                                     splitSource.getConnectorId(),
                                     splitSource.getTransactionHandle(),
@@ -248,6 +282,7 @@ public class SourcePartitionedScheduler
                                     lifespan,
                                     NON_CACHEABLE));
                         }
+                        // 最后一批次，设置状态为NO_MORE_SPLITS
                         scheduleGroup.state = ScheduleGroupState.NO_MORE_SPLITS;
                     }
                 }
@@ -258,13 +293,16 @@ public class SourcePartitionedScheduler
                 }
             }
 
+            // Split放置结果
             Multimap<InternalNode, Split> splitAssignment = ImmutableMultimap.of();
+            // 如果已经有准备好的split
             if (!scheduleGroup.pendingSplits.isEmpty()) {
                 if (!scheduleGroup.placementFuture.isDone()) {
                     anyBlockedOnPlacements = true;
                     continue;
                 }
 
+                // 更新调度状态为SPLITS_ADDED
                 if (scheduleGroup.state == ScheduleGroupState.INITIALIZED) {
                     scheduleGroup.state = ScheduleGroupState.SPLITS_ADDED;
                 }
@@ -273,14 +311,17 @@ public class SourcePartitionedScheduler
                 }
 
                 // calculate placements for splits
+                // TODO 计算split的位置，也就是将split放置到Worker节点上
                 SplitPlacementResult splitPlacementResult = splitPlacementPolicy.computeAssignments(scheduleGroup.pendingSplits);
                 splitAssignment = splitPlacementResult.getAssignments();
 
                 // remove splits with successful placements
+                // 从scheduleGroup.pendingSplits中移除已经成功分配节点的splits
                 splitAssignment.values().forEach(scheduleGroup.pendingSplits::remove); // AbstractSet.removeAll performs terribly here.
                 overallSplitAssignmentCount += splitAssignment.size();
 
                 // if not completed placed, mark scheduleGroup as blocked on placement
+                // 如果仍有split处于pening未被分配，则将该scheduleGroup标记为阻塞
                 if (!scheduleGroup.pendingSplits.isEmpty()) {
                     scheduleGroup.placementFuture = splitPlacementResult.getBlocked();
                     overallBlockedFutures.add(scheduleGroup.placementFuture);
@@ -289,9 +330,14 @@ public class SourcePartitionedScheduler
             }
 
             // if no new splits will be assigned, update state and attach completion event
+            // 如果没有新splits待分配，则更新scheduleGroup状态为DONE，并为每个节点添加完成事件
+            // TODO 没有更多Splits，如果不为空，会对remote task进行通知
             Multimap<InternalNode, Lifespan> noMoreSplitsNotification = ImmutableMultimap.of();
+            // 如果挂起的split为空
             if (scheduleGroup.pendingSplits.isEmpty() && scheduleGroup.state == ScheduleGroupState.NO_MORE_SPLITS) {
+                // 调度组状态设置为DONE
                 scheduleGroup.state = ScheduleGroupState.DONE;
+                // 如果是分组，TaskWide是不分组
                 if (!lifespan.isTaskWide()) {
                     InternalNode node = ((BucketedSplitPlacementPolicy) splitPlacementPolicy).getNodeForBucket(lifespan.getId());
                     noMoreSplitsNotification = ImmutableMultimap.of(node, lifespan);
@@ -299,6 +345,8 @@ public class SourcePartitionedScheduler
             }
 
             // assign the splits with successful placements
+            // 将对应分配的分片与完成事件消息分发给节点，并将分发的task添加到总task列表中
+            // TODO 这里是关键，在这里会将split调度到Worker
             overallNewTasks.addAll(assignSplits(splitAssignment, noMoreSplitsNotification));
 
             // Assert that "placement future is not done" implies "pendingSplits is not empty".
@@ -308,6 +356,7 @@ public class SourcePartitionedScheduler
             // 1. It always returns a completed future when there are no tasks, regardless of whether all nodes are blocked.
             // 2. The returned future will only be completed when a node with an assigned task becomes unblocked. Other nodes don't trigger future completion.
             // As a result, to avoid busy loops caused by 1, we check pendingSplits.isEmpty() instead of placementFuture.isDone() here.
+            // 断言“放置未完成”意味着“pendingSplits不为空”。
             if (scheduleGroup.nextSplitBatchFuture == null && scheduleGroup.pendingSplits.isEmpty() && scheduleGroup.state != ScheduleGroupState.DONE) {
                 anyNotBlocked = true;
             }
@@ -325,6 +374,7 @@ public class SourcePartitionedScheduler
         // we can no longer claim schedule is complete after all splits are scheduled.
         // Splits schedule can only be considered as finished when all lifespan executions are done
         // (by calling `notifyAllLifespansFinishedExecution`)
+        // 更新状态
         if ((state == State.NO_MORE_SPLITS || state == State.FINISHED) || (!groupedExecution && lifespanAdded && scheduleGroups.isEmpty() && splitSource.isFinished())) {
             switch (state) {
                 case INITIALIZED:
@@ -349,10 +399,12 @@ public class SourcePartitionedScheduler
             }
         }
 
+        // 没有任何阻塞，则返回未阻塞的调度结果。
         if (anyNotBlocked) {
             return ScheduleResult.nonBlocked(false, overallNewTasks.build(), overallSplitAssignmentCount);
         }
 
+        // 以下就是被阻塞的情况了。
         if (anyBlockedOnPlacements) {
             // In a broadcast join, output buffers of the tasks in build source stage have to
             // hold onto all data produced before probe side task scheduling finishes,
@@ -364,12 +416,17 @@ public class SourcePartitionedScheduler
             // The build side blocks due to a full output buffer.
             // In the meantime the probe side split cannot be consumed since
             // builder side hash table construction has not finished.
-            //
+            // 在广播联接中，构建源阶段中任务的输出缓冲区，必须保留探测器端任务调度完成前生成的所有数据，即使数据已被所有已知消费者确认。
+            // 这是因为在探测端任务调度完成之前，可能会添加新的使用者。、
+
+            // 因此，以下行是防止死锁所必需的，由于构建和探测都无法取得任何进展。由于构建和探测都无法取得任何进展。由于输出缓冲区已满，生成端会阻塞。
+            // /同时，由于生成器端哈希表构造尚未完成。
             // TODO: When SourcePartitionedScheduler is used as a SourceScheduler, it shouldn't need to worry about
             //  task scheduling and creation -- these are done by the StageScheduler.
             overallNewTasks.addAll(finalizeTaskCreationIfNecessary());
         }
 
+        // 设置阻塞原因
         ScheduleResult.BlockedReason blockedReason;
         if (anyBlockedOnNextSplitBatch) {
             blockedReason = anyBlockedOnPlacements ? MIXED_SPLIT_QUEUES_FULL_AND_WAITING_FOR_SOURCE : WAITING_FOR_SOURCE;
@@ -379,6 +436,7 @@ public class SourcePartitionedScheduler
         }
 
         overallBlockedFutures.add(whenFinishedOrNewLifespanAdded);
+        // 返回阻塞类型的调度结果
         return ScheduleResult.blocked(
                 false,
                 overallNewTasks.build(),
@@ -412,6 +470,10 @@ public class SourcePartitionedScheduler
         splitSource.close();
     }
 
+    /**
+     * 完成生命周期
+     * @return
+     */
     @Override
     public synchronized List<Lifespan> drainCompletelyScheduledLifespans()
     {
@@ -449,24 +511,35 @@ public class SourcePartitionedScheduler
         whenFinishedOrNewLifespanAdded.set(null);
     }
 
+    /**
+     * 分配splits
+     * @param splitAssignment
+     * @param noMoreSplitsNotification
+     * @return
+     */
     private Set<RemoteTask> assignSplits(Multimap<InternalNode, Split> splitAssignment, Multimap<InternalNode, Lifespan> noMoreSplitsNotification)
     {
+        // 新任务
         ImmutableSet.Builder<RemoteTask> newTasks = ImmutableSet.builder();
 
         ImmutableSet<InternalNode> nodes = ImmutableSet.<InternalNode>builder()
                 .addAll(splitAssignment.keySet())
                 .addAll(noMoreSplitsNotification.keySet())
                 .build();
+        // 遍历所有集群节点
         for (InternalNode node : nodes) {
+            // worker 节点
             ImmutableMultimap<PlanNodeId, Split> splits = ImmutableMultimap.<PlanNodeId, Split>builder()
                     .putAll(partitionedNode, splitAssignment.get(node))
                     .build();
 
+            // 没有split集合
             ImmutableMultimap.Builder<PlanNodeId, Lifespan> noMoreSplits = ImmutableMultimap.builder();
             if (noMoreSplitsNotification.containsKey(node)) {
                 noMoreSplits.putAll(partitionedNode, noMoreSplitsNotification.get(node));
             }
 
+            // TODO 调度split
             newTasks.addAll(stage.scheduleSplits(
                     node,
                     splits,
@@ -496,12 +569,20 @@ public class SourcePartitionedScheduler
         return newTasks;
     }
 
+    /**
+     * 调度组
+     */
     private static class ScheduleGroup
     {
+        // 分区句柄
         public final ConnectorPartitionHandle partitionHandle;
+        // 下一批次split
         public ListenableFuture<SplitBatch> nextSplitBatchFuture;
+        //
         public ListenableFuture<?> placementFuture = Futures.immediateFuture(null);
+        // 挂起的split，待调度的split
         public Set<Split> pendingSplits = new HashSet<>();
+        // 调度分组初始状态
         public ScheduleGroupState state = ScheduleGroupState.INITIALIZED;
 
         public ScheduleGroup(ConnectorPartitionHandle partitionHandle)
@@ -510,6 +591,9 @@ public class SourcePartitionedScheduler
         }
     }
 
+    /**
+     * 调度组状态
+     */
     private enum ScheduleGroupState
     {
         /**

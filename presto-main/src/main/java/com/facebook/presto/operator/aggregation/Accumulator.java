@@ -21,6 +21,9 @@ import com.facebook.presto.spi.function.WindowIndex;
 
 import java.util.List;
 
+/**
+ * 累加器
+ */
 public interface Accumulator
 {
     long getEstimatedSize();
